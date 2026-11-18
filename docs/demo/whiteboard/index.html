@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Whiteboard studio · Stitchcraft offline demo</title>
+  <meta name="description" content="An offline Fabric.js whiteboard: pen, highlighter, shapes, text, undo, autosave and PNG export. No CDN, no server, no external fonts.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the whiteboard</a>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">S</span>
+        <div class="brand__text">
+          <h1 class="brand__name">Whiteboard studio</h1>
+          <p class="brand__meta">Stitchcraft · offline demo · Fabric.js</p>
+        </div>
+      </div>
+      <div class="topbar__actions">
+        <p class="savechip" id="save-chip" data-state="ready">
+          <span class="savechip__dot" aria-hidden="true"></span>
+          <span id="save-chip-label">Ready · autosave on</span>
+        </p>
+        <button class="btn btn--ghost" id="new-board" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New board</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="studio">
+      <section class="board" aria-labelledby="board-heading">
+        <h2 class="sr-only" id="board-heading">Whiteboard editor</h2>
+
+        <div class="toolbar" role="group" aria-label="Whiteboard controls">
+          <div class="tools" role="toolbar" aria-label="Drawing tools" aria-orientation="horizontal">
+            <button class="tool" type="button" data-tool="select" aria-label="Select and move (V)" aria-pressed="true" title="Select &amp; move — V">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.5 19 12l-5.6 1.6L10.6 19z"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="pen" aria-label="Pen (P)" aria-pressed="false" title="Pen — P">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 19.5 6 15l9.4-9.4a2.12 2.12 0 0 1 3 3L9 18z"/><path d="m13.6 6.4 4 4"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="marker" aria-label="Highlighter (H)" aria-pressed="false" title="Highlighter — H">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m8.5 13.5 6-9 4.5 3-6 9z"/><path d="m8.5 13.5-2.2 5.2 5.2-2.2"/><path d="M4.5 21h9"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="rect" aria-label="Rectangle (R)" aria-pressed="false" title="Rectangle — R">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5.5" width="16" height="13" rx="2"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="ellipse" aria-label="Ellipse (O)" aria-pressed="false" title="Ellipse — O">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="12" rx="8" ry="6.5"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="arrow" aria-label="Arrow (A)" aria-pressed="false" title="Arrow — A">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 18.5 19 6.5"/><path d="M13.5 5.5H20v6.5"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="text" aria-label="Text (T)" aria-pressed="false" title="Text — T">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5.5h14"/><path d="M12 5.5v13"/><path d="M8.5 18.5h7"/></svg>
+            </button>
+            <button class="tool" type="button" data-tool="eraser" aria-label="Eraser (E)" aria-pressed="false" title="Eraser — E">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7.5 17.5-3-3 8-8 6 6-5.5 5.5z"/><path d="M10 21h10"/></svg>
+            </button>
+          </div>
+
+          <div class="styles" role="group" aria-label="Ink colour and weight">
+            <div class="swatches" role="group" aria-label="Ink colours">
+              <button class="swatch" type="button" data-color="#ff8a3d" aria-label="Ember ink" aria-pressed="true" title="Ember ink" style="--swatch:#ff8a3d"></button>
+              <button class="swatch" type="button" data-color="#a78bfa" aria-label="Violet ink" aria-pressed="false" title="Violet ink" style="--swatch:#a78bfa"></button>
+              <button class="swatch" type="button" data-color="#f5efe6" aria-label="Bone ink" aria-pressed="false" title="Bone ink" style="--swatch:#f5efe6"></button>
+              <button class="swatch" type="button" data-color="#e7c27a" aria-label="Gold ink" aria-pressed="false" title="Gold ink" style="--swatch:#e7c27a"></button>
+              <button class="swatch" type="button" data-color="#8fdf9e" aria-label="Moss ink" aria-pressed="false" title="Moss ink" style="--swatch:#8fdf9e"></button>
+            </div>
+            <label class="colorfield" title="Custom ink colour">
+              <span class="sr-only">Custom ink colour</span>
+              <input type="color" id="color-input" value="#ff8a3d">
+            </label>
+            <label class="rangefield">
+              <span class="rangefield__label">Weight</span>
+              <input type="range" id="stroke-width" min="1" max="20" step="1" value="3" aria-describedby="width-value">
+              <output class="rangefield__value" id="width-value" for="stroke-width">3</output>
+            </label>
+          </div>
+
+          <div class="actions" role="group" aria-label="Board actions">
+            <button class="btn btn--icon" id="undo" type="button" aria-label="Undo (Ctrl+Z)" title="Undo — Ctrl+Z" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 14 4.5 9.5 9 5"/><path d="M4.5 9.5h9.5a5 5 0 0 1 0 10h-2.5"/></svg>
+            </button>
+            <button class="btn btn--icon" id="redo" type="button" aria-label="Redo (Ctrl+Shift+Z)" title="Redo — Ctrl+Shift+Z" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m15 14 4.5-4.5L15 5"/><path d="M19.5 9.5H10a5 5 0 0 0 0 10h2.5"/></svg>
+            </button>
+            <span class="sep" aria-hidden="true"></span>
+            <button class="btn btn--ghost" id="clear-board" type="button" title="Clear the board">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 7h14"/><path d="M9.5 7V5h5v2"/><path d="m7 7 1 12.5h8L17 7"/></svg>
+              <span>Clear</span>
+            </button>
+            <button class="btn btn--ghost" id="save-board" type="button" title="Save to this device now">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h11l3 3v13H5z"/><path d="M8.5 4v6h7V4"/><path d="M8.5 20v-5.5h7V20"/></svg>
+              <span>Save</span>
+            </button>
+            <button class="btn btn--ghost" id="load-board" type="button" title="Load the saved board from this device">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7.5h6l2 2h8v9H4z"/><path d="M4 7.5V5h6l2 2"/></svg>
+              <span>Load</span>
+            </button>
+            <button class="btn btn--primary" id="export-png" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg>
+              <span>Export PNG</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="boardbar">
+          <p class="boardbar__label"><span class="boardbar__dot" aria-hidden="true"></span>Board 01 · the ritual</p>
+          <p class="boardbar__meta"><span id="mark-count">0 marks</span><span aria-hidden="true">·</span><span>1280 × 800</span><span aria-hidden="true">·</span><span>offline</span></p>
+        </div>
+
+        <div class="stage" id="stage">
+          <canvas id="board-canvas" width="1280" height="800" aria-label="Whiteboard drawing surface. Use the toolbar above to create notes, shapes and drawings." aria-describedby="canvas-help">
+            Your browser cannot display the whiteboard canvas.
+          </canvas>
+          <div class="stage__empty" id="empty-state" hidden>
+            <p class="stage__empty-title">A blank board, a fresh ritual.</p>
+            <p class="stage__empty-copy">Pick a tool above and make your first mark.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="hintbar">
+        <p class="statusline" id="status" role="status" aria-live="polite">Preparing the sample board…</p>
+        <p class="shortcuts" id="canvas-help">
+          <span><kbd>V</kbd> select</span>
+          <span><kbd>P</kbd> pen</span>
+          <span><kbd>T</kbd> text</span>
+          <span><kbd>Esc</kbd> select mode</span>
+          <span><kbd>Del</kbd> remove</span>
+          <span><kbd>Ctrl</kbd><kbd>Z</kbd> undo</span>
+          <span><kbd>Ctrl</kbd><kbd>S</kbd> save</span>
+        </p>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="confirm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <form method="dialog">
+      <div class="confirm__body">
+        <p class="confirm__eyebrow" id="confirm-eyebrow">Just checking</p>
+        <h2 class="confirm__title" id="confirm-title">Are you sure?</h2>
+        <p class="confirm__message" id="confirm-message">This cannot be undone.</p>
+      </div>
+      <div class="confirm__actions">
+        <button class="btn btn--ghost" type="submit" value="cancel" id="confirm-cancel" autofocus>Keep it</button>
+        <button class="btn btn--danger" type="submit" value="confirm" id="confirm-accept">Continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <noscript>
+    <p class="noscript">The whiteboard needs JavaScript to draw. Enable it, then reload this page.</p>
+  </noscript>
+
+  <script src="./vendor/fabric.min.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

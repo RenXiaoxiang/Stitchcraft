@@ -21,7 +21,7 @@ License  : MIT
   - Kiro / AI 编程代理：读第 3/4/5/6 章实现功能，读第 7 章遵守治理规则。
   - 评审/协作者：读第 1/2 章理解项目与合规性。
 
-0.3 当前状态（2026-11-19 03:30）
+0.3 当前状态（2026-11-19 04:15）
   已完成：
   - v0.1 脚手架：九模块流水线、9 份 JSON Schema 契约、9 个 SKILL.md 模块、
     .kiro/steering + specs + hooks、零依赖 CLI（list/show/validate/plan/doctor/
@@ -47,6 +47,19 @@ License  : MIT
   - .kiro/specs/desktop-studio/tasks.md、steering 更新、3 个新 hooks
     （skill-registry / theme-anatomy / desktop-server）。
   - 18 个单元与 API 测试全绿；stitch validate --strict 0 错误 0 警告。
+  已完成（第三方工具聚合层，2026-11-19）：
+  - 六个 MIT 浏览器库已 vendor 到 vendor/<id>/：fabric 5.2.4、chartjs 4.4.7、
+    sortablejs 1.15.6、roughjs 4.6.6、swiper 11.2.6、gridstack 10.3.1；每个库
+    带 LICENSE + UPSTREAM.md + README.md。vendor/registry.toml 与
+    vendor/ATTRIBUTION.md 已建立，根目录 THIRD_PARTY_NOTICES.md 为第三方总索引。
+  - 运行时 libraries 支持：stitch libraries list / show / verify 与
+    GET /api/libraries；主题可在 theme.toml 用 libraries = [...] 声明，生成器只把
+    被引用的库复制到生成站点 site/vendor/<id>/（离线、无 CDN）。
+  - Fabric.js 网页画板 demo 完成：docs/demo/whiteboard/index.html 可离线绘制/
+    高亮、图形与文字、撤销与自动保存、导出 PNG；截图 docs/assets/whiteboard.png；
+    house 技能 skills/house/stitchcraft-whiteboard/SKILL.md 已编写。
+  - README「Aggregated open-source tools」、docs/ 展示页「Aggregated tools」、
+    hackathon/submission.md 与 AGENTS.md 的 vendor/合规规则已同步。
   待完成（用户动作）：
   - 录制 <3 分钟演示视频；Devpost 提交；在 Kiro 中补 1~2 个真实任务的证据并填写
     kiro-usage.md 的作者占位；可选：用真实 AI key 联调生成质量。
@@ -489,6 +502,64 @@ License  : MIT
   - skills/registry.toml 每个 path 存在且 kind=skill 时有 SKILL.md；vendor 包有 LICENSE。
   - CI 执行 `python -m stitchcraft skills verify`。
 
+6.7 第三方工具聚合与合规（vendor/）
+  为什么要聚合：
+  - 生成站点经常需要图表、画板、拖拽排序、轮播、仪表盘网格这些成熟浏览器能力。
+    让 AI 每次从零重写既慢又不稳定；直接引用 CDN 又违背「离线可跑、生成站点无
+    外链」的产品底线。
+  - 因此把经过验证的 MIT 浏览器库原样 vendor 进仓库（vendor/<id>/），生成时只
+    复制站点实际引用的库到 site/vendor/<id>/，运行时零 CDN，断网也能演示。
+  六个库清单（全部 MIT，dist 文件原样、版本锁定）：
+  | id         | 库          | 版本   | 生成站点用途（能做什么）                         |
+  | fabric     | Fabric.js   | 5.2.4  | Canvas 画板/白板：自由绘制、图形、文字、对象操作  |
+  | chartjs    | Chart.js    | 4.4.7  | 图表：折线/柱状/环形 KPI 面板与报表              |
+  | sortablejs | SortableJS  | 1.15.6 | 拖拽排序：列表、表格行、看板卡片                 |
+  | roughjs    | Rough.js    | 4.6.6  | 手绘风图形：SVG/Canvas 草图与涂鸦装饰            |
+  | swiper     | Swiper      | 11.2.6 | 轮播/滑动：品牌落地页、图片画廊、故事卡片         |
+  | gridstack  | GridStack   | 10.3.1 | 仪表盘网格：可拖拽/缩放的卡片布局                 |
+  vendor 目录规范（vendor/<id>/）：
+  - LICENSE：上游许可证原文，必须保留；MIT 库保留原始版权行（作者 + 年份）。
+  - UPSTREAM.md：上游仓库 URL、npm 包与精确版本、下载 URL、SPDX 协议、版权行、
+    复制文件与 SHA-256、vendored 日期、用途一句话。
+  - README.md：这个库是什么、给生成站点提供什么能力、生成站点应使用的相对
+    <script>/<link> 路径。
+  - vendor/registry.toml：机器可读清单（id/name/category/version/license/
+    copyright/upstream/path/dist/css/size_bytes/purpose/usage）。
+  - vendor/ATTRIBUTION.md：人读归属说明；根目录 THIRD_PARTY_NOTICES.md 是整个
+    仓库第三方资源的唯一总索引（技能包、vendor 库、GSAP 构建、许可证原文、商标）。
+  - vendor 下文件不得手改。升级流程：重新下载上游 dist → 原样替换 → 更新
+    UPSTREAM/ATTRIBUTION/registry → `stitch libraries verify` +
+    `python -m stitchcraft validate --strict`。
+  运行时 libraries 加载与生成站点复制规则：
+  - `stitch libraries list` 列出所有库的 id/版本/协议；`stitch libraries show <id>`
+    查看单个库的元数据、入口文件与上游记录；`stitch libraries verify` 校验目录、
+    版本、LICENSE 与 registry 是否一致（必须常绿，CI 与 Kiro hook 都会跑）。
+  - 本地 HTTP API：GET /api/libraries 返回同一份清单，供 UI 与脚本读取。
+  - 主题包在 theme.toml 用 libraries = ["fabric", ...] 声明依赖；生成器只把被声明
+    且被生成站点文件（<script>/<link>）实际引用的库复制到 site/vendor/<id>/。
+  - 只复制被引用的库：未引用的库不进入导出 ZIP；生成站点禁止 http(s) CDN 外链，
+    脚本/样式一律用相对路径 ./vendor/<id>/...；复制的是 vendor 里的 dist 本体，
+    不压缩、不改写。
+  - 生成进度日志会标注本次复制了哪些库（Bundled tools copied: ...），便于评审核对。
+  合规要求：
+  - 保留每个库的 LICENSE 与版权/NOTICE：MIT 库保留原版权行；现有
+    GoogleChrome/modern-web-guidance 技能包为 Apache-2.0，保留 Google LLC 版权
+    声明与 NOTICE 要求，来源与 commit 记录在 skills/ATTRIBUTION.md。
+  - 根目录 THIRD_PARTY_NOTICES.md 为第三方资源总索引：任何新增、升级、删除第三
+    方文件都必须同步更新它；vendor/ATTRIBUTION.md 是 vendor 层的详细版。
+  - 商标说明：Kiro / Kiroween 属 Amazon Web Services；Chrome / Google 属 Google
+    LLC；GSAP / GreenSock 属 GreenSock, Inc.；Fabric.js、Chart.js 等库名称归各自
+    所有者。本项目不声称与上述公司有关联，仅按上游许可证使用其代码。
+  - 生成站点与导出 ZIP 不得移除第三方版权行；对外分发时随仓库附
+    THIRD_PARTY_NOTICES.md。
+  网页画板 demo（docs/demo/whiteboard/）：
+  - 纯静态 Fabric.js 白板，离线可跑：画笔/高亮、图形与文字、撤销与自动保存、
+    导出 PNG。
+  - 使用与 vendor/fabric 相同的 fabric.min.js（本地相对路径，无 CDN），演示生成
+    站点如何引用聚合库；截图 docs/assets/whiteboard.png 用于 README 与 docs 展示页。
+  - house 技能 skills/house/stitchcraft-whiteboard/SKILL.md 指导 AI 生成同类画板页。
+  - 验收：断网打开 index.html 可绘制并导出；页面无外部请求（DevTools Network 为空）。
+
 7. Kiro 使用与治理
 --------------------------------------------------------------------------------
 7.1 .kiro 目录职责
@@ -551,6 +622,15 @@ License  : MIT
   M4 主题库（11/20~11/23）
      - _blocks 8 个区块；warehouse-ops / personal-space 两个完整示例站；
      - 其余 3 主题 mock 占位生成可用。
+  M4.5 第三方工具聚合（11/19~11/20）
+     - 六个 MIT 浏览器库 vendor 到 vendor/<id>/（LICENSE/UPSTREAM/README），
+       vendor/registry.toml + ATTRIBUTION.md + 根 THIRD_PARTY_NOTICES.md；
+     - 运行时 libraries 清单与校验（stitch libraries list|show|verify、
+       GET /api/libraries）；主题 libraries 声明；生成站点只复制被引用库
+       （site/vendor/<id>/，离线无 CDN）；
+     - Fabric.js 网页画板 demo（docs/demo/whiteboard/ + docs/assets/whiteboard.png）；
+     - `stitch libraries verify` 常绿；README / docs 展示页 / hackathon 提交材料 /
+       AGENTS.md 的 vendor 与合规规则同步。
   M5 技能与生成质量（11/21~11/24）
      - 注入策略与预算调优；真实 API 联调（作者自备 key）；
      - 生成结果质量检查（数据 CRUD 可用、GSAP 生效、无障碍底线）。
@@ -669,6 +749,7 @@ License  : MIT
   python -m stitchcraft list / show <module> / validate --strict / plan / doctor
   python -m stitchcraft themes [list|show <id>|verify]
   python -m stitchcraft skills [list|show <id>|verify]
+  python -m stitchcraft libraries [list|show <id>|verify]
   python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
   python -m stitchcraft app [--port 8765] [--no-window] [--smoke-test]
   python -m unittest discover -s tests -v
@@ -683,6 +764,9 @@ License  : MIT
   Modern Web Guidance   : https://github.com/GoogleChrome/modern-web-guidance
   GSAP skills           : https://github.com/greensock/gsap-skills
   Web Animation Skills  : https://github.com/iart-ai/web-animation-skills
+  Vendor 库上游清单     : vendor/ATTRIBUTION.md（fabric / chartjs / sortablejs /
+                          roughjs / swiper / gridstack）
+  第三方总索引          : THIRD_PARTY_NOTICES.md（技能包 + vendor 库 + 许可证 + 商标）
   GSAP license          : https://gsap.com/licensing/
   Chrome guidance docs  : https://developer.chrome.com/docs/modern-web-guidance
   Kiroween 摘要（第三方）: https://ainave.com/events/hackathons/kiroween-2026

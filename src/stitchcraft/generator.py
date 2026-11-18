@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import ai_client
+from . import ai_client, libraries as library_pack
 from .settings import AppConfig, PRESETS, provider_requires_key
 from .skills import build_skill_context, get_skill, load_registry
 from .themes import Theme, get_theme, load_data_model, sample_dir, theme_skill_text
@@ -302,6 +302,7 @@ def _build_messages(
     mode: str,
     remote: dict,
     skill_context: str,
+    library_context: str = "",
     compact: bool = False,
 ) -> list[dict]:
     data_model = load_data_model(root, theme)
@@ -369,6 +370,8 @@ HARD RULES
         user_parts.append("# Data model\n```json\n" + json.dumps(data_model, indent=2)[:8000] + "\n```")
     if skill_context:
         user_parts.append("# Bundled skills to apply\n" + skill_context)
+    if library_context:
+        user_parts.append("# Bundled browser libraries (offline, already vendored)\n" + library_context)
     user_parts.append("# Database configuration\n```js\nwindow.STITCHCRAFT_DB = " + json.dumps(config, indent=2) + ";\n```")
     if compact:
         user_parts.append(
@@ -407,6 +410,14 @@ def generate_site(
         raise GenerationError("Remote database mode needs a database URL.")
     title = (request.title or "").strip() or theme.name
     warnings: list[str] = []
+    theme_libraries = library_pack.libraries_for_theme(root, theme)
+    known_library_ids = {library.id for library in theme_libraries}
+    missing_library_ids = [
+        library_id for library_id in getattr(theme, "libraries", ()) if library_id not in known_library_ids
+    ]
+    if missing_library_ids:
+        warnings.append("Unknown bundled libraries ignored: " + ", ".join(sorted(missing_library_ids)))
+    library_context = library_pack.build_prompt_context(theme_libraries)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     _clean_dir(out_dir)
@@ -510,17 +521,30 @@ def generate_site(
         _emit(on_progress, 6, "active", "Free provider: generating a compact single-file site")
         minimal_context = build_skill_context(root, resolved, budget_chars=4000)
         compact_retry_messages = _build_messages(
-            root, theme, title, prompt, mode, remote, minimal_context, compact=True
+            root, theme, title, prompt, mode, remote, minimal_context, library_context, compact=True
         )
         attempts: list[tuple[list[dict], int]] = [
-            (_build_messages(root, theme, title, prompt, mode, remote, skill_context, compact=True), compact_max_tokens)
+            (
+                _build_messages(
+                    root, theme, title, prompt, mode, remote, skill_context, library_context, compact=True
+                ),
+                compact_max_tokens,
+            )
         ]
         if not is_keyless:
             attempts.append((compact_retry_messages, compact_max_tokens))
     else:
         attempts = [
-            (_build_messages(root, theme, title, prompt, mode, remote, skill_context), 0),
-            (_build_messages(root, theme, title, prompt, mode, remote, skill_context, compact=True), compact_max_tokens),
+            (
+                _build_messages(root, theme, title, prompt, mode, remote, skill_context, library_context),
+                0,
+            ),
+            (
+                _build_messages(
+                    root, theme, title, prompt, mode, remote, skill_context, library_context, compact=True
+                ),
+                compact_max_tokens,
+            ),
         ]
         compact_retry_messages = attempts[-1][0]
     payload: dict | None = None
@@ -584,6 +608,11 @@ def generate_site(
     _write_data_config(out_dir, _data_config(mode, remote))
     _ensure_data_config_link(out_dir, warnings)
     _copy_gsap_if_needed(root, out_dir)
+    copied_libraries, used_libraries = library_pack.copy_used(theme_libraries, out_dir)
+    if copied_libraries:
+        _emit(on_progress, 8, "active", "Bundled tools copied: " + ", ".join(lib.name for lib in used_libraries))
+    elif theme_libraries:
+        warnings.append("The theme offers bundled libraries but the generated site did not reference any.")
     files = _list_files(out_dir)
     done(8, f"Packaged {len(files)} files ({len(written)} from the AI)")
 

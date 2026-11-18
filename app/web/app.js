@@ -891,13 +891,29 @@
       if (event.key === 'Escape' && modal && !modal.hidden) { event.preventDefault(); closeConfirm(false); return; }
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); generate(); } });
     window.addEventListener('unhandledrejection', (event) => { if (window.console && console.warn) console.warn('[stitchcraft] unhandled promise rejection', event.reason); }); }
+  async function loadLibrariesNote() {
+    if ($('library-note')) return;
+    try {
+      const response = await api('/api/libraries');
+      const libs = Array.isArray(response && response.libraries) ? response.libraries : [];
+      if (!libs.length) return;
+      const note = el('p', 'step__note step__note--skills');
+      note.id = 'library-note';
+      note.textContent = 'Bundled tool packs (offline, licensed): ' + libs
+        .map((lib) => lib.name + (lib.version ? ' ' + lib.version : ''))
+        .join(' · ');
+      const grid = $('theme-grid');
+      if (grid && grid.parentNode) grid.parentNode.insertBefore(note, grid.nextSibling);
+      else if ($('step-3')) $('step-3').appendChild(note);
+    } catch (_) { /* optional: the theme list works without it */ } }
+
   function init() {
     PLACEHOLDERS.api = (($('api-key') || {}).placeholder) || 'sk-…';
     PLACEHOLDERS.db = (($('db-key') || {}).placeholder) || 'public anon key';
     makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindGeneration();
     bindHistory(); bindPreview(); bindConnection(); bindGlobalKeys();
     paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); syncProviderUI(); setPreviewLoading(false);
-    bootstrap({ silent: true });
+    bootstrap({ silent: true }); loadLibrariesNote();
     animateEntrance(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();

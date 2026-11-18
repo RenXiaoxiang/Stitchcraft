@@ -10,3 +10,5 @@
 Modern Web Guidance is a Google Chrome project. "Chrome" and "Google" are
 trademarks of Google LLC. The pack is redistributed here under Apache-2.0 with
 its license and attribution preserved.
+
+Copyright: 2025 Google LLC. No upstream NOTICE file exists; this folder adds one for Apache-2.0 §4(d) attribution.

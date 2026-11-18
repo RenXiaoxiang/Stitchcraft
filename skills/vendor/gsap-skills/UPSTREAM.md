@@ -11,3 +11,5 @@
 
 GSAP and GreenSock are trademarks of GreenSock, Inc. These official skills are
 redistributed under their MIT license with attribution preserved.
+
+Copyright (c) 2026 GreenSock, MIT

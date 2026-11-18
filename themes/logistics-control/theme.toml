@@ -7,5 +7,6 @@ tags = ["logistics", "tracking", "dashboard", "incidents"]
 accent = "#38d6e0"
 blocks = ["hero", "stat-grid", "timeline", "data-table"]
 skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-data-app"]
+libraries = ["chartjs", "sortablejs"]
 data_model = "data-model.json"
 sample = ""

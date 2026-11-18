@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from stitchcraft import settings  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
+from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
 from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
 from stitchcraft.skills import verify_registry  # noqa: E402
@@ -90,6 +91,9 @@ class RegistryTests(unittest.TestCase):
 
     def test_theme_registry_is_healthy(self) -> None:
         self.assertEqual(verify_themes(ROOT), [])
+
+    def test_library_registry_is_healthy(self) -> None:
+        self.assertEqual(verify_libraries(ROOT), [])
 
 
 class FreeProviderTests(unittest.TestCase):
@@ -212,6 +216,48 @@ class GenerationTests(unittest.TestCase):
             self.assertEqual(result.summary, "A keyless-provider test site.")
 
 
+    def test_ai_generation_copies_referenced_libraries(self) -> None:
+        config = AppConfig()
+        config.ai.provider = "pollinations"
+        config.ai.base_url = "https://text.pollinations.ai/openai"
+        config.ai.model = "openai"
+        config.ai.api_key = ""
+        html = (
+            "<!doctype html><html lang=\"en\"><head>"
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+            "<title>Tools test</title></head><body><h1>Whiteboard</h1><div id=\"board\"></div>"
+            "<script src=\"vendor/fabric/fabric.min.js\"></script>"
+            "<script src=\"data-config.js\"></script>"
+            "<script src=\"app.js\"></script></body></html>"
+        )
+        payload = {
+            "files": [
+                {"path": "index.html", "content": html},
+                {"path": "app.js", "content": "document.documentElement.dataset.ready='true';"},
+            ],
+            "summary": "A whiteboard test site.",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            with mock.patch("stitchcraft.ai_client.chat", return_value=json.dumps(payload)):
+                result = generate_site(
+                    ROOT,
+                    config,
+                    GenerationRequest(
+                        theme_id="personal-space",
+                        prompt="A personal space with a drawing board.",
+                        engine="ai",
+                        database={"mode": "local", "remote": {}},
+                    ),
+                    out,
+                    sleep=lambda _seconds: None,
+                )
+            self.assertTrue((out / "vendor" / "fabric" / "fabric.min.js").is_file())
+            self.assertTrue((out / "vendor" / "fabric" / "LICENSE").is_file())
+            self.assertTrue((out / "vendor" / "fabric" / "UPSTREAM.md").is_file())
+            self.assertIn("vendor/fabric/fabric.min.js", result.files)
+
+
 class ServerApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -250,6 +296,9 @@ class ServerApiTests(unittest.TestCase):
         providers = {entry["id"]: entry for entry in payload["providers"]}
         self.assertIn("pollinations", providers)
         self.assertFalse(providers["pollinations"]["requires_key"])
+        status, payload = _get_json(self.base + "/api/libraries")
+        self.assertEqual(status, 200)
+        self.assertGreaterEqual(len(payload["libraries"]), 6)
         status, payload = _get_json(self.base + "/api/ai/local")
         self.assertEqual(status, 200)
         self.assertIn("ok", payload)

@@ -48,6 +48,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
 | Project history | SQLite-backed local history; reopen or delete any generation. |
 | Skills runtime | 18 registry entries over three vendored packs plus two house skills; prompt budgets keep generations focused. |
+| Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
 
 ## Free AI options (no paid key needed)
 
@@ -170,6 +171,70 @@ budgets; `src/stitchcraft/skills.py` loads and injects them. Attribution is in
 [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md); vendored files are never edited
 by hand.
 
+## Aggregated open-source tools
+
+Some sites need a canvas, a chart, a carousel or a dashboard grid, and asking the
+model to re-invent those browser primitives on every generation produces fragile
+code. Stitchcraft therefore vendors six proven, MIT-licensed browser libraries
+under `vendor/<id>/` and lets a theme request them. The files are pinned,
+unmodified and licensed; a generated site needs no network access to use them.
+
+| Library | Version | License | What generated sites can build with it |
+| --- | --- | --- | --- |
+| [Fabric.js](https://github.com/fabricjs/fabric.js) | 5.2.4 | MIT | Interactive canvas: freehand drawing, shapes, text and object manipulation for whiteboards, planners and annotation tools. |
+| [Chart.js](https://github.com/chartjs/Chart.js) | 4.4.7 | MIT | Responsive bar, line, radar and doughnut charts for KPI panels and reports. |
+| [SortableJS](https://github.com/SortableJS/Sortable) | 1.15.6 | MIT | Touch-friendly drag-and-drop reordering for lists, tables and kanban boards. |
+| [Rough.js](https://github.com/pshihn/rough) | 4.6.6 | MIT | Hand-drawn, sketch-style shapes and lines on canvas and SVG. |
+| [Swiper](https://github.com/nolimits4web/swiper) | 11.2.6 | MIT | Touch carousels, sliders and gallery layouts with keyboard support. |
+| [GridStack](https://github.com/gridstack/gridstack.js) | 10.3.1 | MIT | Draggable, resizable dashboard grids for analytics boards. |
+
+### Whiteboard demo
+
+[docs/demo/whiteboard/index.html](docs/demo/whiteboard/index.html) is a working
+Fabric.js whiteboard that runs offline: draw with the pen and highlighter, add
+shapes and text, undo, let autosave keep the board, then export a PNG. It loads
+the same vendored `fabric.min.js` a generated site would use, so the demo doubles
+as proof of the offline path.
+
+![The Stitchcraft whiteboard demo](docs/assets/whiteboard.png)
+
+[Open the whiteboard demo](docs/demo/whiteboard/index.html) ·
+[Read the whiteboard skill](skills/house/stitchcraft-whiteboard/SKILL.md)
+
+### Libraries at runtime
+
+```bash
+stitch libraries list            # every vendored library, version and license
+stitch libraries show fabric     # one library's files, upstream record and entry points
+stitch libraries verify          # LICENSE, UPSTREAM.md, README.md and registry agree
+```
+
+The local studio also serves `GET /api/libraries`, so the UI and scripts read the
+same index. A theme package may declare the libraries it is allowed to use
+(`libraries = ["fabric", "chartjs"]` in `theme.toml`); the generator copies only
+the libraries the generated site actually references into `site/vendor/<id>/`,
+straight from the vendored dist files. Unreferenced libraries never enter an
+export, and generated sites never point at a CDN.
+
+### Licensing
+
+The vendor layer is MIT-only by design. Every `vendor/<id>/` folder keeps the
+upstream `LICENSE`, a `UPSTREAM.md` record (repository, pinned npm version,
+download URL, SPDX id, copyright line, copied files with SHA-256, vendored date)
+and a `README.md` describing what the library offers and the exact relative
+`<script>`/`<link>` paths a generated site should use. Distributed files are
+byte-for-byte copies of the pinned upstream release: license and copyright lines
+are preserved, the machine-readable index lives in `vendor/registry.toml`, and no
+CDN is contacted at runtime.
+
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) is the canonical index for all
+third-party material in Stitchcraft — this vendor layer, the bundled skills, the
+GoogleChrome/modern-web-guidance pack (Apache-2.0, Google LLC attribution), the
+GSAP packs and their standard license, plus every license text. The
+human-readable companion for the six libraries is
+[vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md). Adding, upgrading or removing a
+third-party file starts and ends in those two files.
+
 ## Generated data layer
 
 Every generated site receives a `data-config.js`:
@@ -212,10 +277,12 @@ whole repository coherent; the hooks call it whenever a seam changes.
 ├── src/stitchcraft/                         stdlib backend + CLI
 ├── themes/                                  theme packages + _blocks + registry
 ├── skills/                                  vendored skill packs + registry + attribution
+├── vendor/                                  six MIT browser libraries + registry + attribution
 ├── modules/ contracts/ pipeline/            the original nine-module stitch spine
 ├── .kiro/                                   steering, specs and hooks
 ├── hackathon/                               Kiroween 2026 submission kit
 ├── docs/                                    architecture/authoring/roadmap + Pages showcase
+│   └── demo/whiteboard/                     offline Fabric.js whiteboard demo
 ├── tests/                                   unit tests + API smoke tests
 ├── 开发文档.txt                              full development plan (Chinese)
 └── examples/                                seed requests for dry runs
@@ -276,5 +343,9 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 
 Kiro and Kiroween are trademarks of Amazon Web Services. GSAP and GreenSock are
 trademarks of GreenSock, Inc. Chrome and Google are trademarks of Google LLC.
-Third-party skills are used under their upstream licenses; see
-[skills/ATTRIBUTION.md](skills/ATTRIBUTION.md).
+Other names, including the six vendored JavaScript libraries, are the property
+of their respective owners. Third-party skills and libraries are used under
+their upstream licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+for the canonical index, [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md) for the
+skill packs and [vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md) for the vendored
+libraries.

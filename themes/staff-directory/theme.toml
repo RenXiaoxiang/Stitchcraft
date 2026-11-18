@@ -7,5 +7,6 @@ tags = ["people", "directory", "dashboard", "crud"]
 accent = "#b6f24a"
 blocks = ["hero", "stat-grid", "data-table", "crud-modal"]
 skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-data-app"]
+libraries = ["sortablejs"]
 data_model = "data-model.json"
 sample = ""

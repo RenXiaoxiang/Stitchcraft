@@ -1,0 +1,60 @@
+<!-- Whiteboard block — reference markup for generated sites.
+     Replaceable fields: board title, intro sentence, palette, storage key.
+     Requires the bundled library at vendor/fabric/fabric.min.js (the generator
+     copies it when a generated site references that path). -->
+<section class="board-section" aria-labelledby="board-title">
+  <style>
+    .board-section { --ink: #0e0c12; --panel: #17121d; --ember: #ff8a3d; --violet: #8b5cf6;
+      --paper: #f5efe6; --line: rgba(245,239,230,.14); background: var(--ink); color: var(--paper);
+      padding: clamp(1.25rem, 4vw, 3rem); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .board-section__head { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: end; margin-bottom: 1rem; }
+    .board-section__eyebrow { margin: 0 0 .4rem; font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--ember); }
+    .board-section h2 { margin: 0; font-size: clamp(1.4rem, 3vw, 2.2rem); }
+    .board-section p { margin: .25rem 0 0; color: rgba(245,239,230,.72); max-width: 58ch; }
+    .board-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .board-toolbar button { min-height: 44px; min-width: 44px; border: 1px solid transparent; border-radius: 10px;
+      background: transparent; color: var(--paper); font: inherit; cursor: pointer; }
+    .board-toolbar button[aria-pressed="true"] { border-color: var(--ember); color: var(--ember); background: rgba(255,138,61,.08); }
+    .board-toolbar button:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+    .board-toolbar output { margin-left: auto; font-variant-numeric: tabular-nums; color: rgba(245,239,230,.6); font-size: .82rem; }
+    .board-stage { position: relative; margin-top: .75rem; min-height: clamp(320px, 52vh, 640px); border: 1px solid var(--line);
+      border-radius: 16px; background: #131018; overflow: hidden; }
+    .board-stage canvas { display: block; }
+    .board-hint { margin: .6rem 0 0; font-size: .78rem; color: rgba(245,239,230,.5); }
+    @media (prefers-reduced-motion: reduce) { .board-section * { transition: none !important; animation: none !important; } }
+  </style>
+
+  <div class="board-section__head">
+    <div>
+      <p class="board-section__eyebrow">Stitchcraft · whiteboard</p>
+      <h2 id="board-title">Draw the plan before you build it.</h2>
+      <p>Sketch, annotate and export a board — everything is stored in this browser.</p>
+    </div>
+    <button type="button" class="board-export">Export PNG</button>
+  </div>
+
+  <div class="board-toolbar" role="toolbar" aria-label="Whiteboard tools">
+    <button type="button" data-board-tool="select" aria-pressed="true" title="Select (V)">Select</button>
+    <button type="button" data-board-tool="pen" aria-pressed="false" title="Pen (P)">Pen</button>
+    <button type="button" data-board-tool="marker" aria-pressed="false" title="Highlighter">Highlighter</button>
+    <button type="button" data-board-tool="rect" aria-pressed="false" title="Rectangle">Rectangle</button>
+    <button type="button" data-board-tool="ellipse" aria-pressed="false" title="Ellipse">Ellipse</button>
+    <button type="button" data-board-tool="arrow" aria-pressed="false" title="Arrow">Arrow</button>
+    <button type="button" data-board-tool="text" aria-pressed="false" title="Text (T)">Text</button>
+    <button type="button" data-board-tool="eraser" aria-pressed="false" title="Eraser">Eraser</button>
+    <button type="button" data-board-action="undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button type="button" data-board-action="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button type="button" data-board-action="clear" title="Clear board">Clear</button>
+    <output id="board-count" aria-live="polite">0 marks</output>
+  </div>
+
+  <div class="board-stage" id="board-stage">
+    <canvas id="board-canvas" aria-label="Drawing board" role="img"></canvas>
+  </div>
+  <p class="board-hint">Shortcuts: V select · P pen · T text · Del remove · Ctrl/Cmd+Z undo · autosaves on this device.</p>
+
+  <!-- The generated app.js should initialise Fabric here:
+       const canvas = new fabric.Canvas('board-canvas', { backgroundColor: '#131018' });
+       ... tools, undo stack, localStorage('stitchcraft:whiteboard'), PNG export.
+  -->
+</section>

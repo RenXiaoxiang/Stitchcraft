@@ -11,7 +11,8 @@ hooks. Read this before changing anything.
 3. `.kiro/specs/stitchcraft-core/` and `.kiro/specs/desktop-studio/` —
    requirements, design and tasks for the pipeline and the desktop studio.
 4. `pipeline/pipeline.toml` + `contracts/README.md` — the originals seam rules.
-5. `skills/ATTRIBUTION.md` and `themes/registry.toml` — third-party and theme data.
+5. `skills/ATTRIBUTION.md`, `vendor/ATTRIBUTION.md` and `themes/registry.toml` —
+   third-party and theme data. `THIRD_PARTY_NOTICES.md` is the canonical index.
 
 ## The one rule
 
@@ -27,6 +28,7 @@ python -m unittest discover -s tests -v
 python -m stitchcraft validate --strict
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify
+python -m stitchcraft libraries verify
 python -m stitchcraft app --smoke-test --no-window
 python -m stitchcraft app                 # real desktop window (Edge)
 python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
@@ -42,6 +44,7 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 | `app/web/` | Local studio UI (vanilla JS + vendored GSAP). No frameworks, no CDN. |
 | `themes/` | Theme packages: `theme.toml`, `SKILL.md`, `data-model.json`, optional `sample/`; shared `_blocks/`. |
 | `skills/` | Vendored official skill packs (unmodified, licensed, `UPSTREAM.md`) + house skills + `registry.toml`. |
+| `vendor/` | Six MIT browser libraries (unmodified dist + `LICENSE` + `UPSTREAM.md` + `README.md` per folder) + `registry.toml` + `ATTRIBUTION.md`. |
 | `pipeline/` `contracts/` `modules/` | The original nine-module stitch spine and its JSON Schema seams. |
 | `.kiro/` | Steering, specs and hooks (Kiro governance layer). |
 | `hackathon/` `docs/` | Kiroween submission kit and GitHub Pages showcase. |
@@ -70,6 +73,24 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   desktop server, check that the matching `.kiro/hooks/*.kiro.hook` still points
   at the right paths and commands.
 
+## Third-party browser libraries (`vendor/`)
+
+- **They live under `vendor/<id>/` and are never edited.** Dist files are
+  byte-for-byte copies of the pinned upstream release; a fix goes upstream or
+  into a new pinned version, never into the vendored file.
+- **Every folder keeps `LICENSE` + `UPSTREAM.md` + `README.md`.** The license
+  text and copyright line are the source of truth for redistribution; the
+  upstream record names the repository, pinned version, download URL and copied
+  files.
+- **`THIRD_PARTY_NOTICES.md` must stay current.** It is the canonical index of
+  all third-party material; adding, upgrading or removing a file updates it, plus
+  `vendor/ATTRIBUTION.md` and `vendor/registry.toml`.
+- **Generated sites may only reference copied `vendor/<id>/` paths.** The
+  generator writes the libraries a site actually uses into `site/vendor/<id>/`;
+  a generated site must never load a CDN or any other external URL for code.
+- **`stitch libraries verify` must stay green.** It checks folders, versions,
+  licenses and the registry together; a red result blocks a release.
+
 ## Definition of done
 
 A change is done when all of these are true:
@@ -77,6 +98,7 @@ A change is done when all of these are true:
 ```bash
 python -m unittest discover -s tests -v
 python -m stitchcraft validate --strict
+python -m stitchcraft libraries verify
 python -m stitchcraft app --smoke-test --no-window
 ```
 

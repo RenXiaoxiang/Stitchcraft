@@ -1,0 +1,98 @@
+# vendor/registry.toml — machine-readable index of browser libraries bundled
+# for generated sites. Dist files are vendored byte-for-byte from the pinned
+# URLs recorded in each library's UPSTREAM.md; licenses live in each folder.
+# Category is one of: whiteboard | chart | layout | media | utility.
+
+[meta]
+version = "0.1.0"
+description = "Permissively licensed browser libraries bundled for generated sites."
+
+[[libraries]]
+id = "fabric"
+name = "Fabric.js"
+category = "whiteboard"     # whiteboard | chart | layout | media | utility
+version = "5.2.4"
+license = "MIT"
+copyright = "Copyright (c) 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak)"
+upstream = "https://github.com/fabricjs/fabric.js"
+path = "vendor/fabric"
+dist = "fabric.min.js"
+css = ""
+size_bytes = 313205
+purpose = "Object-model canvas for interactive whiteboards, drawing and image annotation."
+usage = "const canvas = new fabric.Canvas('board');"
+
+[[libraries]]
+id = "chartjs"
+name = "Chart.js"
+category = "chart"          # whiteboard | chart | layout | media | utility
+version = "4.4.7"
+license = "MIT"
+copyright = "Copyright (c) 2014-2024 Chart.js Contributors"
+upstream = "https://github.com/chartjs/Chart.js"
+path = "vendor/chartjs"
+dist = "chart.umd.min.js"
+css = ""
+size_bytes = 205889
+purpose = "Canvas charts (bar, line, pie, radar) for dashboards and reports."
+usage = "new Chart(document.getElementById('chart'), { type: 'bar', data, options });"
+
+[[libraries]]
+id = "sortablejs"
+name = "SortableJS"
+category = "layout"         # whiteboard | chart | layout | media | utility
+version = "1.15.6"
+license = "MIT"
+copyright = "Copyright (c) 2019 All contributors to Sortable"
+upstream = "https://github.com/SortableJS/Sortable"
+path = "vendor/sortablejs"
+dist = "Sortable.min.js"
+css = ""
+size_bytes = 45092
+purpose = "Drag-and-drop reordering for lists and kanban-style boards."
+usage = "new Sortable(document.getElementById('list'), { animation: 150 });"
+
+[[libraries]]
+id = "roughjs"
+name = "Rough.js"
+category = "utility"        # whiteboard | chart | layout | media | utility
+version = "4.6.6"
+license = "MIT"
+copyright = "Copyright (c) 2019 Preet Shihn"
+upstream = "https://github.com/pshihn/rough"
+path = "vendor/roughjs"
+dist = "rough.min.js"
+css = ""
+size_bytes = 28034
+purpose = "Hand-drawn / sketchy SVG and canvas shapes for playful diagrams."
+usage = "const rc = rough.canvas(document.querySelector('canvas'));"
+
+[[libraries]]
+id = "swiper"
+name = "Swiper"
+category = "media"          # whiteboard | chart | layout | media | utility
+version = "11.2.6"
+license = "MIT"
+copyright = "Copyright (c) 2019 Vladimir Kharlampidi"
+upstream = "https://github.com/nolimits4web/swiper"
+path = "vendor/swiper"
+dist = "swiper-bundle.min.js"
+css = "swiper-bundle.min.css"
+size_bytes = 154008
+purpose = "Touch-friendly carousels, sliders and swipeable media galleries."
+usage = "new Swiper('.swiper', { slidesPerView: 1, navigation: true });"
+
+[[libraries]]
+id = "gridstack"
+name = "GridStack"
+category = "layout"         # whiteboard | chart | layout | media | utility
+version = "10.3.1"
+license = "MIT"
+copyright = "Copyright (c) 2019-2023 Alain Dumesny. v0.4.0 and older (c) 2014-2018 Pavel Reznikov, Dylan Weiss"
+upstream = "https://github.com/gridstack/gridstack.js"
+path = "vendor/gridstack"
+dist = "gridstack-all.js"
+css = "gridstack.min.css"
+size_bytes = 81406
+purpose = "Responsive drag-and-drop dashboard grid layout."
+usage = "GridStack.init({ column: 12 });"

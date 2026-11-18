@@ -11,3 +11,5 @@
 
 This pack complements the official GSAP skills with animation performance,
 accessibility and pattern guidance. Redistributed under MIT with attribution.
+
+Copyright (c) 2026 iart.ai, MIT

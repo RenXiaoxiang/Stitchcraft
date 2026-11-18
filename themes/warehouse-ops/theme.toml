@@ -7,5 +7,6 @@ tags = ["inventory", "dashboard", "crud", "operations"]
 accent = "#ff8a3d"
 blocks = ["hero", "stat-grid", "data-table", "crud-modal"]
 skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-data-app"]
+libraries = ["chartjs", "gridstack"]
 data_model = "data-model.json"
 sample = "sample"

@@ -258,3 +258,16 @@ stages = ["design", "build"]
 enabled = true
 budget_chars = 6000
 kind = "skill"
+
+[[skills]]
+id = "stitchcraft-whiteboard"
+name = "Stitchcraft Whiteboard"
+category = "stitchcraft"
+source = "Stitchcraft (MIT)"
+license = "MIT"
+path = "skills/house/stitchcraft-whiteboard"
+summary = "House skill for adding an offline Fabric.js whiteboard or annotation board to a generated site."
+stages = ["design", "build", "qa"]
+enabled = true
+budget_chars = 6000
+kind = "skill"

@@ -54,6 +54,7 @@ def validate_repo(repo: Repo) -> list[Issue]:
     issues.extend(validate_seams(repo))
     issues.extend(validate_contracts(repo))
     issues.extend(validate_skills(repo))
+    issues.extend(validate_libraries(repo))
     issues.extend(validate_themes(repo))
     issues.extend(validate_governance(repo))
     return issues
@@ -346,6 +347,30 @@ def validate_skills(repo: Repo) -> list[Issue]:
         Issue("error", "skills.registry", finding, "skills/")
         for finding in verify_registry(repo.root)
     ]
+
+
+def validate_libraries(repo: Repo) -> list[Issue]:
+    """The vendored browser-library registry must be complete and licensed."""
+    from .libraries import load_libraries, verify_libraries
+    from .themes import load_themes
+
+    issues = [
+        Issue("error", "libraries.registry", finding, "vendor/")
+        for finding in verify_libraries(repo.root)
+    ]
+    known = {library.id for library in load_libraries(repo.root)}
+    for theme in load_themes(repo.root):
+        for library_id in getattr(theme, "libraries", ()):  # noqa: B009
+            if library_id not in known:
+                issues.append(
+                    Issue(
+                        "error",
+                        "themes.library.unknown",
+                        f"theme '{theme.id}' references unknown bundled library '{library_id}'",
+                        theme.path,
+                    )
+                )
+    return issues
 
 
 def validate_themes(repo: Repo) -> list[Issue]:

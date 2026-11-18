@@ -7,5 +7,6 @@ tags = ["brand", "landing", "editorial", "launch"]
 accent = "#ff4d1f"
 blocks = ["hero", "stat-grid", "timeline", "cta-band"]
 skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger"]
+libraries = ["swiper", "roughjs"]
 data_model = ""
 sample = ""

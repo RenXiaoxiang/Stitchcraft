@@ -134,6 +134,42 @@ dependencies.
   a plan render and a dry-run smoke test on every push; GitHub Pages serves the
   static showcase and both demo sites.
 
+### Aggregated open-source tools & license hygiene
+
+Generated sites should not re-invent a chart, a carousel or a canvas, and they
+should not depend on a CDN either. We vendor six MIT-licensed browser libraries
+under `vendor/<id>/` and let a theme declare the ones it needs:
+
+| Library | Version | Use in a generated site |
+| --- | --- | --- |
+| Fabric.js | 5.2.4 | Whiteboards, planners and canvas annotation. |
+| Chart.js | 4.4.7 | KPI panels, dashboards and reports. |
+| SortableJS | 1.15.6 | Drag-and-drop lists, tables and kanban boards. |
+| Rough.js | 4.6.6 | Hand-drawn sketch graphics. |
+| Swiper | 11.2.6 | Carousels and gallery sliders. |
+| GridStack | 10.3.1 | Draggable dashboard grids. |
+
+Each folder carries the upstream `LICENSE`, an `UPSTREAM.md` (repository,
+pinned version, download URL, copied files and date) and a `README.md`;
+`vendor/registry.toml` is the machine-readable index and
+`vendor/ATTRIBUTION.md` the human-readable one. The runtime exposes
+`stitch libraries list|show|verify` and `GET /api/libraries`, and the generator
+copies only the libraries a site actually references into `site/vendor/<id>/` —
+never a CDN URL. The working Fabric.js whiteboard at
+[`docs/demo/whiteboard/index.html`](../docs/demo/whiteboard/index.html) is the
+end-to-end proof: it runs offline from the same vendored `fabric.min.js` a
+generated site receives.
+
+License hygiene is part of the submission, not an afterthought. The existing
+GoogleChrome/modern-web-guidance pack keeps its Apache-2.0 license and Google
+LLC attribution; the GSAP packs keep their license; every MIT library keeps its
+copyright line; and the canonical index of all third-party material lives in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md). This is also how the entry
+meets Kiroween's requirement that third-party trademarks and copyrighted
+material be used with permission: every vendored file is unmodified, distributed
+under its upstream license, and traceable to a pinned upstream version in the
+repository.
+
 ## Challenges
 
 - **Keeping seven layers honest.** A contract, its schema, the producing module,
@@ -285,6 +321,7 @@ generation`
   before the Devpost deadline. The storyboard is in
   [`video-script.md`](video-script.md).*
 - **License:** MIT — [`LICENSE`](../LICENSE)
-- **Third-party attribution:** [`skills/ATTRIBUTION.md`](../skills/ATTRIBUTION.md)
+- **Third-party attribution:** [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)
+  (canonical index) and [`skills/ATTRIBUTION.md`](../skills/ATTRIBUTION.md)
 - **Kiro write-up:** [`kiro-usage.md`](kiro-usage.md)
 - **Compliance checklist:** [`checklist.md`](checklist.md)

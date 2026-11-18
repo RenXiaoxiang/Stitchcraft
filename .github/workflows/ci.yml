@@ -38,6 +38,9 @@ jobs:
       - name: Verify skill packs
         run: python -m stitchcraft skills verify
 
+      - name: Verify vendored browser libraries
+        run: python -m stitchcraft libraries verify
+
       - name: Render the plan (smoke)
         run: python -m stitchcraft plan --mermaid-only > /dev/null
 

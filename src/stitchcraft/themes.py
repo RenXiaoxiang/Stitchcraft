@@ -37,6 +37,7 @@ class Theme:
     tags: tuple[str, ...]
     blocks: tuple[str, ...]
     skills: tuple[str, ...]
+    libraries: tuple[str, ...]
     data_model: str
     sample: str
     path: str
@@ -78,6 +79,7 @@ class Theme:
             "tags": list(self.tags),
             "blocks": list(self.blocks),
             "skills": list(self.skills),
+            "libraries": list(self.libraries),
             "has_sample": self.has_sample,
             "path": self.path,
         }
@@ -104,6 +106,7 @@ def _parse_theme(root: Path, path: str, entry: dict) -> Theme | None:
         tags=tuple(str(item) for item in merged.get("tags", [])),
         blocks=tuple(str(item) for item in merged.get("blocks", [])),
         skills=tuple(str(item) for item in merged.get("skills", [])),
+        libraries=tuple(str(item) for item in merged.get("libraries", [])),
         data_model=str(merged.get("data_model", "")),
         sample=str(merged.get("sample", "")),
         path=path,

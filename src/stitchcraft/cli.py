@@ -74,6 +74,10 @@ def build_parser() -> argparse.ArgumentParser:
     skill_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
     skill_parser.add_argument("skill_id", nargs="?", help="skill id for `skills show`")
 
+    library_parser = sub.add_parser("libraries", help="list, inspect or verify bundled browser libraries")
+    library_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
+    library_parser.add_argument("library_id", nargs="?", help="library id for `libraries show`")
+
     generate = sub.add_parser("generate", help="generate a site headlessly from a theme and a brief")
     generate.add_argument("--theme", required=True, help="theme id, e.g. warehouse-ops")
     generate.add_argument("--prompt", required=True, help="what the site should be")
@@ -112,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         "app": cmd_app,
         "themes": cmd_themes,
         "skills": cmd_skills,
+        "libraries": cmd_libraries,
         "generate": cmd_generate,
     }
     return handlers[args.command](repo, args)
@@ -343,6 +348,40 @@ def cmd_skills(repo: Repo, args: argparse.Namespace) -> int:
     for skill in load_registry(repo.root):
         state = "on " if skill.enabled else "off"
         print(f"{state} {skill.id:<26} {skill.category:<14} {skill.license:<18} {skill.name}")
+    return EXIT_OK
+
+
+def cmd_libraries(repo: Repo, args: argparse.Namespace) -> int:
+    from .libraries import get_library, load_libraries, verify_libraries
+
+    if args.action == "verify":
+        findings = verify_libraries(repo.root)
+        for finding in findings:
+            print(f"ERROR   libraries: {finding}")
+        print(f"stitch libraries verify: {'ok' if not findings else str(len(findings)) + ' problem(s)'}")
+        return EXIT_FINDINGS if findings else EXIT_OK
+    if args.action == "show":
+        if not args.library_id:
+            print("stitch: `libraries show` needs a library id", file=sys.stderr)
+            return EXIT_ERROR
+        library = get_library(repo.root, args.library_id)
+        if library is None:
+            print(f"stitch: unknown library '{args.library_id}'", file=sys.stderr)
+            print("available: " + ", ".join(item.id for item in load_libraries(repo.root)), file=sys.stderr)
+            return EXIT_ERROR
+        print(f"{library.id} - {library.name} {library.version}")
+        print(f"  category:  {library.category}")
+        print(f"  license:   {library.license}")
+        print(f"  copyright: {library.copyright}")
+        print(f"  script:    {library.site_script}")
+        if library.site_css:
+            print(f"  css:       {library.site_css}")
+        print(f"  purpose:   {library.purpose}")
+        print(f"  upstream:  {library.upstream}")
+        print(f"  folder:    {library.path}")
+        return EXIT_OK
+    for library in load_libraries(repo.root):
+        print(f"{library.id:<12} {library.version:<9} {library.license:<8} {library.category:<10} {library.name}")
     return EXIT_OK
 
 

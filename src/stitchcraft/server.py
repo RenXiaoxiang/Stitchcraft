@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import __version__, ai_client, generator, settings, skills, storage, themes
+from . import __version__, ai_client, generator, libraries, settings, skills, storage, themes
 from .generator import GenerationError, GenerationRequest
 from .settings import AppConfig
 from .storage import ProjectStore
@@ -364,6 +364,16 @@ class StudioHandler(BaseHTTPRequestHandler):
                                 "kind": skill.kind,
                             }
                             for skill in skills.load_registry(context.root)
+                        ]
+                    },
+                )
+            if resource == "libraries":
+                return self._send_json(
+                    200,
+                    {
+                        "libraries": [
+                            library.public_dict()
+                            for library in libraries.load_libraries(context.root)
                         ]
                     },
                 )
