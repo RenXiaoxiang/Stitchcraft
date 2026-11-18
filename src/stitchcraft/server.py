@@ -10,7 +10,9 @@ from __future__ import annotations
 import io
 import json
 import threading
+import urllib.error
 import urllib.parse
+import urllib.request
 import uuid
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -365,6 +367,11 @@ class StudioHandler(BaseHTTPRequestHandler):
                         ]
                     },
                 )
+            if resource == "ai":
+                if len(parts) == 3 and parts[2] == "providers":
+                    return self._send_json(200, {"providers": settings.provider_catalog()})
+                if len(parts) == 3 and parts[2] == "local":
+                    return self._local_ai()
             if resource == "projects":
                 return self._send_json(
                     200,
@@ -440,6 +447,37 @@ class StudioHandler(BaseHTTPRequestHandler):
         )
         return self._send_json(200, result)
 
+    def _local_ai(self) -> None:
+        """Probe a local Ollama server so the UI can auto-fill a model."""
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:11434/v1/models", timeout=2.0) as response:
+                data = json.loads(response.read().decode("utf-8", "replace"))
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+            return self._send_json(
+                200,
+                {
+                    "ok": False,
+                    "models": [],
+                    "message": (
+                        "Ollama was not detected on 127.0.0.1:11434. Install it from "
+                        "https://ollama.com, run `ollama serve`, then `ollama pull llama3.1`."
+                    ),
+                },
+            )
+        models = [
+            str(entry.get("id"))
+            for entry in data.get("data", [])
+            if isinstance(entry, dict) and entry.get("id")
+        ]
+        return self._send_json(
+            200,
+            {
+                "ok": True,
+                "models": models,
+                "message": f"Ollama is running with {len(models)} model(s).",
+            },
+        )
+
     def _generate(self, body: dict) -> None:
         theme_id = str(body.get("theme_id", "")).strip()
         prompt = str(body.get("prompt", "")).strip()
@@ -456,16 +494,19 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self._send_json(400, {"ok": False, "error": "describe the site in at least a few words."})
         if engine == "ai":
             ai_settings = self.context.config.ai
-            if not ai_settings.api_key and ai_settings.provider != "ollama":
+            if not ai_settings.base_url:
+                return self._send_json(400, {"ok": False, "error": "No AI base URL is configured."})
+            if settings.provider_requires_key(ai_settings.provider) and not ai_settings.api_key:
                 return self._send_json(
                     400,
                     {
                         "ok": False,
-                        "error": "No AI API key is configured. Add one in Settings or switch to demo mode.",
+                        "error": (
+                            "This provider needs an API key. Add one in Settings, choose a free "
+                            "provider (Pollinations needs no key), or switch to demo mode."
+                        ),
                     },
                 )
-            if not ai_settings.base_url:
-                return self._send_json(400, {"ok": False, "error": "No AI base URL is configured."})
         request = GenerationRequest(
             theme_id=theme_id,
             prompt=prompt,

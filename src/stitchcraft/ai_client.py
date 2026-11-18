@@ -34,6 +34,7 @@ class AIConfig:
     model: str = ""
     api_key: str = ""
     temperature: float = 0.7
+    max_tokens: int = 0
 
 
 def _url(base_url: str, path: str) -> str:
@@ -81,6 +82,8 @@ def chat(
         "messages": messages,
         "temperature": config.temperature,
     }
+    if config.max_tokens:
+        payload["max_tokens"] = int(config.max_tokens)
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
 

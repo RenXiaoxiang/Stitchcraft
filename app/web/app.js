@@ -18,11 +18,18 @@
     { key: 'data', label: 'Data layer' }, { key: 'layout', label: 'Hero & layout' }, { key: 'components', label: 'Components' },
     { key: 'motion', label: 'Motion' }, { key: 'a11y', label: 'Accessibility' }, { key: 'qa', label: 'QA & package' } ];
   const PRESETS = {
-    openai: { base_url: 'https://api.openai.com/v1', model: 'gpt-4o-mini', label: 'OpenAI' },
-    deepseek: { base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat', label: 'DeepSeek' },
-    openrouter: { base_url: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini', label: 'OpenRouter' },
-    ollama: { base_url: 'http://127.0.0.1:11434/v1', model: 'llama3.1', label: 'Ollama' },
-    custom: { base_url: '', model: '', label: 'Custom' } };
+    pollinations: { base_url: 'https://text.pollinations.ai/openai', model: 'openai', label: 'Pollinations (free)', requires_key: false, kind: 'free-keyless', note: 'Free community endpoint, no API key needed. Free tier allows about one request per 30s and short output — good for a first try.', key_url: '' },
+    ollama: { base_url: 'http://127.0.0.1:11434/v1', model: 'llama3.1', label: 'Ollama (local)', requires_key: false, kind: 'local', note: 'Runs on this machine. Install Ollama, run `ollama serve`, then pull a model.', key_url: 'https://ollama.com/download' },
+    zhipu: { base_url: 'https://open.bigmodel.cn/api/paas/v4/', model: 'glm-4-flash', label: '智谱 GLM-4-Flash (free)', requires_key: true, kind: 'free-key', note: '国内可直连；glm-4-flash 永久免费，注册后创建免费 Key。', key_url: 'https://open.bigmodel.cn/' },
+    siliconflow: { base_url: 'https://api.siliconflow.cn/v1', model: 'THUDM/GLM-Z1-9B-0414', label: 'SiliconFlow 免费模型', requires_key: true, kind: 'free-key', note: '国内可直连；部分小模型 0 元，注册免费 Key，模型名以控制台为准。', key_url: 'https://cloud.siliconflow.cn/' },
+    groq: { base_url: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile', label: 'Groq (free tier)', requires_key: true, kind: 'free-key', note: 'Free tier with a free API key from console.groq.com.', key_url: 'https://console.groq.com/keys' },
+    gemini: { base_url: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-flash', label: 'Google Gemini (free tier)', requires_key: true, kind: 'free-key', note: 'Free tier with a Google AI Studio key.', key_url: 'https://aistudio.google.com/apikey' },
+    openrouter: { base_url: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free', label: 'OpenRouter (free models)', requires_key: true, kind: 'free-pool', note: 'Free models end with ":free" — type the exact id in the Model field.', key_url: 'https://openrouter.ai/keys' },
+    github: { base_url: 'https://models.github.ai/inference', model: 'openai/gpt-4o-mini', label: 'GitHub Models (free)', requires_key: true, kind: 'free-key', note: 'Free quota with your GitHub account: create a PAT with the "models: read" scope.', key_url: 'https://github.com/settings/tokens' },
+    openai: { base_url: 'https://api.openai.com/v1', model: 'gpt-4o-mini', label: 'OpenAI (paid)', requires_key: true, kind: 'paid', note: 'Requires a paid OpenAI API key.', key_url: 'https://platform.openai.com/api-keys' },
+    deepseek: { base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat', label: 'DeepSeek (paid)', requires_key: true, kind: 'paid', note: 'DeepSeek\'s official API is paid; use a free provider for zero-cost runs.', key_url: 'https://platform.deepseek.com/' },
+    custom: { base_url: '', model: '', label: 'Custom', requires_key: false, kind: 'custom', note: 'Any OpenAI-compatible endpoint. Leave the key blank for local or keyless servers.', key_url: '' } };
+  const providerPreset = (id) => PRESETS[id] || PRESETS.custom;
   /* Mirrors themes/registry.toml so the catalogue still renders offline. */
   const FALLBACK_THEMES = [
     { id: 'warehouse-ops', name: 'Warehouse Operations', category: 'data', accent: '#ff8a3d', has_sample: true, tags: ['inventory', 'dashboard', 'crud', 'operations'], summary: 'An inventory command center: live stock, inbound shipments, low-stock alerts and one-click item updates.' },
@@ -297,11 +304,28 @@
     if (!input || !hint || !label) return;
     const settings = state.settings || {}, section = isAI ? settings.ai || {} : (settings.database || {}).remote || {};
     const saved = Boolean(section.has_key), typed = input.value.trim().length > 0;
+    if (isAI && providerPreset((($('provider') || {}).value || 'pollinations')).requires_key === false) {
+      input.disabled = true; input.placeholder = 'not required';
+      hint.dataset.state = 'saved'; label.textContent = 'No API key needed for this provider';
+      return; }
+    input.disabled = false;
     if (typed) { hint.dataset.state = 'typing'; label.textContent = 'New key — will be saved'; }
     else if (saved) { hint.dataset.state = 'saved'; label.textContent = (isAI ? 'Key saved' : 'Database key saved') + (section.key_hint ? ' ' + section.key_hint : ''); }
     else { hint.dataset.state = 'empty'; label.textContent = isAI ? 'No key saved' : 'No database key saved'; }
     input.placeholder = saved ? 'saved' : (isAI ? PLACEHOLDERS.api : PLACEHOLDERS.db); }
   const syncKeyStates = () => { syncKeyState('ai'); syncKeyState('db'); };
+  function syncProviderUI() {
+    const select = $('provider'), preset = providerPreset((select && select.value) || 'pollinations');
+    const note = $('ai-provider-note'), localButton = $('ai-local-btn');
+    if (note) {
+      clear(note); note.textContent = preset.note || '';
+      if (preset.requires_key && preset.key_url) {
+        note.append(' ');
+        const link = el('a', null, 'Get a free key');
+        link.href = preset.key_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        note.append(link); } }
+    if (localButton) localButton.hidden = ((select && select.value) || '') !== 'ollama';
+    syncKeyState('ai'); updateSummary(); }
   function applyStatus(data) {
     state.status = data || null;
     const version = $('version-pill');
@@ -323,7 +347,7 @@
     if ($('db-prefix') && remote.table_prefix != null) $('db-prefix').value = String(remote.table_prefix);
     const demo = $('demo-mode');
     if (demo) demo.checked = typeof ui.demo_mode === 'boolean' ? ui.demo_mode : typeof config.demo_mode === 'boolean' ? config.demo_mode : demo.checked;
-    syncDBMode(); syncKeyStates(); updateSummary(); updateGenerateNote(); }
+    syncProviderUI(); syncDBMode(); updateSummary(); updateGenerateNote(); }
   function aiPayload() {
     const payload = {
       provider: ($('provider') || {}).value || 'openai', base_url: (($('base-url') || {}).value || '').trim(),
@@ -403,20 +427,22 @@
       const preset = PRESETS[($('provider') || {}).value] || PRESETS.custom;
       if ($('base-url')) $('base-url').value = preset.base_url;
       if ($('model')) $('model').value = preset.model;
-      updateSummary(); announce('Provider set to ' + preset.label); });
+      syncProviderUI(); announce('Provider set to ' + preset.label);
+      if ((($('provider') || {}).value || '') === 'ollama') detectLocalOllama(true); });
     on($('temperature'), 'input', paintRange);
     on($('toggle-key-vis'), 'click', () => toggleSecret('api-key', 'toggle-key-vis', 'API key'));
     on($('toggle-db-key-vis'), 'click', () => toggleSecret('db-key', 'toggle-db-key-vis', 'database key'));
     on($('api-key'), 'input', () => syncKeyState('ai')); on($('db-key'), 'input', () => syncKeyState('db'));
     [['ai-save-btn', 'ai'], ['db-save-btn', 'db']].forEach(([id, kind]) => on($(id), 'click', () => saveSettings(kind)));
     [['ai-test-btn', 'ai'], ['db-test-btn', 'db']].forEach(([id, kind]) => on($(id), 'click', () => runConnectionTest(kind)));
+    on($('ai-local-btn'), 'click', () => detectLocalOllama(false));
     on($('demo-mode'), 'change', () => { updateSummary(); updateGenerateNote(); announce(($('demo-mode') || {}).checked ? 'Demo mode on.' : 'AI generation mode.'); });
     on($('db-local'), 'change', syncDBMode); on($('db-remote'), 'change', syncDBMode); syncDBMode(); }
 
   /* ---------- 11. Brief, summary, localStorage ----------------------------- */
   function updateSummary() {
     const theme = currentTheme(), demo = Boolean(($('demo-mode') || {}).checked);
-    const provider = ($('provider') || {}).value || 'openai', preset = PRESETS[provider] || PRESETS.custom;
+    const provider = ($('provider') || {}).value || 'pollinations', preset = PRESETS[provider] || PRESETS.custom;
     const model = (($('model') || {}).value || '').trim(), title = (($('site-title') || {}).value || '').trim();
     setText('summary-theme', theme ? theme.name : 'Not selected');
     setText('summary-engine', demo ? 'Demo mode' : 'AI · ' + preset.label + ' / ' + (model || 'default model'));
@@ -631,8 +657,24 @@
     button.disabled = Boolean(busy); button.setAttribute('aria-busy', String(Boolean(busy))); button.classList.toggle('is-busy', Boolean(busy));
     const label = button.querySelector('.btn__label'); if (label) label.textContent = busy ? 'Stitching…' : 'Generate website'; }
   function canUseAI() {
-    if ((($('provider') || {}).value || 'openai') === 'ollama') return true;
+    const provider = ($('provider') || {}).value || 'pollinations';
+    if (providerPreset(provider).requires_key === false) return true;
     return Boolean((($('api-key') || {}).value || '').trim() || (state.settings && state.settings.ai && state.settings.ai.has_key)); }
+  async function detectLocalOllama(silent) {
+    const button = $('ai-local-btn'); if (button) setBusy(button, true);
+    try {
+      const response = await api('/api/ai/local');
+      const models = Array.isArray(response && response.models) ? response.models : [];
+      if (response && response.ok && models.length) {
+        if ($('model')) $('model').value = models[0];
+        updateSummary(); syncKeyState('ai');
+        const message = 'Ollama detected: ' + models.slice(0, 3).join(', ');
+        if (silent) toast(message, 'success'); else showResult($('ai-test-result'), 'ok', message + '.');
+      } else if (!silent) {
+        const message = String((response && response.message) || 'Ollama was not detected.');
+        showResult($('ai-test-result'), 'error', message); toast(message, 'info');
+      } } catch (error) { if (!silent) toast('Could not probe Ollama: ' + error.message, 'error'); }
+    finally { if (button) setBusy(button, false); } }
 
   /* ---------- 15. Generation + polling ------------------------------------- */
   function normalizeJob(raw) {
@@ -706,8 +748,8 @@
     if (!brief) { showPromptError('Write a short brief before generating.'); goToStep(4); if (prompt) prompt.focus(); return; }
     const engine = ($('demo-mode') || {}).checked ? 'mock' : 'ai';
     if (engine === 'ai' && !canUseAI()) {
-      showGenerateError('Add an API key in Setup or switch on demo mode to generate with AI.');
-      goToStep(1); if ($('api-key')) $('api-key').focus(); toast('No AI key configured — save one or use demo mode.', 'error'); return; }
+      showGenerateError('This provider needs an API key — choose a free provider in Setup, add your key, or switch on demo mode.');
+      goToStep(1); if ($('api-key')) $('api-key').focus(); toast('Choose a free provider or add a key to generate with AI.', 'error'); return; }
     setHidden('generate-error', true); setHidden('theme-error', true); setHidden('prompt-error', true);
     const titleInput = $('site-title');
     const payload = { theme_id: theme.id, title: titleInput ? titleInput.value.trim() : '', prompt: brief, engine: engine, database: databasePayload() };
@@ -854,7 +896,7 @@
     PLACEHOLDERS.db = (($('db-key') || {}).placeholder) || 'public anon key';
     makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindGeneration();
     bindHistory(); bindPreview(); bindConnection(); bindGlobalKeys();
-    paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); setPreviewLoading(false);
+    paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); syncProviderUI(); setPreviewLoading(false);
     bootstrap({ silent: true });
     animateEntrance(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

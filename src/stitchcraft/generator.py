@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import ai_client
-from .settings import AppConfig
+from .settings import AppConfig, PRESETS, provider_requires_key
 from .skills import build_skill_context, get_skill, load_registry
 from .themes import Theme, get_theme, load_data_model, sample_dir, theme_skill_text
 
@@ -302,18 +302,42 @@ def _build_messages(
     mode: str,
     remote: dict,
     skill_context: str,
+    compact: bool = False,
 ) -> list[dict]:
     data_model = load_data_model(root, theme)
     has_gsap = (Path(root) / "skills" / "vendor" / "gsap-lib" / "gsap.min.js").is_file()
     config = _data_config(mode, remote)
-    gsap_rule = (
-        "GSAP is vendored at ./vendor/gsap.min.js and already copied into the site. "
-        "You may use window.gsap for entrance/scroll motion; animate transform/opacity only; "
-        "always guard with `if (window.gsap)` and respect prefers-reduced-motion."
-        if has_gsap
-        else "GSAP is not available: use CSS transitions/keyframes only."
-    )
-    system = f"""You are Stitchcraft, an expert product designer and front-end engineer.
+    if compact:
+        system = f"""You are Stitchcraft, an expert product designer and front-end engineer.
+Return a COMPLETE static website as a SINGLE self-contained HTML file.
+You output code, not prose.
+
+OUTPUT CONTRACT — return ONLY one JSON object, no markdown fences:
+{{"files":[{{"path":"index.html","content":"..."}}],"summary":"one sentence describing the site"}}
+
+HARD RULES
+1. Exactly ONE file: index.html. Put all CSS in an inline <style> in <head> and all JavaScript in one inline <script> at the end of <body>. Do not return styles.css or app.js.
+2. Keep the whole file under ~1000 lines and the JSON content valid (escape newlines as \\n inside the content string). Prioritise a complete, working page over extras.
+3. Data layer: include <script src="data-config.js"></script> before your inline script, and read window.STITCHCRAFT_DB = {json.dumps(config, ensure_ascii=False)}.
+   - local mode: persist in localStorage under keys prefixed "stitchcraft:"; seed realistic demo records on first load.
+   - remote mode: fetch `${{url}}/rest/v1/${{tablePrefix}}_<table>` with headers apikey and Authorization: Bearer <anonKey>; handle failures with an inline message.
+   - Never invent credentials; never write secrets into the site.
+4. Fully offline: no external URLs, CDNs, web fonts or remote images. Use inline SVG, CSS gradients and emoji placeholders.
+5. Accessibility: semantic landmarks, skip link, labelled controls, visible focus, prefers-reduced-motion.
+6. Responsive at 1440px and 390px; no horizontal scroll.
+7. Motion: CSS transitions/keyframes only (do not load GSAP in compact mode).
+8. Seed realistic demo data so the page looks alive on first open.
+9. Follow the theme skill and apply the bundled skills as guidance.
+"""
+    else:
+        gsap_rule = (
+            "GSAP is vendored at ./vendor/gsap.min.js and already copied into the site. "
+            "You may use window.gsap for entrance/scroll motion; animate transform/opacity only; "
+            "always guard with `if (window.gsap)` and respect prefers-reduced-motion."
+            if has_gsap
+            else "GSAP is not available: use CSS transitions/keyframes only."
+        )
+        system = f"""You are Stitchcraft, an expert product designer and front-end engineer.
 You assemble a complete, production-quality static website from a theme module
 library, a user brief and bundled expert skills. You output code, not prose.
 
@@ -346,6 +370,11 @@ HARD RULES
     if skill_context:
         user_parts.append("# Bundled skills to apply\n" + skill_context)
     user_parts.append("# Database configuration\n```js\nwindow.STITCHCRAFT_DB = " + json.dumps(config, indent=2) + ";\n```")
+    if compact:
+        user_parts.append(
+            "# Output reminder\nReturn ONE JSON object with a single index.html file "
+            "(inline CSS and JS). No markdown, no prose, valid JSON only."
+        )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": "\n\n".join(user_parts)},
@@ -448,24 +477,91 @@ def generate_site(
     missing = [skill_id for skill_id in skill_ids if skill_id not in registry]
     if missing:
         warnings.append("Unknown skills ignored: " + ", ".join(sorted(missing)))
-    skill_context = build_skill_context(root, resolved, budget_chars=26000)
-    ai_config = ai_client.AIConfig(
-        provider=config.ai.provider,
-        base_url=config.ai.base_url,
-        model=config.ai.model,
-        api_key=config.ai.api_key,
-        temperature=config.ai.temperature,
-    )
-    if not ai_config.api_key and ai_config.provider != "ollama":
+    provider_preset = PRESETS.get(config.ai.provider, {})
+    compact_mode = bool(provider_preset.get("compact", False)) or provider_preset.get("kind") == "free-keyless"
+    compact_max_tokens = 4096
+    skill_context = build_skill_context(root, resolved, budget_chars=12000 if compact_mode else 26000)
+    if provider_requires_key(config.ai.provider) and not config.ai.api_key:
         raise GenerationError(
-            "No AI API key is configured. Add one in Settings → AI API, switch to demo mode, "
-            "or use a local Ollama endpoint."
+            "This provider needs an API key. Add one in Settings → AI API, pick a free provider "
+            "(Pollinations needs no key), or switch to demo mode."
         )
-    messages = _build_messages(root, theme, title, prompt, mode, remote, skill_context)
+
+    def _request(messages_to_use: list[dict], max_tokens: int) -> dict:
+        request_config = ai_client.AIConfig(
+            provider=config.ai.provider,
+            base_url=config.ai.base_url,
+            model=config.ai.model,
+            api_key=config.ai.api_key,
+            temperature=config.ai.temperature,
+            max_tokens=max_tokens,
+        )
+        text = ai_client.chat(request_config, messages_to_use, json_mode=True)
+        parsed = ai_client.extract_json(text)
+        plan = parsed.get("files")
+        if not isinstance(plan, list) or not plan:
+            raise ai_client.AIError("The AI response did not contain any files.")
+        return parsed
+
     active(6, f"Assembling skills and calling {config.ai.provider}/{config.ai.model}")
     _emit(on_progress, 6, "active", f"Skills injected: {', '.join(resolved) or 'none'}")
-    text = ai_client.chat(ai_config, messages, json_mode=True)
-    payload = ai_client.extract_json(text)
+    is_keyless = provider_preset.get("kind") == "free-keyless"
+    if compact_mode:
+        _emit(on_progress, 6, "active", "Free provider: generating a compact single-file site")
+        minimal_context = build_skill_context(root, resolved, budget_chars=4000)
+        compact_retry_messages = _build_messages(
+            root, theme, title, prompt, mode, remote, minimal_context, compact=True
+        )
+        attempts: list[tuple[list[dict], int]] = [
+            (_build_messages(root, theme, title, prompt, mode, remote, skill_context, compact=True), compact_max_tokens)
+        ]
+        if not is_keyless:
+            attempts.append((compact_retry_messages, compact_max_tokens))
+    else:
+        attempts = [
+            (_build_messages(root, theme, title, prompt, mode, remote, skill_context), 0),
+            (_build_messages(root, theme, title, prompt, mode, remote, skill_context, compact=True), compact_max_tokens),
+        ]
+        compact_retry_messages = attempts[-1][0]
+    payload: dict | None = None
+    last_error: Exception | None = None
+    for attempt, (messages_to_use, max_tokens) in enumerate(attempts, start=1):
+        try:
+            if attempt > 1:
+                _emit(on_progress, 6, "active", "Retrying the AI with a compact single-file prompt")
+                warnings.append("The AI needed a compact single-file retry.")
+            payload = _request(messages_to_use, max_tokens)
+            break
+        except (ai_client.AIError, GenerationError) as exc:  # noqa: PERF203 - max two attempts
+            last_error = exc
+    if payload is None and is_keyless:
+        _emit(
+            on_progress,
+            6,
+            "active",
+            "Free endpoint is rate-limited or returned partial output; waiting 40s before one retry",
+        )
+        warnings.append("The free endpoint needed a rate-limit retry (40s wait).")
+        sleep(40)
+        try:
+            payload = _request(compact_retry_messages, compact_max_tokens)
+        except (ai_client.AIError, GenerationError) as exc:  # noqa: PERF203
+            last_error = exc
+    if payload is None:
+        detail = str(last_error)[:200]
+        hint = ""
+        lowered = detail.lower()
+        if "402" in detail or "rate" in lowered or "limit" in lowered or "quota" in lowered:
+            hint = (
+                " This free endpoint is rate-limited. Wait about a minute, then retry — or pick "
+                "智谱 GLM-4-Flash (permanently free, China-friendly key), GitHub Models (free with your "
+                "GitHub PAT), or use demo mode."
+            )
+        raise GenerationError(
+            "The AI returned an incomplete or invalid response. Try again, pick another free "
+            "provider, switch to demo mode, or add your own API key. "
+            f"Details: {detail}{hint}"
+        )
     file_plan = payload.get("files")
     if not isinstance(file_plan, list) or not file_plan:
         raise GenerationError("The AI response did not contain any files.")

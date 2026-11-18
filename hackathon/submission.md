@@ -40,9 +40,12 @@ studio runs on your machine and talks to the model endpoint you choose.
 
 The journey, end to end:
 
-1. **Configure your AI.** Enter an OpenAI-compatible endpoint — base URL, API
-   key and model. Credentials are stored locally and never written into a
-   generated site or into the repository.
+1. **Configure your AI — or use a free one.** Pick a built-in free provider
+   (Pollinations needs no key at all; 智谱 GLM-4-Flash is permanently free and
+   China-friendly; GitHub Models uses your GitHub account; Ollama runs locally),
+   or enter any OpenAI-compatible endpoint with your own key. Credentials are
+   stored locally and never written into a generated site or into the
+   repository.
 2. **Choose your database.** Local: the generated site keeps its data in the
    browser's `localStorage`, with zero setup. Remote: the site talks to a REST
    table (a table URL plus account details) you already own. The choice is

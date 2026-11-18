@@ -108,12 +108,19 @@
               <div class="field">
                 <label class="field__label" for="provider">Provider</label>
                 <select class="input" id="provider">
-                  <option value="openai">OpenAI</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="ollama">Ollama</option>
+                  <option value="pollinations">Pollinations — free, no key</option>
+                  <option value="ollama">Ollama — free, local</option>
+                  <option value="zhipu">智谱 GLM-4-Flash — free key (CN)</option>
+                  <option value="siliconflow">SiliconFlow 免费模型 — free key (CN)</option>
+                  <option value="github">GitHub Models — free with GitHub</option>
+                  <option value="groq">Groq — free tier</option>
+                  <option value="gemini">Google Gemini — free tier</option>
+                  <option value="openrouter">OpenRouter — free models</option>
+                  <option value="openai">OpenAI — paid key</option>
+                  <option value="deepseek">DeepSeek — paid key</option>
                   <option value="custom">Custom (OpenAI-compatible)</option>
                 </select>
+                <p class="field__hint" id="ai-provider-note"></p>
               </div>
 
               <div class="field">
@@ -145,10 +152,13 @@
               </div>
 
               <div class="field">
-                <button class="btn btn--outline" id="ai-test-btn" type="button">
-                  <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.4 6 11.9l7.5-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Test connection
-                </button>
+                <div class="input-row">
+                  <button class="btn btn--outline" id="ai-test-btn" type="button">
+                    <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.4 6 11.9l7.5-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Test connection
+                  </button>
+                  <button class="btn btn--ghost btn--sm" id="ai-local-btn" type="button" hidden>Detect Ollama</button>
+                </div>
                 <p class="test-result" id="ai-test-result" role="status" hidden></p>
               </div>
 

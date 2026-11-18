@@ -17,6 +17,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -24,7 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from stitchcraft import settings  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
-from stitchcraft.settings import AppConfig  # noqa: E402
+from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
 from stitchcraft.skills import verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
 from stitchcraft.themes import verify_themes  # noqa: E402
@@ -91,6 +92,32 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(verify_themes(ROOT), [])
 
 
+class FreeProviderTests(unittest.TestCase):
+    def test_keyless_providers_are_free(self) -> None:
+        self.assertFalse(provider_requires_key("pollinations"))
+        self.assertFalse(provider_requires_key("ollama"))
+        self.assertTrue(provider_requires_key("openai"))
+        self.assertTrue(provider_requires_key("groq"))
+
+    def test_catalog_exposes_free_options(self) -> None:
+        catalog = {entry["id"]: entry for entry in provider_catalog()}
+        self.assertIn("pollinations", catalog)
+        self.assertFalse(catalog["pollinations"]["requires_key"])
+        self.assertTrue(catalog["pollinations"]["free"])
+        self.assertTrue(catalog["pollinations"]["compact"])
+        self.assertTrue(catalog["zhipu"]["free"])
+        self.assertTrue(catalog["zhipu"]["compact"])
+        self.assertTrue(catalog["github"]["free"])
+        self.assertTrue(catalog["groq"]["free"])
+        self.assertTrue(catalog["deepseek"]["requires_key"])
+        self.assertFalse(catalog["deepseek"]["free"])
+
+    def test_default_config_uses_a_keyless_provider(self) -> None:
+        config = AppConfig()
+        self.assertFalse(provider_requires_key(config.ai.provider))
+        self.assertTrue(config.ai.base_url)
+
+
 class GenerationTests(unittest.TestCase):
     def test_mock_generation_mounts_sample(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -149,6 +176,41 @@ class GenerationTests(unittest.TestCase):
                     sleep=lambda _seconds: None,
                 )
 
+    def test_keyless_provider_can_generate_with_ai_without_a_key(self) -> None:
+        config = AppConfig()
+        config.ai.provider = "pollinations"
+        config.ai.base_url = "https://text.pollinations.ai/openai"
+        config.ai.model = "openai"
+        config.ai.api_key = ""
+        payload = {
+            "files": [
+                {"path": "index.html", "content": "<!doctype html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Free AI test</title></head><body><h1>Warehouse</h1><p>Built through a free provider.</p><script src=\"data-config.js\"></script><script src=\"app.js\"></script></body></html>"},
+                {"path": "styles.css", "content": "body{font-family:system-ui,sans-serif}"},
+                {"path": "app.js", "content": "document.documentElement.dataset.ready='true';"},
+            ],
+            "summary": "A keyless-provider test site.",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            with mock.patch("stitchcraft.ai_client.chat", return_value=json.dumps(payload)) as patched:
+                result = generate_site(
+                    ROOT,
+                    config,
+                    GenerationRequest(
+                        theme_id="warehouse-ops",
+                        prompt="A small warehouse dashboard with inventory.",
+                        engine="ai",
+                        database={"mode": "local", "remote": {}},
+                    ),
+                    out,
+                    sleep=lambda _seconds: None,
+                )
+            patched.assert_called_once()
+            self.assertTrue((out / "index.html").is_file())
+            self.assertTrue((out / "data-config.js").is_file())
+            self.assertEqual(result.engine, "ai")
+            self.assertEqual(result.summary, "A keyless-provider test site.")
+
 
 class ServerApiTests(unittest.TestCase):
     @classmethod
@@ -183,6 +245,14 @@ class ServerApiTests(unittest.TestCase):
         status, payload = _get_json(self.base + "/api/skills")
         self.assertEqual(status, 200)
         self.assertGreaterEqual(len(payload["skills"]), 5)
+        status, payload = _get_json(self.base + "/api/ai/providers")
+        self.assertEqual(status, 200)
+        providers = {entry["id"]: entry for entry in payload["providers"]}
+        self.assertIn("pollinations", providers)
+        self.assertFalse(providers["pollinations"]["requires_key"])
+        status, payload = _get_json(self.base + "/api/ai/local")
+        self.assertEqual(status, 200)
+        self.assertIn("ok", payload)
 
     def test_settings_roundtrip(self) -> None:
         status, payload = _get_json(

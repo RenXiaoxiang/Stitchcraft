@@ -186,11 +186,27 @@ License  : MIT
 
 3.5 AI API 配置设计
   - 统一 OpenAI 兼容协议：POST {base_url}/chat/completions。
-  - 预设：OpenAI / DeepSeek / OpenRouter / Ollama（本地 11434）/ Custom。
+  - 内置免费通道（不需要付费 Key）：
+      * Pollinations（免 Key）  https://text.pollinations.ai/openai  model=openai
+        免费、每 IP 约 30 秒一次、输出较短；生成器自动用「单文件紧凑模式」并在
+        限流时等待 40 秒重试一次。适合第一次体验。
+      * 智谱 GLM-4-Flash（永久免费，国内直连） https://open.bigmodel.cn/api/paas/v4/
+        model=glm-4-flash；注册后在控制台创建免费 API Key。推荐作为稳定免费方案。
+      * SiliconFlow 免费模型（国内直连） https://api.siliconflow.cn/v1
+        部分小模型 0 元；注册免费 Key，模型名以控制台为准。
+      * GitHub Models（用 GitHub 账号免费额度） https://models.github.ai/inference
+        创建带 models: read 权限的 PAT 作为 Key。
+      * Ollama（本地免费） http://127.0.0.1:11434/v1；安装后 ollama pull 模型即可。
+      * Groq / Google Gemini / OpenRouter 免费额度（国内可能需要代理）。
+  - 付费通道：OpenAI、DeepSeek（注意：DeepSeek 官方 API 没有免费额度，需充值，
+    价格低；想要零成本请用上面的免费通道）、自定义 OpenAI 兼容接口。
   - 字段：provider、base_url、model、temperature、api_key。
   - 测试：优先 GET {base_url}/models；失败则发一条 "reply pong" 的最小对话。
   - 存储：%LOCALAPPDATA%\Stitchcraft\config.json（权限尽量 600，永不入仓库）。
   - 生成时若 json_mode 被端点拒绝（400/422），自动降级重试一次普通模式并本地解析 JSON。
+  - 免费/小模型走单文件紧凑模式（inline CSS/JS，单个 index.html），失败自动重试；
+    Pollinations 限流时等待 40 秒重试一次，仍失败则提示改用智谱/GitHub Models/演示模式。
+
 
 3.6 数据库：本地 / 远端（按用户确认的需求）
   - 含义：数据库地址与账户是「生成网站时使用」的配置，不是 Stitchcraft 自身的项目库。

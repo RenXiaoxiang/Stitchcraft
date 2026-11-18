@@ -14,29 +14,154 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-PRESETS: dict[str, dict[str, str]] = {
-    "openai": {
-        "label": "OpenAI",
-        "base_url": "https://api.openai.com/v1",
-        "model": "gpt-4o-mini",
+PRESETS: dict[str, dict[str, object]] = {
+    # Free, no key required (community endpoint — rate limited, not for secrets).
+    "pollinations": {
+        "label": "Pollinations (free, no key)",
+        "base_url": "https://text.pollinations.ai/openai",
+        "model": "openai",
+        "requires_key": False,
+        "kind": "free-keyless",
+        "compact": True,
+        "note": "Free community endpoint, no API key. Free tier allows about one request per 30s per IP and short outputs — good for a first try, not for long sessions.",
+        "key_url": "https://pollinations.ai",
     },
-    "deepseek": {
-        "label": "DeepSeek",
-        "base_url": "https://api.deepseek.com/v1",
-        "model": "deepseek-chat",
-    },
-    "openrouter": {
-        "label": "OpenRouter",
-        "base_url": "https://openrouter.ai/api/v1",
-        "model": "openai/gpt-4o-mini",
-    },
+    # Free, runs on this machine (needs Ollama installed).
     "ollama": {
-        "label": "Ollama (local)",
+        "label": "Ollama (free, local)",
         "base_url": "http://127.0.0.1:11434/v1",
         "model": "llama3.1",
+        "requires_key": False,
+        "kind": "local",
+        "compact": True,
+        "note": "Runs on your machine. Install Ollama, run `ollama serve`, then `ollama pull llama3.1`.",
+        "key_url": "https://ollama.com/download",
     },
-    "custom": {"label": "Custom OpenAI-compatible", "base_url": "", "model": ""},
+    # Free tiers that need a free API key (China-friendly options included).
+    "zhipu": {
+        "label": "智谱 GLM-4-Flash (free, CN)",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+        "model": "glm-4-flash",
+        "requires_key": True,
+        "kind": "free-key",
+        "compact": True,
+        "note": "国内可直连；glm-4-flash 永久免费，注册后创建免费 API Key。",
+        "key_url": "https://open.bigmodel.cn/",
+    },
+    "siliconflow": {
+        "label": "SiliconFlow 免费模型 (free, CN)",
+        "base_url": "https://api.siliconflow.cn/v1",
+        "model": "THUDM/GLM-Z1-9B-0414",
+        "requires_key": True,
+        "kind": "free-key",
+        "compact": True,
+        "note": "国内可直连；部分小模型 0 元，注册免费 Key，模型名以控制台为准。",
+        "key_url": "https://cloud.siliconflow.cn/",
+    },
+    "groq": {
+        "label": "Groq (free tier)",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": "llama-3.3-70b-versatile",
+        "requires_key": True,
+        "kind": "free-key",
+        "compact": False,
+        "note": "Generous free tier with a free API key from console.groq.com.",
+        "key_url": "https://console.groq.com/keys",
+    },
+    "gemini": {
+        "label": "Google Gemini (free tier)",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "model": "gemini-2.5-flash",
+        "requires_key": True,
+        "kind": "free-key",
+        "compact": False,
+        "note": "Free tier with a Google AI Studio key; check the current model names.",
+        "key_url": "https://aistudio.google.com/apikey",
+    },
+    "openrouter": {
+        "label": "OpenRouter (free models)",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "requires_key": True,
+        "kind": "free-pool",
+        "compact": False,
+        "note": "Free models end with ':free' — type the exact id in the Model field.",
+        "key_url": "https://openrouter.ai/keys",
+    },
+    "github": {
+        "label": "GitHub Models (free with PAT)",
+        "base_url": "https://models.github.ai/inference",
+        "model": "openai/gpt-4o-mini",
+        "requires_key": True,
+        "kind": "free-key",
+        "compact": False,
+        "note": "Free quota with a GitHub account: create a PAT with the 'models: read' scope.",
+        "key_url": "https://github.com/settings/tokens",
+    },
+    # Paid providers.
+    "openai": {
+        "label": "OpenAI (paid key)",
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-4o-mini",
+        "requires_key": True,
+        "kind": "paid",
+        "note": "Requires a paid OpenAI API key.",
+        "key_url": "https://platform.openai.com/api-keys",
+    },
+    "deepseek": {
+        "label": "DeepSeek (paid key)",
+        "base_url": "https://api.deepseek.com/v1",
+        "model": "deepseek-chat",
+        "requires_key": True,
+        "kind": "paid",
+        "note": "DeepSeek's official API is paid (low cost); new accounts need a top-up. Use a free provider for zero-cost runs.",
+        "key_url": "https://platform.deepseek.com/",
+    },
+    "custom": {
+        "label": "Custom OpenAI-compatible",
+        "base_url": "",
+        "model": "",
+        "requires_key": False,
+        "kind": "custom",
+        "note": "Any OpenAI-compatible endpoint. Leave the key blank for local or keyless servers.",
+        "key_url": "",
+    },
 }
+
+FREE_PROVIDER_IDS: tuple[str, ...] = (
+    "pollinations",
+    "ollama",
+    "zhipu",
+    "siliconflow",
+    "groq",
+    "gemini",
+    "openrouter",
+    "github",
+)
+
+
+def provider_requires_key(provider: str) -> bool:
+    """Whether the provider cannot work without a user-supplied API key."""
+    return bool(PRESETS.get(provider, {}).get("requires_key", True))
+
+
+def provider_catalog() -> list[dict]:
+    """Machine-readable provider list for the studio UI and docs."""
+    return [
+        {
+            "id": provider_id,
+            "label": str(preset.get("label", provider_id)),
+            "base_url": str(preset.get("base_url", "")),
+            "model": str(preset.get("model", "")),
+            "requires_key": bool(preset.get("requires_key", True)),
+            "kind": str(preset.get("kind", "custom")),
+            "compact": bool(preset.get("compact", False)),
+            "note": str(preset.get("note", "")),
+            "key_url": str(preset.get("key_url", "")),
+            "free": provider_id in FREE_PROVIDER_IDS,
+        }
+        for provider_id, preset in PRESETS.items()
+    ]
 
 
 def app_dir() -> Path:
@@ -66,9 +191,9 @@ def _clamp_temperature(value: object, fallback: float = 0.7) -> float:
 
 @dataclass
 class AISettings:
-    provider: str = "openai"
-    base_url: str = PRESETS["openai"]["base_url"]
-    model: str = PRESETS["openai"]["model"]
+    provider: str = "pollinations"
+    base_url: str = str(PRESETS["pollinations"]["base_url"])
+    model: str = str(PRESETS["pollinations"]["model"])
     temperature: float = 0.7
     api_key: str = ""
 
@@ -112,7 +237,7 @@ class DatabaseSettings:
 @dataclass
 class UISettings:
     theme: str = "kiroween"
-    demo_mode: bool = True
+    demo_mode: bool = False
 
     def public_dict(self) -> dict:
         return {"theme": self.theme, "demo_mode": self.demo_mode}

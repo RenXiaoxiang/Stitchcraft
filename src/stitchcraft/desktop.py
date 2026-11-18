@@ -125,6 +125,9 @@ def _smoke_test(base_url: str, context) -> int:
     checks.append(("api/skills", status == 200 and skill_count >= 5, f"{skill_count} skills"))
     status, payload = _request_json(f"{base_url}/api/settings")
     checks.append(("api/settings", status == 200 and "ai" in payload, ""))
+    status, payload = _request_json(f"{base_url}/api/ai/providers")
+    provider_count = len(payload.get("providers", []))
+    checks.append(("api/ai/providers", status == 200 and provider_count >= 8, f"{provider_count} providers"))
 
     status, payload = _request_json(
         f"{base_url}/api/generate",

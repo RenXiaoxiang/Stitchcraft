@@ -2981,3 +2981,19 @@ select.input {
     display: block;
   }
 }
+
+/* Free-AI provider note (v0.2.1) */
+.field__hint a {
+  color: var(--ember);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.field__hint a:hover { color: var(--paper); }
+.field__hint a:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; border-radius: 4px; }
+.input:disabled {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  cursor: not-allowed;
+}
+#ai-local-btn[hidden] { display: none; }
