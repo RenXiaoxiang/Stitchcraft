@@ -27,3 +27,7 @@ desktop.ini
 # Local demo video and submission-only Devpost gallery (never committed)
 hackathon/demo/
 hackathon/images/
+
+# Devpost answer sheets stay local (not part of the public repo)
+hackathon/devpost-fill.md
+hackathon/project-story.md
