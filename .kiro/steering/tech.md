@@ -62,7 +62,17 @@ stitch list | show <module> | validate [--strict] [--json] | plan | doctor | run
 
 - Standard `unittest`: `python -m unittest discover -s tests -v`; tests check this repo against its own seams and exercise loader, validator and renderer.
 - Every validator rule gets a failing and a passing case; every CLI verb gets a happy-path test. No network, virtualenv or editable install required.
-- CI (`.github/workflows/ci.yml`, Python 3.12): editable install, unit tests, `stitch validate --strict`, `stitch plan --mermaid-only`, `stitch run --dry-run --out /tmp/stitch-dryrun`.
+- CI (`.github/workflows/ci.yml`, Python 3.11/3.12/3.13): editable install, unit tests, `stitch validate --strict`, `stitch themes verify`, `stitch skills verify`, `stitch plan --mermaid-only`, `stitch run --dry-run`, and `stitch app --smoke-test --no-window`.
+
+## Desktop studio stack (v0.2)
+
+- `src/stitchcraft/server.py` is a standard-library `ThreadingHTTPServer` bound to `127.0.0.1`; it serves the UI, the JSON API, generated-site previews and ZIP exports. Generation runs in a daemon thread and is polled through `/api/jobs/<id>`.
+- `src/stitchcraft/desktop.py` launches the studio and opens the UI in an Edge `--app` window (falling back to any browser). `stitch app --smoke-test --no-window` is the headless end-to-end check used by CI and the `desktop-server` hook.
+- `app/web/` is vanilla HTML/CSS/JS with the official GSAP build vendored at `app/web/vendor/gsap.min.js`. No frameworks, no build step, no external CDNs. Motion must respect `prefers-reduced-motion`.
+- `themes/` and `skills/` are data packages, not code: the generator reads them, validates them and injects the selected skill text into the AI prompt under a character budget. Never hardcode theme or skill content in Python.
+- **Secrets stay local:** AI keys and remote-database credentials live only in `%LOCALAPPDATA%\Stitchcraft\config.json` (override with `STITCHCRAFT_HOME` for tests). They are never committed, logged, returned by the API in clear text, or written into generated sites. Generated sites receive only the remote REST URL / public anon key the user explicitly configured.
+- Generation is sandboxed on disk: relative paths only, extension whitelist, per-file and total size caps, and an explicit `index.html` requirement.
+
 
 ## Where to extend
 

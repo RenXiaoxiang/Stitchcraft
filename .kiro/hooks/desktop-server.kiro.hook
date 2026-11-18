@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "desktop-server",
+  "description": "Keep the desktop studio launchable and the API smoke test green after app or server edits.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "app/**",
+      "src/stitchcraft/server.py",
+      "src/stitchcraft/desktop.py",
+      "src/stitchcraft/generator.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The desktop studio changed. Run `python -m unittest discover -s tests -v`, then `python -m stitchcraft app --smoke-test --no-window`. Confirm no API keys, absolute machine paths or generated secrets were committed, and that the UI still works without an AI key (mock mode)."
+  }
+}

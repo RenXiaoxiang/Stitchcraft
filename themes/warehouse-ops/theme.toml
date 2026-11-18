@@ -1,0 +1,11 @@
+[theme]
+id = "warehouse-ops"
+name = "Warehouse Operations"
+category = "data"
+summary = "An inventory command center for warehouse teams: live stock levels, inbound shipments, low-stock alerts and one-click item updates."
+tags = ["inventory", "dashboard", "crud", "operations"]
+accent = "#ff8a3d"
+blocks = ["hero", "stat-grid", "data-table", "crud-modal"]
+skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-data-app"]
+data_model = "data-model.json"
+sample = "sample"

@@ -1,0 +1,46 @@
+# Stitchcraft theme registry.
+# The runtime reads this file to list the themes a generated site can start from.
+# Every entry points at a package folder under themes/<id>/.
+
+[meta]
+version = "0.1.0"
+
+[[themes]]
+id = "warehouse-ops"
+name = "Warehouse Operations"
+category = "data"
+path = "themes/warehouse-ops"
+accent = "#ff8a3d"
+has_sample = true
+
+[[themes]]
+id = "personal-space"
+name = "Personal Space"
+category = "personal"
+path = "themes/personal-space"
+accent = "#c9a86a"
+has_sample = true
+
+[[themes]]
+id = "staff-directory"
+name = "Staff Directory"
+category = "data"
+path = "themes/staff-directory"
+accent = "#b6f24a"
+has_sample = false
+
+[[themes]]
+id = "logistics-control"
+name = "Logistics Control"
+category = "data"
+path = "themes/logistics-control"
+accent = "#38d6e0"
+has_sample = false
+
+[[themes]]
+id = "brand-launch"
+name = "Brand Launch"
+category = "brand"
+path = "themes/brand-launch"
+accent = "#ff4d1f"
+has_sample = false

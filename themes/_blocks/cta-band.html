@@ -1,0 +1,49 @@
+<!--
+  Block: cta-band — full-width call-to-action band that closes a page.
+  Replace: kicker, heading, lede, and the primary/secondary labels and hrefs.
+  One band per page; keep it as <h2> so it does not compete with the hero.
+  Hooks: --cta-ink, --cta-muted, --cta-accent, --cta-surface, --cta-border.
+  If the action is a newsletter, point it at a real form; never ship a dead link.
+-->
+<section class="blk-cta" aria-labelledby="cta-title">
+  <div class="blk-cta__copy">
+    <p class="blk-cta__kicker">A letter, monthly</p>
+    <h2 id="cta-title">Notes from the attic, usually before midnight.</h2>
+    <p class="blk-cta__lede">One essay, three photographs and whatever the weather did.
+      No tracking, no urgency, one click to leave.</p>
+  </div>
+  <div class="blk-cta__actions">
+    <a class="blk-cta__btn blk-cta__btn--primary" href="#subscribe">Subscribe</a>
+    <a class="blk-cta__btn" href="#writing">Read the archive</a>
+  </div>
+</section>
+<style>
+  .blk-cta {
+    --cta-ink: var(--text, #f2ead9); --cta-muted: var(--muted, #a8a494);
+    --cta-accent: var(--accent, #c9a86a); --cta-surface: var(--panel, #1c1d19);
+    --cta-border: var(--border, #34352d);
+    container-type: inline-size;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 1rem 1.5rem; padding: clamp(1.1rem, 3vw, 1.8rem);
+    color: var(--cta-ink); background: var(--cta-surface);
+    border: 1px solid var(--cta-border); border-top: 2px solid var(--cta-accent); border-radius: 14px;
+  }
+  .blk-cta__copy { flex: 1 1 22rem; min-width: 0; }
+  .blk-cta__kicker { margin: 0 0 0.4rem; color: var(--cta-accent); font: 600 0.7rem/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+  .blk-cta__copy h2 { margin: 0; font: 500 clamp(1.3rem, 1.05rem + 1vw, 1.75rem)/1.25 Georgia, "Times New Roman", serif; letter-spacing: -0.01em; text-wrap: balance; }
+  .blk-cta__lede { margin: 0.45rem 0 0; max-width: 58ch; color: var(--cta-muted); line-height: 1.6; }
+  .blk-cta__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .blk-cta__btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.5rem; padding: 0 1rem; color: var(--cta-ink); background: transparent;
+    border: 1px solid var(--cta-border); border-radius: 9px;
+    font: inherit; font-size: 0.875rem; font-weight: 600; text-decoration: none;
+    transition: transform 160ms ease, border-color 160ms ease;
+  }
+  .blk-cta__btn--primary { color: #14161a; background: var(--cta-accent); border-color: transparent; }
+  .blk-cta__btn:hover { transform: translateY(-1px); border-color: var(--cta-accent); }
+  .blk-cta__btn--primary:hover { border-color: transparent; filter: brightness(1.05); }
+  .blk-cta__btn:focus-visible { outline: 2px solid var(--cta-accent); outline-offset: 2px; }
+  @container (max-width: 560px) { .blk-cta__actions { width: 100%; } .blk-cta__btn { flex: 1 1 auto; } }
+  @media (prefers-reduced-motion: reduce) { .blk-cta__btn { transition: none; } .blk-cta__btn:hover { transform: none; } }
+</style>

@@ -1,0 +1,62 @@
+<!--
+  Block: timeline — vertical timeline for inbound ETAs, launch phases or activity.
+  Replace: section title; each <li>'s <time datetime>, heading, body and state
+  label. Modifiers: --done, --active, --next; data-state recolours the pill.
+  Hooks: --timeline-ink, --timeline-muted, --timeline-rule, --timeline-accent,
+         --timeline-good.
+  The <ol> keeps the order meaningful for screen readers; markers are decorative.
+-->
+<section class="blk-timeline" aria-labelledby="timeline-title">
+  <header class="blk-timeline__head">
+    <p class="blk-timeline__kicker">Inbound</p>
+    <h2 id="timeline-title">Dock schedule</h2>
+  </header>
+  <ol class="blk-timeline__list">
+    <li class="blk-timeline__item blk-timeline__item--done">
+      <span class="blk-timeline__marker" aria-hidden="true"></span>
+      <p class="blk-timeline__meta"><time datetime="2026-11-19T07:40">07:40</time>
+        <span class="blk-timeline__state" data-state="done">Arrived</span></p>
+      <h3>Highland Roasters · Dock 2</h3>
+      <p class="blk-timeline__body">18 lines of green bean; put-away complete.</p>
+    </li>
+    <li class="blk-timeline__item blk-timeline__item--active">
+      <span class="blk-timeline__marker" aria-hidden="true"></span>
+      <p class="blk-timeline__meta"><time datetime="2026-11-19T11:15">11:15</time>
+        <span class="blk-timeline__state" data-state="active">At dock</span></p>
+      <h3>Marlow Packaging · Dock 4</h3>
+      <p class="blk-timeline__body">6 pallets of 1kg valve bags; two lines to check in.</p>
+    </li>
+    <li class="blk-timeline__item blk-timeline__item--next">
+      <span class="blk-timeline__marker" aria-hidden="true"></span>
+      <p class="blk-timeline__meta"><time datetime="2026-11-20T08:30">Tomorrow 08:30</time>
+        <span class="blk-timeline__state" data-state="next">Scheduled</span></p>
+      <h3>Cold Chain North · Dock 1</h3>
+      <p class="blk-timeline__body">Chilled oat milk, 12 lines; book a cooler bay.</p>
+    </li>
+  </ol>
+</section>
+<style>
+  .blk-timeline {
+    --timeline-ink: var(--text, #e8e6e1); --timeline-muted: var(--muted, #9aa3ad);
+    --timeline-rule: var(--border, #2a3341); --timeline-accent: var(--accent, #ff8a3d);
+    --timeline-good: #6ee7a8; --timeline-panel: var(--panel, #12161d);
+    container-type: inline-size; color: var(--timeline-ink);
+  }
+  .blk-timeline__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem; margin-bottom: 1rem; }
+  .blk-timeline__kicker { margin: 0; color: var(--timeline-accent); font: 600 0.7rem/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+  .blk-timeline__head h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
+  .blk-timeline__list { margin: 0; padding: 0; list-style: none; }
+  .blk-timeline__item { position: relative; margin-left: 0.3rem; padding: 0 0 1.15rem 1.4rem; border-left: 1px solid var(--timeline-rule); }
+  .blk-timeline__item:last-child { padding-bottom: 0; border-left-color: transparent; }
+  .blk-timeline__marker { position: absolute; top: 0.3rem; left: -0.33rem; width: 0.62rem; height: 0.62rem; background: var(--timeline-panel); border: 2px solid var(--timeline-muted); border-radius: 50%; }
+  .blk-timeline__item--done .blk-timeline__marker { background: var(--timeline-good); border-color: var(--timeline-good); }
+  .blk-timeline__item--active .blk-timeline__marker { background: var(--timeline-accent); border-color: var(--timeline-accent); box-shadow: 0 0 0 4px rgb(255 138 61 / 0.18); }
+  .blk-timeline__item--next .blk-timeline__marker { border-style: dashed; }
+  .blk-timeline__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; margin: 0; color: var(--timeline-muted); font: 500 0.72rem/1.4 ui-monospace, Menlo, Consolas, monospace; }
+  .blk-timeline__state { padding: 0.05rem 0.45rem; border: 1px solid var(--timeline-rule); border-radius: 999px; font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .blk-timeline__state[data-state="done"] { color: var(--timeline-good); border-color: #2f7d55; }
+  .blk-timeline__state[data-state="active"] { color: var(--timeline-accent); border-color: var(--timeline-accent); }
+  .blk-timeline__item h3 { margin: 0.25rem 0 0.15rem; font-size: 0.95rem; letter-spacing: -0.01em; }
+  .blk-timeline__body { margin: 0; color: var(--timeline-muted); font-size: 0.85rem; line-height: 1.55; }
+  @container (max-width: 440px) { .blk-timeline__item { padding-left: 1.1rem; } }
+</style>

@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "skill-registry",
+  "description": "Keep the vendored skill packs and the skill registry consistent when skills change.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "skills/**/SKILL.md",
+      "skills/registry.toml",
+      "skills/vendor/**/UPSTREAM.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A skill changed. Run `python -m stitchcraft skills verify` and `python -m stitchcraft validate --strict`. If files under skills/vendor/ were edited by hand, re-vendor them from the pinned upstream commit instead, update the matching UPSTREAM.md and skills/ATTRIBUTION.md, and never edit vendored files to make a check pass."
+  }
+}

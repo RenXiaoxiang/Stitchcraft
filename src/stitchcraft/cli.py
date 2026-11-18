@@ -61,6 +61,31 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("doctor", help="check the local toolchain and repo health")
 
+    app = sub.add_parser("app", help="launch the desktop studio (local UI in an app window)")
+    app.add_argument("--port", type=int, default=8765, help="preferred local port (default 8765)")
+    app.add_argument("--no-window", action="store_true", help="start the server without opening a window")
+    app.add_argument("--smoke-test", action="store_true", help="run API checks headlessly and exit")
+
+    theme_parser = sub.add_parser("themes", help="list, inspect or verify theme packages")
+    theme_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
+    theme_parser.add_argument("theme_id", nargs="?", help="theme id for `themes show`")
+
+    skill_parser = sub.add_parser("skills", help="list, inspect or verify bundled skills")
+    skill_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
+    skill_parser.add_argument("skill_id", nargs="?", help="skill id for `skills show`")
+
+    generate = sub.add_parser("generate", help="generate a site headlessly from a theme and a brief")
+    generate.add_argument("--theme", required=True, help="theme id, e.g. warehouse-ops")
+    generate.add_argument("--prompt", required=True, help="what the site should be")
+    generate.add_argument("--title", default="", help="optional site title")
+    generate.add_argument("--engine", choices=["mock", "ai"], default="mock", help="mock (demo) or ai (configured API)")
+    generate.add_argument("--database", choices=["local", "remote"], default="local", help="generated data layer mode")
+    generate.add_argument("--db-kind", default="supabase", choices=["supabase", "rest"], help="remote database flavour")
+    generate.add_argument("--db-url", default="", help="remote database URL")
+    generate.add_argument("--db-key", default="", help="remote public/anon key")
+    generate.add_argument("--db-prefix", default="stitchcraft", help="remote table prefix")
+    generate.add_argument("--out", type=Path, default=None, help="output directory (default: <repo>/.stitch/generated/<theme>)")
+
     run = sub.add_parser("run", help="prepare the stitch for an agent")
     run.add_argument("--dry-run", action="store_true", help="write one PROMPT.md per stage; no model calls")
     run.add_argument("--out", type=Path, help="output directory (default: <repo>/.stitch)")
@@ -84,6 +109,10 @@ def main(argv: list[str] | None = None) -> int:
         "plan": cmd_plan,
         "doctor": cmd_doctor,
         "run": cmd_run,
+        "app": cmd_app,
+        "themes": cmd_themes,
+        "skills": cmd_skills,
+        "generate": cmd_generate,
     }
     return handlers[args.command](repo, args)
 
@@ -238,6 +267,130 @@ def cmd_run(repo: Repo, args: argparse.Namespace) -> int:
     print()
     print("Next: open the first PROMPT.md in Kiro (or any agent) and execute the skill it points to.")
     print("After a stage is done: `python -m stitchcraft validate` to prove the seam still holds.")
+    return EXIT_OK
+
+
+def cmd_app(repo: Repo, args: argparse.Namespace) -> int:
+    from .desktop import run as run_desktop
+
+    return run_desktop(
+        root=repo.root,
+        port=args.port,
+        open_window_enabled=not args.no_window,
+        smoke_test=args.smoke_test,
+    )
+
+
+def cmd_themes(repo: Repo, args: argparse.Namespace) -> int:
+    from .themes import get_theme, load_themes, verify_themes
+
+    if args.action == "verify":
+        findings = verify_themes(repo.root)
+        for finding in findings:
+            print(f"ERROR   themes: {finding}")
+        print(f"stitch themes verify: {'ok' if not findings else str(len(findings)) + ' problem(s)'}")
+        return EXIT_FINDINGS if findings else EXIT_OK
+    if args.action == "show":
+        if not args.theme_id:
+            print("stitch: `themes show` needs a theme id", file=sys.stderr)
+            return EXIT_ERROR
+        theme = get_theme(repo.root, args.theme_id)
+        if theme is None:
+            print(f"stitch: unknown theme '{args.theme_id}'", file=sys.stderr)
+            print("available: " + ", ".join(item.id for item in load_themes(repo.root)), file=sys.stderr)
+            return EXIT_ERROR
+        print(f"{theme.id} - {theme.name}")
+        print(f"  category: {theme.category}")
+        print(f"  accent:   {theme.accent}")
+        print(f"  summary:  {theme.summary}")
+        print(f"  tags:     {', '.join(theme.tags) or '-'}")
+        print(f"  blocks:   {', '.join(theme.blocks) or '-'}")
+        print(f"  skills:   {', '.join(theme.skills) or '-'}")
+        print(f"  sample:   {'yes' if theme.has_sample else 'no'}")
+        print(f"  folder:   {theme.path}")
+        return EXIT_OK
+    for theme in load_themes(repo.root):
+        sample = "  [sample]" if theme.has_sample else ""
+        print(f"{theme.id:<20} {theme.category:<9} {theme.name}{sample}")
+    return EXIT_OK
+
+
+def cmd_skills(repo: Repo, args: argparse.Namespace) -> int:
+    from .skills import get_skill, load_registry, verify_registry
+
+    if args.action == "verify":
+        findings = verify_registry(repo.root)
+        for finding in findings:
+            print(f"ERROR   skills: {finding}")
+        print(f"stitch skills verify: {'ok' if not findings else str(len(findings)) + ' problem(s)'}")
+        return EXIT_FINDINGS if findings else EXIT_OK
+    if args.action == "show":
+        if not args.skill_id:
+            print("stitch: `skills show` needs a skill id", file=sys.stderr)
+            return EXIT_ERROR
+        skill = get_skill(repo.root, args.skill_id)
+        if skill is None:
+            print(f"stitch: unknown skill '{args.skill_id}'", file=sys.stderr)
+            return EXIT_ERROR
+        print(f"{skill.id} - {skill.name}")
+        print(f"  category: {skill.category}")
+        print(f"  source:   {skill.source}")
+        print(f"  license:  {skill.license}")
+        print(f"  stages:   {', '.join(skill.stages) or '-'}")
+        print(f"  budget:   {skill.budget_chars} chars")
+        print(f"  path:     {skill.path}")
+        return EXIT_OK
+    for skill in load_registry(repo.root):
+        state = "on " if skill.enabled else "off"
+        print(f"{state} {skill.id:<26} {skill.category:<14} {skill.license:<18} {skill.name}")
+    return EXIT_OK
+
+
+def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:
+    from . import settings as settings_module
+    from .generator import GenerationError, GenerationRequest, generate_site
+    from .themes import get_theme
+
+    theme = get_theme(repo.root, args.theme)
+    if theme is None:
+        print(f"stitch: unknown theme '{args.theme}'", file=sys.stderr)
+        return EXIT_ERROR
+    if args.database == "remote" and not args.db_url:
+        print("stitch: --database remote needs --db-url", file=sys.stderr)
+        return EXIT_ERROR
+    database = {"mode": args.database, "remote": {}}
+    if args.database == "remote":
+        database["remote"] = {
+            "kind": args.db_kind,
+            "url": args.db_url,
+            "anon_key": args.db_key,
+            "table_prefix": args.db_prefix,
+        }
+    out_dir = Path(args.out) if args.out else repo.root / ".stitch" / "generated" / args.theme
+    request = GenerationRequest(
+        theme_id=args.theme,
+        prompt=args.prompt,
+        title=args.title or theme.name,
+        engine=args.engine,
+        database=database,
+    )
+
+    def progress(index: int, status: str, message: str | None = None, level: str = "info") -> None:
+        if status in {"active", "done"} and message:
+            print(f"  [{index + 1}/9] {message}")
+
+    try:
+        result = generate_site(repo.root, settings_module.load_config(), request, out_dir, on_progress=progress)
+    except GenerationError as exc:
+        print(f"stitch generate: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    print()
+    print(f"Generated: {result.title} ({result.engine})")
+    print(f"  output:  {_display(out_dir, repo.root)}")
+    print(f"  files:   {len(result.files)}")
+    print(f"  summary: {result.summary}")
+    for warning in result.warnings:
+        print(f"  warning: {warning}")
     return EXIT_OK
 
 

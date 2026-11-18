@@ -1,0 +1,39 @@
+{
+  "collections": [
+    {
+      "name": "shipments",
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "reference", "type": "string", "required": true },
+        { "name": "origin", "type": "string", "required": true },
+        { "name": "destination", "type": "string", "required": true },
+        { "name": "carrier", "type": "string", "required": true },
+        { "name": "mode", "type": "string", "required": false },
+        { "name": "status", "type": "string", "required": true },
+        { "name": "eta", "type": "string", "required": true },
+        { "name": "weight_kg", "type": "number", "required": false }
+      ]
+    },
+    {
+      "name": "carriers",
+      "fields": [
+        { "name": "name", "type": "string", "required": true },
+        { "name": "contact", "type": "string", "required": false },
+        { "name": "on_time_rate", "type": "number", "required": true },
+        { "name": "active_shipments", "type": "integer", "required": true },
+        { "name": "service_level", "type": "string", "required": false }
+      ]
+    },
+    {
+      "name": "incidents",
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "shipment_id", "type": "string", "required": true },
+        { "name": "severity", "type": "string", "required": true },
+        { "name": "summary", "type": "string", "required": true },
+        { "name": "opened_at", "type": "string", "required": true },
+        { "name": "resolved", "type": "boolean", "required": true }
+      ]
+    }
+  ]
+}

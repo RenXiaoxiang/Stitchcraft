@@ -1,0 +1,260 @@
+# Stitchcraft skill registry.
+#
+# Every skill here is baked into the repository so generations work offline.
+# Upstream packs are vendored unmodified under skills/vendor/ with their
+# original licenses; house skills are written for Stitchcraft under MIT.
+#
+# The desktop generator injects the selected theme's skills into the AI prompt
+# (see src/stitchcraft/skills.py). `kind = "asset"` entries are vendored files
+# (like the GSAP browser build) that are not prompt context.
+
+[meta]
+version = "0.1.0"
+description = "Skills baked into Stitchcraft generations: Chrome Modern Web Guidance, official GSAP skills, web-animation skills and Stitchcraft house skills."
+
+[[skills]]
+id = "modern-web-guidance"
+name = "Modern Web Guidance"
+category = "web-platform"
+source = "GoogleChrome/modern-web-guidance"
+license = "Apache-2.0"
+path = "skills/vendor/modern-web-guidance"
+summary = "Chrome team guidance for modern, accessible, high-performance web UI, organised as reference guides."
+stages = ["design", "build", "qa"]
+enabled = true
+budget_chars = 14000
+kind = "skill"
+
+[[skills]]
+id = "gsap-core"
+name = "GSAP Core"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-core"
+summary = "Official GSAP fundamentals: tweens, easing, transform aliases and timeline basics."
+stages = ["design", "build"]
+enabled = true
+budget_chars = 5000
+kind = "skill"
+
+[[skills]]
+id = "gsap-timeline"
+name = "GSAP Timeline"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-timeline"
+summary = "Official GSAP sequencing patterns for timelines, labels, nesting and playback control."
+stages = ["build"]
+enabled = true
+budget_chars = 4000
+kind = "skill"
+
+[[skills]]
+id = "gsap-scrolltrigger"
+name = "GSAP ScrollTrigger"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-scrolltrigger"
+summary = "Official ScrollTrigger patterns: scroll-driven reveals, pinning, scrub and cleanup."
+stages = ["build"]
+enabled = true
+budget_chars = 5000
+kind = "skill"
+
+[[skills]]
+id = "gsap-plugins"
+name = "GSAP Plugins"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-plugins"
+summary = "Official plugin guidance for SplitText, Flip, Draggable, ScrollSmoother and friends."
+stages = ["build"]
+enabled = true
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "gsap-performance"
+name = "GSAP Performance"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-performance"
+summary = "Official performance rules: animate transforms, avoid layout thrash, clean up tweens."
+stages = ["build", "qa"]
+enabled = true
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "gsap-utils"
+name = "GSAP Utils"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-utils"
+summary = "Official utility helpers for interpolation, snapping and value mapping."
+stages = ["build"]
+enabled = true
+budget_chars = 2000
+kind = "skill"
+
+[[skills]]
+id = "gsap-react"
+name = "GSAP React"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-react"
+summary = "Official React lifecycle guidance for GSAP contexts and cleanup."
+stages = ["build"]
+enabled = false
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "gsap-frameworks"
+name = "GSAP Frameworks"
+category = "animation"
+source = "greensock/gsap-skills"
+license = "MIT"
+path = "skills/vendor/gsap-skills/skills/gsap-frameworks"
+summary = "Official integration notes for GSAP in React, Vue and Svelte apps."
+stages = ["build"]
+enabled = false
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "gsap-web"
+name = "GSAP Web Animation"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/gsap-web"
+summary = "Code-driven web motion with GSAP: timelines, ScrollTrigger, SplitText, Flip and Lenis sync."
+stages = ["build"]
+enabled = true
+budget_chars = 4000
+kind = "skill"
+
+[[skills]]
+id = "60fps-animation"
+name = "60fps Animation"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/60fps-animation"
+summary = "Budget animation work to stay at 60/120fps on low-end devices."
+stages = ["build", "qa"]
+enabled = true
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "accessible-animation"
+name = "Accessible Animation"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/accessible-animation"
+summary = "Motion accessibility: reduced-motion fallbacks, vestibular safety and focus handling."
+stages = ["build", "qa"]
+enabled = true
+budget_chars = 3000
+kind = "skill"
+
+[[skills]]
+id = "micro-interaction"
+name = "Micro-interactions"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/micro-interaction"
+summary = "Small feedback animations that make interfaces feel alive without noise."
+stages = ["build"]
+enabled = true
+budget_chars = 2500
+kind = "skill"
+
+[[skills]]
+id = "page-transition-animation"
+name = "Page Transitions"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/page-transition-animation"
+summary = "Enter/leave choreography for page and view transitions."
+stages = ["build"]
+enabled = true
+budget_chars = 2500
+kind = "skill"
+
+[[skills]]
+id = "svg-animation"
+name = "SVG Animation"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/svg-animation"
+summary = "Animate SVG paths, masks and shapes without killing performance."
+stages = ["build"]
+enabled = true
+budget_chars = 2500
+kind = "skill"
+
+[[skills]]
+id = "lottie-animation"
+name = "Lottie Animation"
+category = "animation"
+source = "iart-ai/web-animation-skills"
+license = "MIT"
+path = "skills/vendor/web-animation-skills/skills/lottie-animation"
+summary = "Lottie playback and performance guidance for vector motion assets."
+stages = ["build"]
+enabled = false
+budget_chars = 2500
+kind = "skill"
+
+[[skills]]
+id = "gsap-lib"
+name = "GSAP 3.13 browser build"
+category = "animation"
+source = "greensock/GSAP (jsDelivr)"
+license = "GSAP standard license"
+path = "skills/vendor/gsap-lib"
+summary = "Official GSAP 3.13 minified browser build vendored for the Studio UI and generated sites."
+stages = ["build"]
+enabled = true
+budget_chars = 0
+kind = "asset"
+
+[[skills]]
+id = "stitchcraft-data-app"
+name = "Stitchcraft Data App"
+category = "stitchcraft"
+source = "Stitchcraft (MIT)"
+license = "MIT"
+path = "skills/house/stitchcraft-data-app"
+summary = "House skill for building CRUD data interfaces with local and remote data adapters."
+stages = ["design", "build", "qa"]
+enabled = true
+budget_chars = 6000
+kind = "skill"
+
+[[skills]]
+id = "stitchcraft-personal-space"
+name = "Stitchcraft Personal Space"
+category = "stitchcraft"
+source = "Stitchcraft (MIT)"
+license = "MIT"
+path = "skills/house/stitchcraft-personal-space"
+summary = "House skill for editorial personal sites: essays, photo walls and quiet interaction."
+stages = ["design", "build"]
+enabled = true
+budget_chars = 6000
+kind = "skill"

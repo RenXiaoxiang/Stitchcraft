@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en" data-theme="kiroween">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0e0c12">
+  <meta name="description" content="Stitchcraft — stitch a complete website from a style, a brief and nine specialised skills.">
+  <title>Stitchcraft — AI website stitcher</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./vendor/gsap.min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the builder</a>
+
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__glow ambient__glow--violet"></div>
+    <div class="ambient__glow ambient__glow--ember"></div>
+    <div class="ambient__stitches"></div>
+    <div class="ambient__fog"></div>
+    <div class="ambient__embers" id="embers"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 64 64" role="img" aria-label="A pumpkin pierced by a needle and thread">
+        <defs>
+          <linearGradient id="brandPumpkin" x1="12" y1="14" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#ffc59a"/>
+            <stop offset=".55" stop-color="#ff8a3d"/>
+            <stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+          <linearGradient id="brandNeedle" x1="44" y1="6" x2="58" y2="22" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#f0e6ff"/>
+            <stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 20c5.8 0 10.6 6.2 10.6 15.4S37.8 51 32 51s-10.6-6.2-10.6-15.6S26.2 20 32 20Z"
+              fill="none" stroke="url(#brandPumpkin)" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M21.4 22.6c3.7 1.7 5.7 6.5 5.7 13.2s-2.2 13.1-5.9 14.4"
+              fill="none" stroke="url(#brandPumpkin)" stroke-width="1.9" stroke-linecap="round"/>
+        <path d="M42.6 22.6c-3.7 1.7-5.7 6.5-5.7 13.2s2.2 13.1 5.9 14.4"
+              fill="none" stroke="url(#brandPumpkin)" stroke-width="1.9" stroke-linecap="round"/>
+        <path d="M32 19.2c0-4.2.8-6.9 3.4-8.7" fill="none" stroke="#ff8a3d" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M25.2 31.4c4.5 2.1 9.1 2.1 13.6 0M25.2 39c4.5 2.1 9.1 2.1 13.6 0"
+              fill="none" stroke="#ffe1c7" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1.6 3.6"/>
+        <path d="M47.7 10.4 56 18.8a1.6 1.6 0 0 1 0 2.2l-2.3 2.3a1.6 1.6 0 0 1-2.2 0L43.2 15a1.6 1.6 0 0 1 0-2.2l2.3-2.3a1.6 1.6 0 0 1 2.2 0Z"
+              fill="#0e0c12" stroke="url(#brandNeedle)" stroke-width="2"/>
+        <circle cx="52.8" cy="14.5" r="1.5" fill="none" stroke="#c9b6ff" stroke-width="1.4"/>
+        <path class="brand__thread" d="M52.8 16c-3 6.1-6.4 9.6-11.1 11.8"
+              fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="2.4 3.4"/>
+      </svg>
+      <div class="brand__text">
+        <span class="brand__word">Stitchcraft</span>
+        <span class="brand__tag">stitch a site, one skill at a time</span>
+      </div>
+    </div>
+
+    <div class="topbar__meta">
+      <span class="pill" id="status-pill" data-state="offline" title="Backend status">
+        <span class="pill__dot" aria-hidden="true"></span>
+        <span id="status-text">Connecting…</span>
+      </span>
+      <span class="pill pill--quiet" id="version-pill" title="App version">v0.2.0</span>
+      <button class="btn btn--ghost btn--sm" id="history-open" type="button" aria-haspopup="dialog" aria-controls="history-dialog">
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2a4.8 4.8 0 1 0 4.7 5.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 5.6V8l1.9 1.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11.4 1.6v2.8H8.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Projects
+        <span class="pill__count" id="history-count" aria-label="Projects available">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace" id="main">
+    <div class="banner" id="offline-banner" role="alert" hidden>
+      <svg class="banner__icon icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.4 14.2 13H1.8L8 2.4Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.3" r=".9" fill="currentColor"/></svg>
+      <p class="banner__text"><strong>Backend offline.</strong> Theme cards fall back to built-in samples and live generation is paused. Start the Stitchcraft app server, then retry.</p>
+      <button class="btn btn--ghost btn--sm" id="offline-retry" type="button">Retry</button>
+    </div>
+
+    <!-- ======================= LEFT RAIL: WIZARD ======================= -->
+    <section class="rail" aria-label="Build wizard">
+      <div class="rail__head">
+        <h1 class="rail__title">Build a website</h1>
+        <p class="rail__sub">Five steps. Nine skills. One stitched site.</p>
+      </div>
+
+      <ol class="steps" id="steps">
+        <!-- STEP 1: SETUP -->
+        <li class="step is-open" id="step-1" data-step="1">
+          <h2 class="step__heading">
+            <button class="step__toggle" id="step-1-toggle" type="button" aria-expanded="true" aria-controls="step-1-panel">
+              <span class="step__num" aria-hidden="true">1</span>
+              <span class="step__titles">
+                <span class="step__name">Setup</span>
+                <span class="step__hint">AI API &amp; keys</span>
+              </span>
+              <span class="step__done" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="m3.5 8.4 3 3 6-6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <svg class="step__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </h2>
+          <div class="step__panel" id="step-1-panel">
+            <div class="step__body">
+              <p class="step__lede">Connect the model that writes your site. Keys stay in the local config on this machine.</p>
+
+              <div class="field">
+                <label class="field__label" for="provider">Provider</label>
+                <select class="input" id="provider">
+                  <option value="openai">OpenAI</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="ollama">Ollama</option>
+                  <option value="custom">Custom (OpenAI-compatible)</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="base-url">Base URL</label>
+                <input class="input" id="base-url" type="url" inputmode="url" spellcheck="false" autocomplete="off" placeholder="https://api.openai.com/v1">
+                <p class="field__hint">OpenAI-compatible endpoint, version path included.</p>
+              </div>
+
+              <div class="field">
+                <span class="field__label" id="api-key-label">API key</span>
+                <div class="input-row">
+                  <input class="input" id="api-key" type="password" spellcheck="false" autocomplete="off" placeholder="sk-…" aria-labelledby="api-key-label">
+                  <button class="btn btn--ghost btn--sm" id="toggle-key-vis" type="button" aria-pressed="false" aria-label="Show API key">Show</button>
+                </div>
+                <p class="field__hint field__hint--state" id="ai-key-state" data-state="empty">
+                  <span class="dot" aria-hidden="true"></span><span id="ai-key-label">No key saved</span>
+                </p>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="model">Model</label>
+                <input class="input" id="model" type="text" spellcheck="false" autocomplete="off" placeholder="gpt-4o-mini">
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="temperature">Temperature <output class="field__out" id="temperature-value" for="temperature">0.7</output></label>
+                <input class="range" id="temperature" type="range" min="0" max="1.5" step="0.1" value="0.7">
+                <p class="field__hint">Lower is stricter, higher is more adventurous.</p>
+              </div>
+
+              <div class="field">
+                <button class="btn btn--outline" id="ai-test-btn" type="button">
+                  <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.4 6 11.9l7.5-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Test connection
+                </button>
+                <p class="test-result" id="ai-test-result" role="status" hidden></p>
+              </div>
+
+              <label class="switch" for="demo-mode">
+                <input class="switch__input" id="demo-mode" type="checkbox">
+                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                <span class="switch__text">
+                  <span class="switch__title">Use demo mode (no API key)</span>
+                  <span class="switch__desc">Build from the bundled themes and mock content. No model calls, no key needed.</span>
+                </span>
+              </label>
+
+              <div class="step__actions">
+                <button class="btn btn--ghost" id="ai-save-btn" type="button">Save settings</button>
+                <button class="btn btn--primary" type="button" data-goto="2">Continue to data</button>
+              </div>
+              <p class="save-result js-save-result" id="ai-save-result" role="status" hidden></p>
+            </div>
+          </div>
+        </li>
+
+        <!-- STEP 2: DATA -->
+        <li class="step" id="step-2" data-step="2">
+          <h2 class="step__heading">
+            <button class="step__toggle" id="step-2-toggle" type="button" aria-expanded="false" aria-controls="step-2-panel">
+              <span class="step__num" aria-hidden="true">2</span>
+              <span class="step__titles">
+                <span class="step__name">Data</span>
+                <span class="step__hint">Where the site keeps its records</span>
+              </span>
+              <span class="step__done" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="m3.5 8.4 3 3 6-6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <svg class="step__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </h2>
+          <div class="step__panel" id="step-2-panel">
+            <div class="step__body">
+              <fieldset class="field field--radio">
+                <legend class="field__label">Database mode</legend>
+                <label class="radio-card" for="db-local">
+                  <input class="radio-card__input" id="db-local" type="radio" name="db-mode" value="local" checked>
+                  <span class="radio-card__body">
+                    <span class="radio-card__title">Local <span class="tag">browser storage</span></span>
+                    <span class="radio-card__desc">The generated site saves records to localStorage. No server, no keys, works offline.</span>
+                  </span>
+                </label>
+                <label class="radio-card" for="db-remote">
+                  <input class="radio-card__input" id="db-remote" type="radio" name="db-mode" value="remote">
+                  <span class="radio-card__body">
+                    <span class="radio-card__title">Remote <span class="tag">REST / Supabase</span></span>
+                    <span class="radio-card__desc">The site talks to a hosted database with a REST or Supabase-compatible API.</span>
+                  </span>
+                </label>
+              </fieldset>
+
+              <div class="subpanel" id="db-remote-panel" hidden>
+                <div class="field">
+                  <label class="field__label" for="db-url">Database URL</label>
+                  <input class="input" id="db-url" type="url" inputmode="url" spellcheck="false" autocomplete="off" placeholder="https://your-project.supabase.co">
+                </div>
+                <div class="field">
+                  <label class="field__label" for="db-kind">Remote kind</label>
+                  <select class="input" id="db-kind">
+                    <option value="supabase">Supabase</option>
+                    <option value="rest">Generic REST</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <span class="field__label" id="db-key-label">Account / anon key</span>
+                  <div class="input-row">
+                    <input class="input" id="db-key" type="password" spellcheck="false" autocomplete="off" placeholder="public anon key" aria-labelledby="db-key-label">
+                    <button class="btn btn--ghost btn--sm" id="toggle-db-key-vis" type="button" aria-pressed="false" aria-label="Show database key">Show</button>
+                  </div>
+                  <p class="field__hint field__hint--state" id="db-key-state" data-state="empty">
+                    <span class="dot" aria-hidden="true"></span><span id="db-key-label-text">No database key saved</span>
+                  </p>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="db-prefix">Table prefix</label>
+                  <input class="input" id="db-prefix" type="text" spellcheck="false" autocomplete="off" placeholder="stitchcraft">
+                </div>
+                <div class="field">
+                  <button class="btn btn--outline" id="db-test-btn" type="button">
+                    <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.4 6 11.9l7.5-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Test connection
+                  </button>
+                  <p class="test-result" id="db-test-result" role="status" hidden></p>
+                </div>
+              </div>
+
+              <p class="step__note">This configuration is embedded into the generated website and used by its own data layer.</p>
+
+              <div class="step__actions">
+                <button class="btn btn--ghost" id="db-save-btn" type="button">Save settings</button>
+                <button class="btn btn--primary" type="button" data-goto="3">Continue to style</button>
+              </div>
+              <p class="save-result js-save-result" id="db-save-result" role="status" hidden></p>
+            </div>
+          </div>
+        </li>
+
+        <!-- STEP 3: STYLE -->
+        <li class="step" id="step-3" data-step="3">
+          <h2 class="step__heading">
+            <button class="step__toggle" id="step-3-toggle" type="button" aria-expanded="false" aria-controls="step-3-panel">
+              <span class="step__num" aria-hidden="true">3</span>
+              <span class="step__titles">
+                <span class="step__name">Style</span>
+                <span class="step__hint">Pick a theme</span>
+              </span>
+              <span class="step__done" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="m3.5 8.4 3 3 6-6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <svg class="step__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </h2>
+          <div class="step__panel" id="step-3-panel">
+            <div class="step__body">
+              <div class="row-between">
+                <p class="step__lede" id="theme-note">Loading themes…</p>
+                <button class="btn btn--ghost btn--sm" id="theme-refresh" type="button">Refresh</button>
+              </div>
+              <div class="theme-grid" id="theme-grid" role="group" aria-label="Website themes"></div>
+              <p class="field__error" id="theme-error" role="alert" hidden></p>
+              <div class="step__actions">
+                <button class="btn btn--ghost" type="button" data-goto="2">Back</button>
+                <button class="btn btn--primary" type="button" data-goto="4">Continue to brief</button>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- STEP 4: BRIEF -->
+        <li class="step" id="step-4" data-step="4">
+          <h2 class="step__heading">
+            <button class="step__toggle" id="step-4-toggle" type="button" aria-expanded="false" aria-controls="step-4-panel">
+              <span class="step__num" aria-hidden="true">4</span>
+              <span class="step__titles">
+                <span class="step__name">Brief</span>
+                <span class="step__hint">Tell the pipeline what to build</span>
+              </span>
+              <span class="step__done" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="m3.5 8.4 3 3 6-6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <svg class="step__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </h2>
+          <div class="step__panel" id="step-4-panel">
+            <div class="step__body">
+              <div class="field">
+                <label class="field__label" for="site-title">Site title <span class="field__optional">optional</span></label>
+                <input class="input" id="site-title" type="text" maxlength="80" autocomplete="off" placeholder="Hollow Roast Coffee">
+              </div>
+              <div class="field">
+                <label class="field__label" for="prompt">Brief</label>
+                <textarea class="input input--textarea" id="prompt" rows="6" maxlength="1200" placeholder="A small specialty coffee roastery with subscriptions, wholesale page and story"></textarea>
+                <div class="field__meta">
+                  <span class="field__hint">Say what the business is, who it serves, and which pages matter.</span>
+                  <span class="char-count"><span id="prompt-count">0</span>/1200</span>
+                </div>
+                <p class="field__error" id="prompt-error" role="alert" hidden></p>
+              </div>
+              <div class="field">
+                <span class="field__label">Try an example</span>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="A small specialty coffee roastery with subscriptions, wholesale page and story">Coffee roastery</button>
+                  <button class="chip" type="button" data-example="A neighbourhood CrossFit gym with a class timetable, coach profiles and a free trial signup">CrossFit gym</button>
+                  <button class="chip" type="button" data-example="An indie game studio portfolio with three featured titles, a devlog and a press kit">Indie game studio</button>
+                  <button class="chip" type="button" data-example="A boutique plant shop with a care guide, same-day local delivery and a workshop calendar">Plant shop</button>
+                </div>
+              </div>
+              <div class="step__actions">
+                <button class="btn btn--ghost" type="button" data-goto="3">Back</button>
+                <button class="btn btn--primary" type="button" data-goto="5">Continue to generate</button>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- STEP 5: GENERATE -->
+        <li class="step" id="step-5" data-step="5">
+          <h2 class="step__heading">
+            <button class="step__toggle" id="step-5-toggle" type="button" aria-expanded="false" aria-controls="step-5-panel">
+              <span class="step__num" aria-hidden="true">5</span>
+              <span class="step__titles">
+                <span class="step__name">Generate</span>
+                <span class="step__hint">Stitch it together</span>
+              </span>
+              <span class="step__done" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="m3.5 8.4 3 3 6-6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <svg class="step__chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </h2>
+          <div class="step__panel" id="step-5-panel">
+            <div class="step__body">
+              <dl class="summary">
+                <div class="summary__row"><dt>Theme</dt><dd id="summary-theme">Not selected</dd></div>
+                <div class="summary__row"><dt>Engine</dt><dd id="summary-engine">Demo mode</dd></div>
+                <div class="summary__row"><dt>Data</dt><dd id="summary-db">Local storage</dd></div>
+                <div class="summary__row"><dt>Title</dt><dd id="summary-title">Auto-generated</dd></div>
+              </dl>
+
+              <button class="btn btn--generate" id="generate-btn" type="button">
+                <svg class="btn__spark" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.8 11.9 7l5.3 1.9-5.3 1.9L10 16l-1.9-5.2L2.8 8.9 8.1 7 10 1.8Z" fill="currentColor"/><circle cx="16.2" cy="3.4" r="1.1" fill="currentColor"/></svg>
+                <span class="btn__label">Generate website</span>
+                <span class="btn__keys" aria-hidden="true">Ctrl ↵</span>
+              </button>
+
+              <p class="step__note" id="generate-note">Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.</p>
+              <p class="field__error" id="generate-error" role="alert" hidden></p>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <p class="rail__foot">
+        <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> generate from anywhere
+      </p>
+    </section>
+
+    <!-- ======================= RIGHT STAGE ======================= -->
+    <section class="stage" aria-label="Output stage">
+      <div class="stage__bar">
+        <div class="tabs" role="tablist" aria-label="Stage views">
+          <button class="tab is-active" id="tab-preview" type="button" role="tab" aria-selected="true" aria-controls="panel-preview" tabindex="0">Preview</button>
+          <button class="tab" id="tab-pipeline" type="button" role="tab" aria-selected="false" aria-controls="panel-pipeline" tabindex="-1">Pipeline</button>
+          <button class="tab" id="tab-logs" type="button" role="tab" aria-selected="false" aria-controls="panel-logs" tabindex="-1">Logs</button>
+        </div>
+        <div class="stage__meta">
+          <span class="badge" id="stage-badge" data-state="idle">Idle</span>
+        </div>
+      </div>
+
+      <div class="stage__panels">
+        <!-- Preview tab -->
+        <section class="panel is-active" id="panel-preview" role="tabpanel" aria-labelledby="tab-preview" tabindex="0">
+          <div class="empty" id="preview-empty">
+            <svg class="empty__art" viewBox="0 0 140 110" aria-hidden="true">
+              <rect x="18" y="14" width="104" height="82" rx="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="7 7" opacity=".55"/>
+              <rect x="32" y="28" width="76" height="54" rx="8" fill="none" stroke="#ff8a3d" stroke-width="1.8"/>
+              <path d="M44 44h40M44 54h52M44 64h28" stroke="#b9a2ff" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+              <path d="M104 34h16v16" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="118" cy="18" r="7" fill="none" stroke="#ff8a3d" stroke-width="1.6"/>
+              <path d="M118 15v3.4l2.2 1.4" stroke="#ff8a3d" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h2 class="empty__title">Your site will appear here</h2>
+            <p class="empty__text">Pick a theme, write a brief, and the pipeline stitches a complete website. Preview it live, then export the ZIP.</p>
+            <div class="empty__actions">
+              <button class="btn btn--primary" id="preview-demo-btn" type="button" disabled>Preview a demo sample</button>
+              <button class="btn btn--ghost" id="preview-history-btn" type="button">Browse history</button>
+            </div>
+            <p class="empty__hint" id="preview-demo-hint">Demo previews are available for themes with a sample.</p>
+          </div>
+
+          <div class="preview" id="preview-wrap" hidden>
+            <div class="preview__bar">
+              <div class="preview__info">
+                <span class="preview__title" id="preview-title">Untitled site</span>
+                <span class="badge badge--muted" id="preview-kind">Project</span>
+              </div>
+              <div class="preview__tools">
+                <button class="btn btn--ghost btn--sm" id="preview-reload" type="button" aria-label="Reload preview">Reload</button>
+                <a class="btn btn--ghost btn--sm" id="preview-open" href="#" target="_blank" rel="noopener noreferrer">
+                  <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 2.5 7.4 8.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12.2 9.6v3.2a.9.9 0 0 1-.9.9H3.2a.9.9 0 0 1-.9-.9V4.5a.9.9 0 0 1 .9-.9h3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  Open in new tab
+                </a>
+                <a class="btn btn--primary btn--sm" id="preview-export" href="#" download>
+                  <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.4v7.1M5.2 6.9 8 9.7l2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 11.2v1.9a.9.9 0 0 0 .9.9h8.6a.9.9 0 0 0 .9-.9v-1.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  Export ZIP
+                </a>
+              </div>
+            </div>
+            <div class="preview__frame" id="preview-frame-wrap" aria-busy="false">
+              <iframe id="preview-frame" title="Generated website preview"></iframe>
+              <div class="preview__loading" id="preview-loading" hidden><span class="spinner" aria-hidden="true"></span> Loading preview…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pipeline tab -->
+        <section class="panel" id="panel-pipeline" role="tabpanel" aria-labelledby="tab-pipeline" tabindex="0" hidden>
+          <div class="pipeline">
+            <div class="pipeline__top">
+              <div>
+                <h2 class="panel-title">Pipeline</h2>
+                <p class="panel-sub" id="pipeline-status-text">Idle — nothing is being stitched yet.</p>
+              </div>
+              <span class="badge" id="pipeline-state" data-state="idle">Idle</span>
+            </div>
+
+            <div class="progress" id="pipeline-progress" role="progressbar" aria-label="Generation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span class="progress__fill" id="pipeline-fill"></span>
+            </div>
+            <div class="pipeline__meta">
+              <span class="pipeline__percent" id="pipeline-percent">0%</span>
+              <span class="pipeline__stage-name" id="pipeline-stage-name">Waiting for a brief</span>
+            </div>
+
+            <ol class="pipeline__stages" id="pipeline-stages"></ol>
+
+            <div class="success" id="pipeline-success" hidden>
+              <span class="success__badge" id="success-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m5 12.5 4.6 4.6L19 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <div class="success__text">
+                <strong>Stitched &amp; packaged.</strong>
+                <span id="success-text">Your site is ready in the Preview tab.</span>
+              </div>
+              <button class="btn btn--ghost btn--sm" id="success-view" type="button">View preview</button>
+            </div>
+
+            <div class="error-box" id="pipeline-error" hidden>
+              <strong>The stitch slipped.</strong>
+              <p id="pipeline-error-text">Something went wrong while generating. Check the logs for the failing stage.</p>
+              <div class="error-box__actions">
+                <button class="btn btn--ghost btn--sm" id="pipeline-retry" type="button">Try again</button>
+                <button class="btn btn--ghost btn--sm" id="pipeline-see-logs" type="button">Open logs</button>
+              </div>
+            </div>
+
+            <p class="pipeline__foot" id="pipeline-foot">Run a generation from the setup rail to watch all nine stages here.</p>
+          </div>
+        </section>
+
+        <!-- Logs tab -->
+        <section class="panel" id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" hidden>
+          <div class="logs">
+            <div class="logs__bar">
+              <h2 class="panel-title">Logs</h2>
+              <div class="logs__bar-right">
+                <span class="badge badge--muted" id="logs-count">0 lines</span>
+                <button class="btn btn--ghost btn--sm" id="logs-clear" type="button">Clear</button>
+              </div>
+            </div>
+            <p class="logs__empty" id="logs-empty">Logs stream here while the pipeline runs.</p>
+            <ol class="logs__list" id="log-list" role="log" aria-live="polite" aria-relevant="additions" aria-label="Pipeline logs"></ol>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite" aria-relevant="additions"></div>
+  <p class="visually-hidden" id="sr-status" role="status" aria-live="polite"></p>
+
+  <!-- ======================= HISTORY DRAWER ======================= -->
+  <dialog class="drawer" id="history-dialog" aria-labelledby="history-title">
+    <div class="drawer__panel">
+      <div class="drawer__head">
+        <div>
+          <h2 class="drawer__title" id="history-title">Project history</h2>
+          <p class="drawer__sub">Sites stitched on this machine.</p>
+        </div>
+        <button class="icon-btn" id="history-close" type="button" aria-label="Close project history">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="drawer__actions">
+        <button class="btn btn--ghost btn--sm" id="history-refresh" type="button">Refresh</button>
+        <span class="drawer__meta" id="history-meta"></span>
+      </div>
+      <p class="drawer__empty" id="history-empty" hidden>No projects yet. Generate your first site and it will show up here.</p>
+      <ul class="history" id="history-list"></ul>
+    </div>
+  </dialog>
+
+  <noscript>
+    <p class="noscript">Stitchcraft needs JavaScript to run the builder. Enable it and reload the page.</p>
+  </noscript>
+</body>
+</html>

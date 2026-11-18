@@ -1,0 +1,81 @@
+<!--
+  Block: crud-modal — native <dialog> create/edit form with inline validation.
+  Replaceable fields: #crud-title ("Add item" / "Edit item"); one labelled
+  input per data-model column; .blk-modal__error is tied to its input with
+  aria-describedby; #crud-form-error holds form-level errors.
+  Styling hooks: --modal-panel, --modal-ink, --modal-muted, --modal-border, --modal-accent
+  Behaviour lives in app.js: dialog.showModal(), focus the first field, set
+  aria-invalid on failure, restore focus to the opener on close. The native
+  dialog already traps focus and closes on Escape.
+-->
+<dialog class="blk-modal" id="crud-dialog" aria-labelledby="crud-title">
+  <form class="blk-modal__form" id="crud-form" novalidate>
+    <header class="blk-modal__head">
+      <h2 id="crud-title">Add item</h2>
+      <button class="blk-modal__close" type="button" data-close aria-label="Close dialog">✕</button>
+    </header>
+    <div class="blk-modal__body">
+      <div class="blk-modal__grid">
+        <div class="blk-modal__field">
+          <label for="crud-sku">SKU</label>
+          <input id="crud-sku" name="sku" required autocomplete="off" aria-describedby="crud-sku-error">
+          <p class="blk-modal__error" id="crud-sku-error" role="alert"></p>
+        </div>
+        <div class="blk-modal__field">
+          <label for="crud-name">Item name</label>
+          <input id="crud-name" name="name" required autocomplete="off" aria-describedby="crud-name-error">
+          <p class="blk-modal__error" id="crud-name-error" role="alert"></p>
+        </div>
+        <div class="blk-modal__field">
+          <label for="crud-zone">Zone</label>
+          <select id="crud-zone" name="zone" required>
+            <option value="A">Zone A</option><option value="B">Zone B</option>
+            <option value="C">Zone C</option><option value="D">Zone D</option>
+          </select>
+        </div>
+        <div class="blk-modal__field">
+          <label for="crud-qty">Quantity</label>
+          <input id="crud-qty" name="quantity" type="number" min="0" step="1" inputmode="numeric"
+            required aria-describedby="crud-qty-error">
+          <p class="blk-modal__error" id="crud-qty-error" role="alert"></p>
+        </div>
+      </div>
+      <p class="blk-modal__hint">Status is derived from stock and reorder point after save.</p>
+    </div>
+    <footer class="blk-modal__foot">
+      <p class="blk-modal__error" id="crud-form-error" role="alert"></p>
+      <button class="blk-modal__btn" type="button" data-close>Cancel</button>
+      <button class="blk-modal__btn blk-modal__btn--primary" type="submit">Save item</button>
+    </footer>
+  </form>
+</dialog>
+<style>
+  .blk-modal {
+    --modal-panel: var(--panel, #151a22); --modal-ink: var(--text, #e8e6e1);
+    --modal-muted: var(--muted, #9aa3ad); --modal-border: var(--border, #2a3341);
+    --modal-accent: var(--accent, #ff8a3d);
+    width: min(34rem, calc(100vw - 2rem)); padding: 0; color: var(--modal-ink);
+    background: var(--modal-panel); border: 1px solid var(--modal-border); border-radius: 16px;
+  }
+  .blk-modal::backdrop { background: rgb(4 6 10 / 0.68); }
+  .blk-modal__form { display: grid; gap: 1rem; padding: clamp(1rem, 3vw, 1.4rem); }
+  .blk-modal__head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+  .blk-modal__head h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
+  .blk-modal__close { width: 2.2rem; height: 2.2rem; color: var(--modal-muted); background: transparent; border: 1px solid var(--modal-border); border-radius: 8px; cursor: pointer; }
+  .blk-modal__grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+  .blk-modal__field { display: grid; gap: 0.3rem; }
+  .blk-modal__field label { color: var(--modal-muted); font-size: 0.78rem; font-weight: 600; }
+  .blk-modal__field input, .blk-modal__field select {
+    min-height: 2.5rem; padding: 0 0.65rem; color: var(--modal-ink); background: transparent;
+    border: 1px solid var(--modal-border); border-radius: 8px; font: inherit;
+  }
+  .blk-modal__field input[aria-invalid="true"] { border-color: #ff7a7a; }
+  .blk-modal__field input:focus-visible, .blk-modal__field select:focus-visible,
+  .blk-modal__close:focus-visible, .blk-modal__btn:focus-visible { outline: 2px solid var(--modal-accent); outline-offset: 2px; }
+  .blk-modal__error { margin: 0; color: #ff9a9a; font-size: 0.78rem; }
+  .blk-modal__error:empty { display: none; }
+  .blk-modal__hint { margin: 0; color: var(--modal-muted); font-size: 0.8rem; }
+  .blk-modal__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+  .blk-modal__btn { min-height: 2.5rem; padding: 0 1rem; color: var(--modal-ink); background: transparent; border: 1px solid var(--modal-border); border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; }
+  .blk-modal__btn--primary { color: #14161a; background: var(--modal-accent); border-color: transparent; }
+</style>

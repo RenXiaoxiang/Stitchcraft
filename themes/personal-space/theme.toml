@@ -1,0 +1,11 @@
+[theme]
+id = "personal-space"
+name = "Personal Space"
+category = "personal"
+summary = "A quiet home for essays, field notes and photographs, made for writers and makers who want a personal site with a literary pulse."
+tags = ["personal", "writing", "gallery", "editorial"]
+accent = "#c9a86a"
+blocks = ["hero", "article-list", "photo-masonry", "timeline"]
+skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger"]
+data_model = ""
+sample = "sample"

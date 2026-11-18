@@ -3,180 +3,250 @@
 > A solo AI site builder that stitches separate specialised skills into one pipeline — each module does one job, Kiro specs and hooks hold the seams together.
 
 [![ci](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-ff8a3d.svg)](LICENSE)
 
-Stitchcraft is an open toolset for building a complete marketing, landing or
-small-business website with an AI agent. Instead of asking one generalist model
-to design, write, build, optimise and ship a site in one long conversation, it
-splits the work into nine specialised modules that pass **contract-checked
-artifacts** to each other. An agent can do one module well, then hand over.
+**Stitchcraft Studio** is a local desktop app that turns one sentence and a
+style choice into a complete, previewable static website. Pick a theme
+(warehouse operations, staff directory, logistics control, personal space or a
+brand launch page), point it at your own AI API, choose where the site's data
+lives, and watch a nine-stage pipeline assemble the site from theme modules and
+bundled expert skills.
+
+It is built for [Kiroween 2026](https://kiroween.devpost.com/) (Kiro's Halloween
+hackathon) in the **Skeleton Crew** category: one skeleton, two very different
+apps — a warehouse operations dashboard and a personal space.
+
+![Stitchcraft Studio](docs/assets/app.png)
 
 ## Why
 
-A single long agent session drifts. Context rots, the design brief leaks into
-the build prompt, SEO gets bolted on at the end, and nobody can tell which step
-produced which file. Stitchcraft makes the hand-offs explicit:
+A single long AI session drifts: the design brief leaks into the build prompt,
+the data layer is an afterthought, accessibility is skipped and nobody can tell
+which step produced which file. Stitchcraft makes every hand-off explicit:
 
-- **One module, one job.** Nine small skills instead of one giant prompt.
-- **Artifacts, not conversations.** Every hand-off is a JSON file, written by
-  one module and read by the next.
-- **Contracts at every seam.** `contracts/*.schema.json` defines the minimum a
-  downstream module may rely on.
-- **Specs before code.** Kiro specs describe what the pipeline must do, and the
-  agent implements against them.
-- **Hooks hold the seams.** Kiro agent hooks re-validate the stitch whenever a
-  module, contract or pipeline stage is edited.
+- **One theme, one job.** Five focused theme packages instead of one giant prompt.
+- **Modules, not mysteries.** Each theme is `theme.toml` + `SKILL.md` + a data
+  model + an optional working sample site.
+- **Skills at generation time.** Chrome's Modern Web Guidance, the official GSAP
+  skills and web-animation skills are bundled, licensed and injected into the
+  generation prompt.
+- **Your AI, your data.** Bring any OpenAI-compatible endpoint; choose local
+  browser storage or your own remote REST database for the generated site.
+- **Kiro holds the seams.** `.kiro/steering`, `.kiro/specs` and `.kiro/hooks`
+  keep the repo honest while it is being built.
 
-## The stitch
+## What you get
 
-```mermaid
-flowchart LR
-    brief[brief<br/>Brief Intake] --> plan[plan<br/>Information Architecture]
-    plan --> design[design<br/>Design System]
-    plan --> copy[copy<br/>Copywriting]
-    design --> build[build<br/>Site Assembly]
-    copy --> build
-    build --> seo[seo<br/>Discovery Layer]
-    build --> a11y[a11y<br/>Accessibility Pass]
-    seo --> qa[qa<br/>Release Gate]
-    a11y --> qa
-    qa --> deploy[deploy<br/>Ship It]
-```
-
-| Stage | Module | Job | Produces |
-| --- | --- | --- | --- |
-| 1 | `brief` | Turn a raw request into a sealed brief: audience, goals, constraints, open questions. | `brief` |
-| 2 | `site-plan` | Build the page graph, navigation and content inventory from the brief. | `site-plan` |
-| 3 | `design-system` | Choose the visual direction and emit reusable design tokens. | `design-tokens` |
-| 4 | `copy` | Write every page section against the plan and the brand voice. | `page-content` |
-| 5 | `build` | Assemble routes, components and build settings into a static site manifest. | `build-manifest` |
-| 6 | `seo` | Fill metadata, structured data, sitemap and robots policy for the built site. | `seo-report` |
-| 7 | `a11y` | Audit the site against WCAG 2.2 AA and return the patches the build must absorb. | `a11y-audit` |
-| 8 | `qa` | Run the release gate: build, links, performance and accessibility verdict. | `qa-report` |
-| 9 | `deploy` | Produce a reproducible deploy plan with environment, domain and rollback steps. | `deploy-plan` |
-
-Stage 8 is a **gate**: nothing downstream can ship until the QA verdict passes.
-
-## What holds it together
-
-| Layer | Location | Role |
-| --- | --- | --- |
-| Modules | `modules/<NN-slug>/` | `SKILL.md` (the job) + `module.toml` (the contract it consumes/produces). |
-| Seams | `contracts/*.schema.json` | JSON Schema for every artifact; the only thing allowed to cross a stage boundary. |
-| Wiring | `pipeline/pipeline.toml` | Stage order, dependencies and gates — the single source of truth for the stitch. |
-| Specs | `.kiro/specs/stitchcraft-core/` | Requirements, design and tasks in Kiro's spec format. |
-| Guardrails | `.kiro/steering/` | Persistent rules an agent reads on every task. |
-| Enforcement | `.kiro/hooks/*.kiro.hook` | Agent hooks that re-check seams on file edits, plus a manual validate gate. |
-| Checker | `src/stitchcraft/` | Dependency-free CLI: load, validate, render, stage dry runs. |
+| Feature | Detail |
+| --- | --- |
+| Desktop launcher | `Stitchcraft.bat` / `启动 Stitchcraft.bat` starts a local server and opens a chromeless Edge app window. No Electron, no build step. |
+| AI settings | Provider presets (OpenAI / DeepSeek / OpenRouter / Ollama) or any OpenAI-compatible base URL, API key, model and temperature, with a connection test. Keys stay on your machine. |
+| Database choice | **Local**: the generated site persists to browser `localStorage`. **Remote**: enter a REST / Supabase-compatible URL, public anon key and table prefix — the generator embeds them into `data-config.js` and the generated site's CRUD layer talks to it directly. |
+| Five themes | `warehouse-ops`, `staff-directory`, `logistics-control`, `personal-space`, `brand-launch` — each with a composition skill and (for two of them) a complete demo site. |
+| Nine-stage pipeline | Brief → Structure → Design tokens → Data layer → Hero & layout → Components → Motion → Accessibility → QA & package, streamed into the UI. |
+| Demo mode | No API key? Generate from the packaged sample sites so the whole flow still works (and can be recorded for the demo video). |
+| Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
+| Project history | SQLite-backed local history; reopen or delete any generation. |
+| Skills runtime | 18 registry entries over three vendored packs plus two house skills; prompt budgets keep generations focused. |
 
 ## Quickstart
 
-Requirements: Python 3.11+ and Git.
+Requirements: Python 3.11+ (Windows, macOS or Linux), and a modern browser
+(Edge gives the chromeless window; others fall back to a normal tab).
 
 ```bash
 git clone https://github.com/RenXiaoxiang/Stitchcraft.git
 cd Stitchcraft
 python -m pip install -e .
-
-stitch doctor            # toolchain and repo health
-stitch validate --strict # proves the stitch holds
-stitch plan              # renders the graph above
-stitch run --dry-run     # stages one PROMPT.md per module under .stitch/
+stitch app                       # starts the studio and opens the window
 ```
 
-Prefer not to install anything? Run the CLI from the source tree:
+Windows users can also double-click `Stitchcraft.bat` (or `启动 Stitchcraft.bat`).
+
+Inside the studio:
+
+1. **AI API** — pick a provider, paste your key, test the connection
+   (or leave it on demo mode).
+2. **Data** — choose Local, or Remote and fill in your REST URL + public anon key.
+3. **Style** — choose one of the five theme cards.
+4. **Brief** — describe the site in a sentence or two.
+5. **Generate** — watch the nine stages, then preview and export.
+
+Headless variants:
 
 ```bash
-PYTHONPATH=src python -m stitchcraft validate --strict   # macOS / Linux
-set PYTHONPATH=src && python -m stitchcraft validate --strict   # Windows (cmd)
+stitch generate --theme warehouse-ops --prompt "A warehouse dashboard with inventory CRUD." --engine mock
+stitch themes list
+stitch skills verify
+stitch validate --strict
 ```
 
-## CLI
+## How a generation works
 
-| Command | What it does |
-| --- | --- |
-| `stitch list` | Lists stages, modules, artifacts and dependencies. |
-| `stitch show <module>` | Shows one module's manifest, skill path and seam. |
-| `stitch validate [--strict] [--json]` | Validates modules, wiring, cycles, artifacts, contracts and Kiro hooks. |
-| `stitch plan [--mermaid-only]` | Renders the stitch as a Mermaid graph plus a table. |
-| `stitch doctor` | Checks Python version, contracts, steering, hooks, specs and tests. |
-| `stitch run --dry-run` | Writes one `PROMPT.md` per stage; makes **no** model calls. |
+```mermaid
+flowchart LR
+    brief[Brief] --> structure[Structure]
+    structure --> design[Design tokens]
+    design --> data[Data layer]
+    data --> layout[Hero & layout]
+    layout --> components[Components]
+    components --> motion[Motion]
+    motion --> a11y[Accessibility]
+    a11y --> qa[QA & package]
+```
 
-The CLI is deterministic and offline by design. It prepares the seams; the
-agent executes the modules.
+The generator composes a prompt from four inputs, then validates and writes the
+result:
 
-## Working with Kiro
+1. **Theme package** — `themes/<id>/SKILL.md` (layout blueprint, components,
+   motion and data-layer rules) plus `data-model.json` for data themes.
+2. **Bundled skills** — the Modern Web Guidance reference set, official GSAP
+   skills (core, timeline, ScrollTrigger, plugins, performance, utils) and
+   web-animation skills, each truncated to its prompt budget.
+3. **Your brief** — the sentence(s) you typed, plus an optional site title.
+4. **Database configuration** — written into the site as
+   `window.STITCHCRAFT_DB`; the generated `app.js` reads it and uses a
+   `localStorage` adapter or a Supabase-compatible REST adapter.
 
-1. Open this folder in Kiro. The files in `.kiro/steering/` load as persistent
-   context and `.kiro/hooks/` are available as agent hooks.
-2. Read `.kiro/specs/stitchcraft-core/requirements.md` and `design.md` — that is
-   the contract between you and the repo.
-3. `stitch run --dry-run`, then point Kiro at `.stitch/01-brief/PROMPT.md`.
-4. After each stage, run `stitch validate` and fix seam errors before moving on.
-5. The QA gate (`08-qa`) is a human decision: review the verdict before the
-   deploy module plans a release.
+The AI must answer with a JSON file plan. The generator rejects absolute paths,
+`..`, unexpected extensions, oversized files and sites without `index.html`, then
+writes the files, injects `data-config.js`, copies the vendored GSAP build when
+the site uses it, and streams stage progress + logs to the UI.
 
-See [docs/kiro-workflow.md](docs/kiro-workflow.md) for a full walkthrough.
+## Themes
+
+| Theme | Category | What it builds | Demo sample |
+| --- | --- | --- | --- |
+| `warehouse-ops` | data | Inventory command center: KPIs, filterable stock table, add/edit/delete, inbound timeline. | ✅ |
+| `staff-directory` | data | Employee directory, departments and onboarding tasks. | — |
+| `logistics-control` | data | Shipments, carriers and an incident board. | — |
+| `personal-space` | personal | Essays, tag filtering, a photo wall and an about page. | ✅ |
+| `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | — |
+
+Shared building blocks live in `themes/_blocks/` (hero, stat grid, data table,
+CRUD modal, article list, photo masonry, timeline, CTA band) as reference HTML
+the AI can adapt. See [themes/registry.toml](themes/registry.toml) for the
+machine-readable list.
+
+## Bundled skills
+
+| Pack | Upstream | License | What it teaches |
+| --- | --- | --- | --- |
+| Modern Web Guidance | [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance) | Apache-2.0 | Accessible, modern, high-performance web UI patterns. |
+| GSAP official skills | [greensock/gsap-skills](https://github.com/greensock/gsap-skills) | MIT | Correct GSAP timelines, ScrollTrigger, plugins and cleanup. |
+| Web Animation Skills | [iart-ai/web-animation-skills](https://github.com/iart-ai/web-animation-skills) | MIT | 60fps budgets, accessible motion, page transitions and micro-interactions. |
+| GSAP browser build | [gsap@3.13.0](https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js) | GSAP standard license | Offline animation runtime for the studio UI and generated sites. |
+
+Skills are data: `skills/registry.toml` declares paths, license and prompt
+budgets; `src/stitchcraft/skills.py` loads and injects them. Attribution is in
+[skills/ATTRIBUTION.md](skills/ATTRIBUTION.md); vendored files are never edited
+by hand.
+
+## Generated data layer
+
+Every generated site receives a `data-config.js`:
+
+```js
+window.STITCHCRAFT_DB = {
+  mode: "local",            // "local" | "remote"
+  kind: "local",            // "local" | "supabase" | "rest"
+  url: "",                  // remote REST base URL
+  anonKey: "",              // remote public/anon key only
+  tablePrefix: "stitchcraft"
+};
+```
+
+The theme's data skill writes one adapter with two backends: `localStorage` for
+offline/local mode, or Supabase-compatible REST calls
+(`${url}/rest/v1/${tablePrefix}_<table>`) for remote mode. Only public/anon keys
+belong there — never an AI key, never a service key.
+
+## Kiro integration
+
+The repository is built as a Kiro project, not just with it:
+
+| Layer | Path | Role |
+| --- | --- | --- |
+| Steering | `.kiro/steering/{product,tech,structure}.md` | Persistent rules every Kiro task loads. |
+| Specs | `.kiro/specs/stitchcraft-core/`, `.kiro/specs/desktop-studio/` | Requirements (EARS) → design → tasks for the pipeline and the desktop studio. |
+| Hooks | `.kiro/hooks/*.kiro.hook` | File-edit checks: seam check, module anatomy, spec sync, skill registry, theme anatomy, desktop smoke test, manual pipeline gate. |
+| Validation | `stitch validate --strict` | Proves modules, contracts, pipeline, hooks, themes and skills still agree. |
+
+`python -m stitchcraft validate --strict` is the single command that keeps the
+whole repository coherent; the hooks call it whenever a seam changes.
 
 ## Repository layout
 
 ```text
 .
-├── .kiro/                 # steering, specs and hooks (Kiro governance layer)
-├── contracts/             # JSON Schema for every artifact — the seams
-├── modules/               # nine specialised skills, one job each
-├── pipeline/pipeline.toml # stage wiring: order, dependencies, gates
-├── src/stitchcraft/       # the dependency-free `stitch` CLI
-├── tests/                 # repo-health smoke tests
-├── docs/                  # architecture, authoring, Kiro workflow, roadmap
-├── examples/              # seed requests for dry runs
-├── AGENTS.md              # rules for AI agents working in this repo
-├── pyproject.toml         # packaging and console entry point
-└── .github/workflows/     # CI: tests + validate + plan + dry run
+├── 启动 Stitchcraft.bat / Stitchcraft.bat   desktop launcher
+├── app/web/                                 local studio UI (vanilla JS + vendored GSAP)
+├── src/stitchcraft/                         stdlib backend + CLI
+├── themes/                                  theme packages + _blocks + registry
+├── skills/                                  vendored skill packs + registry + attribution
+├── modules/ contracts/ pipeline/            the original nine-module stitch spine
+├── .kiro/                                   steering, specs and hooks
+├── hackathon/                               Kiroween 2026 submission kit
+├── docs/                                    architecture/authoring/roadmap + Pages showcase
+├── tests/                                   unit tests + API smoke tests
+├── 开发文档.txt                              full development plan (Chinese)
+└── examples/                                seed requests for dry runs
 ```
 
-## Principles
+## Development
 
-1. **One module, one job.** If a skill starts doing two jobs, split it.
-2. **Artifacts, not conversations.** No module reads another module's notes.
-3. **Contracts at the seam.** Weakening a schema to silence the validator is a bug.
-4. **Specs before code.** Requirements and design precede implementation.
-5. **Boring, portable tech.** Python standard library, JSON, Markdown, static HTML.
-6. **Agent-agnostic.** Kiro is the reference workflow, not a hard dependency.
+```bash
+python -m unittest discover -s tests -v                      # unit + API tests
+PYTHONPATH=src python -m stitchcraft validate --strict       # repository invariants
+python -m stitchcraft app --smoke-test --no-window           # headless end-to-end studio test
+python -m stitchcraft themes verify
+python -m stitchcraft skills verify
+```
 
-## Status
+CI runs the same checks on Python 3.11, 3.12 and 3.13. Read
+[AGENTS.md](AGENTS.md) before changing anything: the rules apply to humans and
+AI agents alike.
 
-`v0.1` is the scaffold: pipeline, nine module skills, nine artifact contracts,
-the Kiro governance layer, a validating CLI, tests and CI. The agent runner,
-site compiler and deploy adapters are planned — see
-[docs/roadmap.md](docs/roadmap.md). This is a foundation to build on, not a
-finished site generator.
+## Privacy and security
+
+- The studio binds to `127.0.0.1` only.
+- AI keys and database credentials are stored in your app-data directory
+  (`%LOCALAPPDATA%\Stitchcraft\config.json`), never in the repo, logs or
+  generated sites.
+- Generated files are sandboxed: relative paths, extension whitelist, size caps.
+- No telemetry. No network calls except the AI endpoint you configure.
+
+## Kiroween 2026
+
+- Category: **Skeleton Crew** (one skeleton, two apps); Frankenstein flavor
+  (Kiro + Chrome guidance + GSAP + bring-your-own AI) and Costume Contest styling.
+- Submission materials, video storyboard and compliance checklist live in
+  [hackathon/](hackathon/).
+- Demo URL (GitHub Pages showcase): https://renxiaoxiang.github.io/Stitchcraft/
 
 ## 中文说明
 
-Stitchcraft 是一个「一个人 + AI 就能建站」的流水线工具集。它不指望一个通用
-AI 从头到尾包办整站，而是把建站拆成 9 个只做一件事的专业模块：
+Stitchcraft 是一个本地桌面应用：选一个网站主题，用一句话描述需求，接入你自己的
+AI API，就能生成一个完整、可预览、可导出的网站。
 
-`需求简报 → 站点结构 → 设计系统 → 文案 → 页面构建 → SEO → 无障碍 → QA 验收 → 部署`
+- **桌面启动**：双击 `启动 Stitchcraft.bat`，在 Edge 应用窗口里使用，无需浏览器地址栏。
+- **自带 AI**：OpenAI / DeepSeek / OpenRouter / Ollama / 任意 OpenAI 兼容接口；
+  Key 只存在本机配置里。
+- **本地 / 远端数据库**：选本地时生成站点用浏览器 localStorage；选远端时填入数据库
+  URL 与公开 anon key，配置会被写进生成站点，站点的增删改查直接访问它。
+- **风格主题**：仓储管理、人员管理、后勤管理、个人空间、品牌落地页。
+- **内置技能**：Chrome 官方 Modern Web Guidance、GSAP 官方 skills、web-animation
+  skills，生成时自动注入提示词。
+- **零 Key 演示**：演示模式内置两个成品站（仓储看板、个人空间），断网也能完整演示。
+- **参赛**：Kiroween 2026（Skeleton Crew 赛道），提交材料见 `hackathon/`。
 
-- **每个模块** = `SKILL.md`（给 AI 的操作手册）+ `module.toml`（声明它读什么、产出什么）。
-- **模块之间只传 JSON 工件**，工件由 `contracts/` 里的 JSON Schema 约束，接缝不会漏信息。
-- **Kiro 的 steering / specs / hooks** 负责把接缝焊死：改契约会触发校验，QA 通过才允许部署。
-
-快速开始：克隆仓库 → `pip install -e .` → `stitch validate --strict` →
-`stitch run --dry-run`，然后在 Kiro 里按 `.stitch/` 下生成的提示逐模块执行。
-
-## Contributing
-
-Issues and pull requests are welcome. Before opening a PR:
-
-```bash
-python -m unittest discover -s tests -v
-stitch validate --strict
-```
-
-Keep the CLI dependency-free and read [AGENTS.md](AGENTS.md) first — the rules
-there apply to humans and agents alike.
+完整开发计划见 [`开发文档.txt`](开发文档.txt)。
 
 ## License
 
 [MIT](LICENSE) © 2026 RenXiaoxiang
+
+Kiro and Kiroween are trademarks of Amazon Web Services. GSAP and GreenSock are
+trademarks of GreenSock, Inc. Chrome and Google are trademarks of Google LLC.
+Third-party skills are used under their upstream licenses; see
+[skills/ATTRIBUTION.md](skills/ATTRIBUTION.md).

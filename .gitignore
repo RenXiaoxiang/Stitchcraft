@@ -12,6 +12,10 @@ venv/
 # Generated stitch artifacts and dry-run prompts
 .stitch/
 
+# Generated site exports
+*.zip
+*.log
+
 # Local auth scratch (never commit tokens)
 .tmp-auth/
 

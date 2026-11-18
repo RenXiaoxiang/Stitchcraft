@@ -1,0 +1,682 @@
+================================================================================
+Stitchcraft 开发文档
+AI 网站主题生成器 · Kiroween 2026 参赛项目
+================================================================================
+文档版本 : v1.0
+编写日期 : 2026-11-19（Asia/Shanghai）
+仓库地址 : https://github.com/RenXiaoxiang/Stitchcraft
+线上演示 : https://renxiaoxiang.github.io/Stitchcraft/（GitHub Pages，计划中）
+License  : MIT
+技术栈   : Python 3.11+ 标准库（零第三方运行时依赖）+ 原生 HTML/CSS/JS + GSAP
+参赛赛道 : Kiroween 2026 — Skeleton Crew（主），Frankenstein / Costume Contest（辅）
+
+0. 阅读指引
+--------------------------------------------------------------------------------
+0.1 本文件是什么
+  这是 Stitchcraft 的开发文档：产品目标、黑客松要求对照、技术方案、模块与技能
+  设计、开发计划、测试验收、提交操作手册。可以直接作为 Kiro 的规格输入（见第 7 章）。
+
+0.2 读给谁
+  - 项目作者（本人）：按第 8 章计划推进、按第 11 章验收、按第 12 章提交。
+  - Kiro / AI 编程代理：读第 3/4/5/6 章实现功能，读第 7 章遵守治理规则。
+  - 评审/协作者：读第 1/2 章理解项目与合规性。
+
+0.3 当前状态（2026-11-19 03:30）
+  已完成：
+  - v0.1 脚手架：九模块流水线、9 份 JSON Schema 契约、9 个 SKILL.md 模块、
+    .kiro/steering + specs + hooks、零依赖 CLI（list/show/validate/plan/doctor/
+    run --dry-run）、8 个单测、GitHub Actions CI（已通过）、公开仓库推送完成。
+  - v0.2 技能层：modern-web-guidance / gsap-skills / web-animation-skills 三个
+    官方/开源技能包已 vendor 到 skills/vendor/，skills/registry.toml 与
+    ATTRIBUTION.md 已建立，2 个 house skill 已编写。
+  - v0.2 后端核心：settings.py、ai_client.py、storage.py、skills.py、
+    themes.py、generator.py 已实现（本地设置存储、OpenAI 兼容客户端、SQLite
+    项目库、主题加载、技能注入、mock/真实 AI 生成引擎）。
+  - 5 个主题包（warehouse-ops / personal-space / staff-directory /
+    logistics-control / brand-launch）的 theme.toml + SKILL.md + 数据模型已完成。
+  - 桌面 UI 的 index.html 骨架已生成。
+  已完成（v0.2 收尾，2026-11-19）：
+  - server.py（本地 HTTP API）、desktop.py（Edge 应用窗口启动器）、cli 新命令
+    （app / generate / themes / skills）；应用冒烟测试通过。
+  - app/web/styles.css + app.js（Kiroween 视觉、GSAP 动效、5 步向导、9 阶段进度、
+    预览/日志/历史、错误处理）。
+  - themes/_blocks 8 个共享区块；warehouse-ops 与 personal-space 两个完整可交互
+    示例站（localStorage 数据持久化、响应式、无障碍底线）。
+  - hackathon/kiro-usage.md、checklist.md；docs/ GitHub Pages 展示页与三张截图
+    （docs/assets/app.png、warehouse.png、personal.png）。
+  - .kiro/specs/desktop-studio/tasks.md、steering 更新、3 个新 hooks
+    （skill-registry / theme-anatomy / desktop-server）。
+  - 18 个单元与 API 测试全绿；stitch validate --strict 0 错误 0 警告。
+  待完成：
+  - 推送并验证 GitHub Pages 上线；录制演示视频；提交 Devpost。
+
+
+1. 项目定义
+--------------------------------------------------------------------------------
+1.1 一句话
+  Stitchcraft 是一个「AI 网站主题生成器」：用户在本机桌面应用里选一个风格主题
+  （仓储管理 / 人员管理 / 后勤管理 / 个人空间 / 品牌落地页），用一句话描述需求，
+  AI 调用项目内置的模块库与技能包，拼装出一个可预览、可导出、可直接部署的完整
+  静态网站。
+
+1.2 用户问题
+  - 非技术用户想给业务做一个小型内部系统或展示站，但不会写代码、也不想用重方案。
+  - 通用 AI 直接写整站：风格随机、缺少数据交互、没有无障碍/性能底线、每次结果不可控。
+  - 现成建站平台：模板固定、数据功能弱、无法接入自己的 AI API、数据只能留在平台。
+  Stitchcraft 的回答：把「主题」做成可复用的模块包，把「专家经验」做成内置技能，
+  把「AI 入口」交给用户自己配置，把「数据」选择权交给用户（本地或远端）。
+
+1.3 产品目标（v0.2 MVP，本轮交付）
+  P0-1 桌面应用启动文件：双击即可启动，打开本地 UI（Edge 应用窗口）。
+  P0-2 AI API 配置入口：用户填 provider / base_url / api_key / model，可测试连通。
+  P0-3 数据库选择：本地（浏览器 localStorage）或远端（REST / Supabase 兼容），
+       录入的 URL 与账户信息在生成时写入生成站点的数据层，供站点直接使用。
+  P0-4 风格选项框 + 需求输入框：5 个主题卡片 + 自由输入 + 示例 chip。
+  P0-5 AI 生成：把「主题模块 + 技能包 + 用户描述」拼成提示词，产出完整站点文件。
+  P0-6 预览 / 导出 ZIP / 项目历史（SQLite 本地库）。
+  P0-7 内置技能：modern-web-guidance、GSAP 官方 skills、web-animation-skills，
+       生成时自动注入，使输出符合现代 Web 最佳实践并有高质量动效。
+  P0-8 演示模式（Mock）：无需任何 API key，使用内置两个成品站演示完整流程。
+
+1.4 非目标（本轮不做）
+  - 不做 SaaS 托管、不做多用户/账号系统；应用只在本机运行（127.0.0.1）。
+  - 不做自动部署（部署计划在 v0.4，见 8.2）。
+  - 不做可视化拖拽编辑器；生成结果为可编辑的 HTML/CSS/JS 文件。
+  - 不内置任何 AI 密钥；不向任何第三方发送用户密钥（只发往用户配置的 endpoint）。
+  - 不承诺生成结果可商用免审；默认输出 MIT 许可的项目文件，第三方资源按第 6 章。
+
+1.5 成功标准（本轮）
+  - 在无网络、无 API key 的机器上，双击启动 → 选主题 → 生成 → 预览 → 导出全流程可用。
+  - 配置真实 OpenAI 兼容 key 后，可生成一个与主题匹配、包含可交互数据 CRUD 的站点。
+  - `stitch validate --strict` 0 错误 0 警告；单元测试全绿；CI 绿灯。
+  - GitHub Pages 展示页可访问（Kiroween 要求的可运行应用 URL 占位）。
+  - Devpost 提交 checklist 全部勾选（视频由作者录制）。
+
+2. Kiroween 2026 要求与对照
+--------------------------------------------------------------------------------
+2.1 关键日期（官方 Devpost 摘要）
+  - 报名开放 : 2026-10-13
+  - 提交开放 : 2026-10-30 09:00 PT
+  - 提交截止 : 2026-12-04 14:00 PT = 北京时间 2026-12-05 06:00
+  - 免费 Kiro 额度申请截止 : 2026-12-01 12:00 PT（资源页申请 4000 credits）
+  - 本项目仓库创建于 2026-11-19，属于提交期内新建项目，符合「仅限新项目」要求。
+
+2.2 赛道（任选其一，可兼报风味）
+  - Resurrection：复活/重想象已死技术。
+  - Frankenstein：把本不相容的技术拼成一个应用。
+  - Skeleton Crew：一个精简骨架模板 + 用两个不同应用证明通用性。
+  - Costume Contest：精致、有万圣节氛围的 UI。
+  本项目主报 Skeleton Crew：一套主题/模块骨架，展示「仓储管理」和「个人空间」两个
+  截然不同的应用。Frankenstein 风味：Kiro + Chrome 现代 Web 指南 + GSAP + 用户自带 AI，
+  四种生态拼装。Costume Contest 风味：Kiroween 风格的深色幽灵 UI。
+
+2.3 提交物清单（必须逐项满足）
+  [1] 公开开源 GitHub 仓库（非 GitLab/Bitbucket），包含全部源码、资源、运行说明。
+  [2] About 区域能识别 License（本项目 MIT，LICENSE 在根目录）。
+  [3] 仓库根目录存在 /.kiro 目录，且不能写进 .gitignore。
+  [4] 可运行的应用 URL（本项目用 GitHub Pages 静态展示页 + 本地桌面应用）。
+  [5] 功能与特性的文字描述（hackathon/submission.md 可直接粘贴）。
+  [6] 公开 YouTube 演示视频，时长 < 3 分钟（脚本见 hackathon/video-script.md）。
+  [7] 使用 Kiro 的说明（hackathon/kiro-usage.md）。
+  [8] 第三方商标/版权材料的使用许可说明（skills/ATTRIBUTION.md）。
+  [9] Devpost 提交表单（登录凭据如需放在私密表单，不写进仓库）。
+
+2.4 评审标准与应对
+  - Potential Impact：解决真实小站/内部系统需求 → README 写清场景，演示两个行业站点。
+  - Technological Implementation（含 Kiro 使用深度）：模块契约 + 技能注入 + 本地
+    HTTP 服务 + Kiro specs/hooks/steering；提交时附文件路径证据。
+  - Design：Kiroween 风格桌面 UI + 两个高完成度示例站 + 无障碍/响应式。
+  - Innovation and Idea：把「技能包」变成生成时提示词上下文；模块化主题装配。
+  - Presentation：3 分钟视频脚本（问题 20s → 演示 100s → 架构 40s → 收尾 20s）。
+
+2.5 资格提醒
+  - 参赛者需达到居住地法定成年年龄；团队最多 3 人。
+  - 公开摘要显示中国大陆不在排除名单内，但必须自行核对 Official Rules 最新版本。
+  - 同一作品不可同时提交到其他比赛；提交后不可修改（以官方规则为准）。
+
+3. 产品设计
+--------------------------------------------------------------------------------
+3.1 目标用户
+  - 小店主/团队负责人：要一个库存/排班/物流的简易内部面板。
+  - 创作者：要一个放文章和照片的个人空间。
+  - 独立开发者：想用自己的 AI API 快速起一个可交付的静态站点。
+
+3.2 端到端流程（桌面应用内 7 步）
+  Step 1 启动：双击「启动 Stitchcraft.bat」→ 本地服务启动 → Edge 应用窗口打开。
+  Step 2 AI 设置：选择服务商（OpenAI/DeepSeek/OpenRouter/Ollama/自定义）→ 填
+         Base URL、API Key、模型名、温度 → 点「测试连接」。
+  Step 3 数据库：选「本地」或「远端」；远端填写数据库 URL、账户/anon key、表前缀
+         → 点「测试连接」。此配置会写进生成站点的 data-config.js。
+  Step 4 选风格：5 张主题卡片（仓储管理/人员管理/后勤管理/个人空间/品牌落地页）。
+  Step 5 写需求：一句话或一段话描述网站；可选标题；提供示例 chip。
+  Step 6 生成：右侧 9 阶段进度动画 + 日志；完成后切到预览 tab。
+  Step 7 结果：预览、另存新窗口、导出 ZIP、在历史记录中回看/删除。
+
+3.3 桌面应用形态（已确认）
+  - 形态：本地 Web UI + Microsoft Edge 应用窗口（--app 模式，无地址栏，像原生应用）。
+  - 启动文件：`启动 Stitchcraft.bat`（Windows 双击）→ `python -m stitchcraft app`
+    → 自动选空闲端口（默认 8765）→ 启动本地 HTTP 服务 → 打开 Edge 应用窗口。
+  - 兜底：找不到 Edge 时用默认浏览器打开；控制台打印 URL 方便手动访问。
+  - 为什么不用 Electron：零依赖、仓库轻、离线可跑、演示成本低；后端/前端可平移到
+    Electron/Tauri 而不改业务逻辑（见 4.3 分层）。
+
+3.4 功能清单
+  P0（本轮必须）
+    F1 启动器与本地服务
+    F2 AI 配置 + 连接测试（密钥本地保存，页面只显示 has_key / key_hint）
+    F3 数据库本地/远端配置 + 连接测试 + 配置内嵌生成站点
+    F4 主题卡片列表（含示例标记）与主题详情
+    F5 需求输入框、示例、标题
+    F6 生成任务：9 阶段进度、日志、取消/超时提示（超时按 HTTP 超时处理）
+    F7 预览 iframe、新窗口打开、导出 ZIP
+    F8 项目历史（SQLite）、删除
+    F9 Mock 演示模式（两个内置成品站）
+    F10 错误处理：无 key、连不上、AI 返回非法 JSON、文件安全校验
+  P1（有空就做）
+    F11 生成结果再编辑（打开文件夹/复制路径）
+    F12 主题收藏与最近使用
+    F13 生成参数高级项（温度、文件数量上限）
+  P2（路线图）
+    F14 deploy 适配器（Cloudflare Pages/Vercel/Netlify/GitHub Pages）
+    F15 MCP server（让 Kiro 直接调用 Stitchcraft 主题与生成能力）
+    F16 多语言 UI（中/英）
+
+3.5 AI API 配置设计
+  - 统一 OpenAI 兼容协议：POST {base_url}/chat/completions。
+  - 预设：OpenAI / DeepSeek / OpenRouter / Ollama（本地 11434）/ Custom。
+  - 字段：provider、base_url、model、temperature、api_key。
+  - 测试：优先 GET {base_url}/models；失败则发一条 "reply pong" 的最小对话。
+  - 存储：%LOCALAPPDATA%\Stitchcraft\config.json（权限尽量 600，永不入仓库）。
+  - 生成时若 json_mode 被端点拒绝（400/422），自动降级重试一次普通模式并本地解析 JSON。
+
+3.6 数据库：本地 / 远端（按用户确认的需求）
+  - 含义：数据库地址与账户是「生成网站时使用」的配置，不是 Stitchcraft 自身的项目库。
+  - 本地模式：生成站点用浏览器 localStorage（键前缀 stitchcraft:），首次打开自动
+    种入示例数据；可离线、可 file:// 直接打开。
+  - 远端模式：生成站点以 REST 方式访问用户填写的数据库：
+      * Supabase 兼容：`${url}/rest/v1/${tablePrefix}_<table>`，请求头 apikey +
+        Authorization: Bearer <anonKey>；GET/POST/PATCH/DELETE 语义见第 4.7 节。
+      * 通用 REST：GET {url} 可达即视为连接成功；表路径按前缀约定。
+  - 配置注入：生成器总是写 `data-config.js`：
+      window.STITCHCRAFT_DB = { mode, kind, url, anonKey, tablePrefix };
+    并在 index.html 的 </body> 前注入 `<script src="data-config.js"></script>`。
+  - 安全：只允许写「公开/anon key」；禁止把 AI 密钥写入生成站点；UI 必须提示。
+  - Stitchcraft 自身项目历史始终存本地 SQLite（%LOCALAPPDATA%\Stitchcraft\projects\
+    projects.sqlite3），与远端数据库无关。
+
+3.7 风格主题与模块库
+  - 5 个主题：warehouse-ops（仓储）、staff-directory（人员）、logistics-control（后勤）、
+    personal-space（个人空间）、brand-launch（品牌落地页）。
+  - 每个主题 = 一个数据包（见第 5 章）：theme.toml + SKILL.md + data-model.json +
+    可选 sample/ 成品站。
+  - 共享区块库 themes/_blocks/：hero、stat-grid、data-table、crud-modal、article-list、
+    photo-masonry、timeline、cta-band，供 AI 参考拼装。
+  - 两个成品站：warehouse-ops/sample 与 personal-space/sample，满足 Skeleton Crew
+    「一个骨架 + 两个应用」的要求，也作为 Mock 模式输出。
+
+3.8 生成流水线（UI 上展示 9 个阶段）
+  1 Brief          读需求、确定站点标题与目标
+  2 Structure      站点结构、页面/区块规划（来自主题 SKILL.md）
+  3 Design tokens  颜色/字体/间距（主题 accent + Modern Web Guidance）
+  4 Data layer     本地或远端数据库配置与适配器
+  5 Hero & layout  首屏与版式
+  6 Components     表格/表单/卡片等组件
+  7 Motion         GSAP 动效（尊重 prefers-reduced-motion）
+  8 Accessibility  WCAG 2.2 AA 检查（标题/alt/viewport/reduced-motion 等启发式）
+  9 QA & package   文件安全校验、写盘、打包、生成摘要
+  真实 AI 模式：1-7 为提示词装配阶段，第 6 阶段末执行一次模型调用；8-9 为校验与写盘。
+  演示模式：按阶段逐步推进动画，复制主题 sample 或生成占位站，不调用模型。
+
+3.9 预览 / 导出 / 历史
+  - 预览：GET /api/preview/<project_id>/ 由本地服务器托管生成目录（禁止目录穿越）。
+  - 导出：GET /api/export/<project_id> 生成 ZIP（内存打包）。
+  - 历史：GET /api/projects；点击回看预览；DELETE 删除项目与磁盘目录。
+
+3.10 演示模式（Mock）
+  - 目的：评委/用户无 API key 也能体验完整产品；视频录制零成本可重录。
+  - 行为：engine=mock 时复制主题 sample（或占位站），同样写 data-config.js，
+    UI 明确标注「Demo output」；远端数据库配置在 AI 模式下才真正生效（UI 文案说明）。
+
+4. 技术方案
+--------------------------------------------------------------------------------
+4.1 架构总览
+  [Edge app window]
+        | HTTP/JSON (127.0.0.1:8765)
+  [app/web 单页 UI: HTML/CSS/JS + 本地 GSAP]
+        |
+  [src/stitchcraft/server.py  ThreadingHTTPServer]
+        |-- settings.py    读取/保存本地配置（AI、DB、UI）
+        |-- ai_client.py   OpenAI 兼容 /chat/completions（urllib，无 SDK）
+        |-- storage.py     SQLite 项目库 + 远端数据库连通性测试
+        |-- themes.py      主题发现/校验/数据模型
+        |-- skills.py      技能注册表 + 提示词上下文拼装
+        |-- generator.py   mock/AI 生成引擎（9 阶段、文件安全、写盘）
+        |-- desktop.py     启动器（找 Edge、起服务、开窗口）
+        |
+  [data/ 运行时] %LOCALAPPDATA%\Stitchcraft\config.json + projects\<id>\site\
+  [repo 数据] pipeline/ contracts/ modules/ themes/ skills/ .kiro/ app/ docs/
+
+4.2 技术选型与理由
+  - Python 3.11+ 标准库：零依赖、任何机器可跑、CI 简单、契合命令行与桌面双形态。
+  - HTTP 服务用 http.server.ThreadingHTTPServer：够用、无依赖、可绑定 127.0.0.1。
+  - UI 用原生 HTML/CSS/JS：无构建步骤、加载快、易演示、方便被 AI 生成。
+  - 动效用官方 GSAP 3.13（本地 vendored）：专业级动画、离线可用。
+  - 数据用 SQLite：单文件、事务、零配置；远端数据库只服务于生成站点。
+  - 为什么不用 FastAPI/Electron/React：依赖多、构建慢、离线演示风险高；
+    评审看重「能跑 + 清楚 + 有 Kiro 治理」，不是技术堆叠。
+
+4.3 目录结构（目标态）
+  Stitchcraft/
+  ├─ 启动 Stitchcraft.bat          双击启动（Windows）
+  ├─ README.md                    产品说明 + 快速开始 + 黑客松信息
+  ├─ AGENTS.md                    AI 代理工作规则
+  ├─ pyproject.toml               打包与 stitch 命令入口
+  ├─ pipeline/                    九模块流水线定义（v0.1 概念层）
+  ├─ contracts/                   9 份 JSON Schema 工件契约
+  ├─ modules/                     9 个 SKILL.md 模块（v0.1 骨架，保留）
+  ├─ themes/                      5 个主题包 + _blocks + registry.toml
+  ├─ skills/                      vendor 技能包 + registry.toml + house 技能
+  ├─ app/web/                     桌面 UI（index.html/styles.css/app.js/vendor）
+  ├─ src/stitchcraft/             后端与 CLI
+  ├─ tests/                       单元测试与 API 冒烟测试
+  ├─ hackathon/                   Devpost 提交材料（描述/视频脚本/Kiro 说明/清单）
+  ├─ docs/                        架构/写模块/Kiro 流程/路线图 + GitHub Pages 展示页
+  ├─ .kiro/                       steering/specs/hooks（Kiro 治理层）
+  ├─ examples/                    示例需求（coffee-roastery）
+  └─ .github/workflows/ci.yml     CI
+
+4.4 后端组件职责与关键函数
+  settings.py    AppConfig/AISettings/DatabaseSettings/UISettings；load_config、
+                 save_config、merge_patch（空密钥不覆盖）；app_dir()。
+  ai_client.py   AIConfig；chat()（json_mode 自动降级）、test_connection()、
+                 extract_json()（容忍代码围栏/前后缀）。
+  storage.py     ProjectStore(create/update/list/get/delete/site_dir)、
+                 test_remote_database()、utc_now()。
+  themes.py      Theme；load_themes()、get_theme()、theme_skill_text()、
+                 load_data_model()、sample_dir()、verify_themes()。
+  skills.py      Skill；load_registry()、select_for_theme()、
+                 build_skill_context(budget_chars=24000~26000)、verify_registry()。
+  generator.py   GenerationRequest/GenerationResult；generate_site() 9 阶段；
+                 文件白名单（.html/.css/.js/.json/.svg/.txt/.md/.xml/.webmanifest）、
+                 单文件 600KB、总量 5MB、拒绝 .. 与绝对路径；写 data-config.js；
+                 需要时复制 vendor/gsap.min.js；Mock 复制 sample。
+  server.py      StudioServer/StudioHandler/Job；REST API（见 4.6）；静态资源；
+                 ZIP 导出；项目预览（防穿越）；后台线程跑生成任务。
+  desktop.py     find_edge()/open_app_window()/run()；--smoke-test 自检。
+
+4.5 前端组件（app/web）
+  - 布局：左侧 5 步向导（AI → 数据 → 风格 → 需求 → 生成），右侧「预览 / 流水线 /
+    日志」三 tab + 历史抽屉。
+  - 状态：app.js 单一状态对象；fetch 轮询 /api/jobs/<id> 每 800ms；localStorage 记住
+    最近主题与标题。
+  - 视觉：Kiroween 万圣节风（深墨 #0e0c12、余烬橙 #ff8a3d、紫 #8b5cf6），
+    字体用系统栈，动效用本地 gsap.min.js；尊重 prefers-reduced-motion。
+  - 可访问性：语义化标签、label、focus-visible、aria-live 日志、Esc 关闭弹层。
+
+4.6 本地 HTTP API 契约
+  GET  /api/status              -> {version, demo_mode, config_path, edge}
+  GET  /api/settings            -> 配置（密钥仅 has_key/key_hint）
+  POST /api/settings            -> {ok, config_path}
+  POST /api/ai/test             -> {ok, message, latency_ms}
+  POST /api/db/test             -> {ok, message}
+  GET  /api/themes              -> {themes:[{id,name,category,summary,tags,accent,
+                                   has_sample,blocks,skills}]}
+  GET  /api/skills              -> {skills:[{id,name,category,source,license,summary,
+                                   enabled,stages}]}
+  POST /api/generate            -> {job_id}  body: {theme_id,title,prompt,engine,
+                                   database:{mode,remote:{kind,url,anon_key,table_prefix}}}
+  GET  /api/jobs/<job_id>       -> {id,status,stage,stage_name,progress,stages,logs,
+                                   project_id,error}
+  GET  /api/projects            -> {projects:[...]}
+  DELETE /api/projects/<id>     -> {ok}
+  GET  /api/preview/<id>/[...]  -> 生成站点静态文件
+  GET  /api/demo/<theme_id>/    -> 主题示例站（仅 has_sample 主题）
+  GET  /api/export/<id>         -> ZIP 下载
+  服务只绑定 127.0.0.1；POST body 上限 2MB；所有用户输入做路径与长度校验。
+
+4.7 生成引擎细节
+  - 请求校验：主题存在、需求 ≥ 8 字符、远端模式必须有 URL、AI 模式必须有 key
+    （Ollama 例外）。
+  - 提示词结构（AI 模式）：
+      system = 角色 + 输出 JSON 契约 + 10 条硬规则（离线静态/数据层/无障碍/响应式/
+               动效/安全/示例数据/文件完整性等）
+      user   = 站点标题 + 用户需求 + 主题说明 + 主题 SKILL.md + data-model.json +
+               注入技能上下文（Modern Web Guidance / GSAP / web-animation / house）+
+               window.STITCHCRAFT_DB 配置
+  - 输出契约：{"files":[{"path","content"}...],"summary":"..."}；仅允许相对路径与白名单扩展名。
+  - 失败处理：网络错误/超时/HTTP 非 2xx → 友好错误；JSON 非法 → 报错并提示换模型；
+    缺 index.html → 报错；空文件 → 报错；超限 → 报错。
+  - 远端数据适配器（写进生成站点 app.js）：
+      GET    ${url}/rest/v1/${prefix}_<table>?select=*
+      POST   ${url}/rest/v1/${prefix}_<table>   Prefer: return=representation
+      PATCH  ${url}/rest/v1/${prefix}_<table>?id=eq.<id>
+      DELETE ${url}/rest/v1/${prefix}_<table>?id=eq.<id>
+      请求头 apikey / Authorization: Bearer <anonKey>；失败降级到缓存并提示。
+
+4.8 安全与隐私
+  - 密钥只存本地配置文件；API GET /api/settings 永不返回明文密钥。
+  - 生成站点只写入用户明确配置的远端 URL 与 anon key；提示「不要使用 service key」。
+  - 服务仅监听 127.0.0.1，不对外网开放；无 CORS 放宽。
+  - 生成文件路径白名单 + 防目录穿越（拒绝 ..、绝对路径）。
+  - 日志不打印密钥；错误信息截断。
+  - 第三方技能包保留 LICENSE，见 skills/ATTRIBUTION.md。
+
+4.9 依赖与兼容
+  - 运行时：Python ≥ 3.11（tomllib）、Edge 或任意现代浏览器、Windows 10/11
+    （macOS/Linux 也可用 python -m stitchcraft app + 默认浏览器）。
+  - 开发：无 Node 依赖；可选 Node 仅用于 node --check 校验前端 JS。
+  - 网络：生成需要能访问用户配置的 AI endpoint；无网时 Mock 模式完整可用。
+
+5. 主题模块库设计
+--------------------------------------------------------------------------------
+5.1 主题包规范（themes/<id>/）
+  theme.toml   [theme] id/name/category/summary/tags/accent/blocks/skills/
+               data_model/sample；category ∈ {data, personal, brand}
+  SKILL.md     AI 组装指南：Job / When to use / Data model / Layout blueprint /
+               Components / Motion / Data layer / Quality bar / Output contract
+  data-model.json（data 主题）collections[].fields[] 定义数据表结构
+  sample/（可选）完整可离线打开的示例站：index.html + styles.css + app.js +
+               vendor/gsap.min.js（相对引用，缺失时降级 CSS 动效）
+  themes/registry.toml  [[themes]] id/name/category/path/accent/has_sample
+  themes/_blocks/*.html 共享 HTML 区块（AI 参考，不直接复制也可）
+
+5.2 五个主题
+  warehouse-ops    仓储管理：暗色工业风 + 琥珀色；KPI + 库存表 + 增删改查 + 入库记录；
+                   有 sample；data-model: inventory_items / inbound_shipments。
+  staff-directory  人员管理：靛蓝 + 荧光绿；员工目录、部门、入转调离任务；
+                   data-model: employees / departments / onboarding_tasks。
+  logistics-control 后勤管理：午夜蓝 + 青色；运单、承运商、异常看板、时间线；
+                   data-model: shipments / carriers / incidents。
+  personal-space   个人空间：暖色编辑风；文章列表、标签过滤、照片墙、关于；
+                   有 sample；数据：entries / photos（照片用渐变/emoji 占位）。
+  brand-launch     品牌落地页：黑白 + 单强调色；Hero、卖点、作品、CTA、FAQ。
+
+5.3 共享区块（themes/_blocks）
+  hero.html / stat-grid.html / data-table.html / crud-modal.html / article-list.html /
+  photo-masonry.html / timeline.html / cta-band.html
+  每个区块自带语义化结构与内联 CSS 示例，含注释说明可替换字段。
+
+5.4 数据模型示例（warehouse-ops/data-model.json 节选）
+  {"collections":[
+    {"name":"inventory_items","fields":[
+      {"name":"sku","type":"string","required":true},
+      {"name":"name","type":"string","required":true},
+      {"name":"category","type":"string"},
+      {"name":"quantity","type":"integer","required":true},
+      {"name":"reorder_level","type":"integer"},
+      {"name":"zone","type":"string"},
+      {"name":"status","type":"string","enum":["in-stock","low","out"]},
+      {"name":"updated_at","type":"string"}]},
+    {"name":"inbound_shipments","fields":[...]}]}
+
+5.5 两个完整示例站（Skeleton Crew 核心证据）
+  - warehouse-ops/sample：可交互库存表（搜索/筛选/新增/编辑/删除/低库存高亮），
+    首次打开种入 8~12 条示例数据，localStorage 持久化；GSAP 入场与行交错动画。
+  - personal-space/sample：文章卡片列表 + 标签过滤 + 照片墙 + About；
+    localStorage 持久化；GSAP 滚动淡入（降级可见）。
+  - 两个站均：响应式（1440/390）、无外部字体/图片、可 file:// 直接打开。
+
+5.6 AI 输出契约（务必遵守）
+  {"files":[
+    {"path":"index.html","content":"<!doctype html>..."},
+    {"path":"styles.css","content":"..."},
+    {"path":"app.js","content":"..."}],
+   "summary":"一句中文/英文摘要"}
+  index.html 必须：<html lang>、viewport、title、link styles.css、先 data-config.js
+  后 app.js；数据交互读 window.STITCHCRAFT_DB；无外链资源。
+
+6. 技能系统（Skills）
+--------------------------------------------------------------------------------
+6.1 内置技能包（已 vendor，离线可用）
+  | 包 | 来源 | 协议 | 内容 |
+  | modern-web-guidance | GoogleChrome/modern-web-guidance @64a6d70 | Apache-2.0 |
+    SKILL.md + guides/（可访问性、CSS、表单、性能、UI 组件等） |
+  | gsap-skills | greensock/gsap-skills @aed9cfd | MIT |
+    gsap-core / timeline / scrolltrigger / plugins / performance / utils / frameworks /
+    react + llms.txt |
+  | web-animation-skills | iart-ai/web-animation-skills @ed3a045 | MIT |
+    60fps-animation / accessible-animation / gsap-web / lottie-animation /
+    micro-interaction / page-transition-animation / svg-animation |
+  | gsap-lib | gsap@3.13.0 jsDelivr | GSAP 标准许可 | gsap.min.js（UI 与生成站点共用） |
+  相似技能候选（后续可选，先核对协议）：Anthropic frontend-design、vercel web-design-
+  guidelines、awesome-copilot premium-frontend-ui、motion.dev skills。
+
+6.2 vendor 规范
+  - 原样复制上游文件，不改内容；每个包根目录必须有 LICENSE + UPSTREAM.md
+    （仓库 URL、commit SHA、协议、复制范围、日期）。
+  - 统一在 skills/ATTRIBUTION.md 汇总；不在 vendor 目录里手改。
+  - 更新流程：重新下载 zipball → 替换 → 更新 UPSTREAM/ATTRIBUTION/registry →
+    `python -m stitchcraft skills verify` + `python -m stitchcraft validate --strict`。
+
+6.3 skills/registry.toml 格式
+  [meta] version/description
+  [[skills]] id,name,category,source,license,path,summary,stages,enabled,budget_chars,kind
+  kind=skill（有 SKILL.md，可注入）/ kind=asset（如 gsap-lib，只供文件复制）。
+  主题通过 theme.toml 的 skills 数组选技能；生成器按 enabled + budget 拼上下文。
+
+6.4 运行时注入策略
+  - 默认总预算 24000~26000 字符；每技能单独 budget_chars（如 modern-web-guidance 14000、
+    gsap-core 5000）；超预算截断并标注。
+  - 注入顺序：主题技能 → GSAP 核心/ScrollTrigger → web-animation → house skills。
+  - 注入内容含来源与协议标注，便于审查与署名。
+  - 生成站点的 GSAP 使用：提示词告知「./vendor/gsap.min.js 已提供」，生成器在站点引用
+    该文件时自动复制 vendored 构建，保证离线可跑。
+
+6.5 House 技能（自制）
+  - stitchcraft-data-app：CRUD 数据界面 + 本地/远端适配器契约 + 无障碍/安全要求。
+  - stitchcraft-personal-space：个人空间编辑风、文章/照片数据模型、克制动效。
+
+6.6 验证
+  - skills/registry.toml 每个 path 存在且 kind=skill 时有 SKILL.md；vendor 包有 LICENSE。
+  - CI 执行 `python -m stitchcraft skills verify`。
+
+7. Kiro 使用与治理
+--------------------------------------------------------------------------------
+7.1 .kiro 目录职责
+  .kiro/steering/   常驻规则（product / tech / structure），每个任务自动加载
+  .kiro/specs/      规格驱动开发：requirements.md（EARS）、design.md、tasks.md
+  .kiro/hooks/      代理钩子：文件编辑时触发校验/提醒
+  （可选）.kiro/settings/mcp.json  暴露 Stitchcraft MCP 工具（路线图）
+
+7.2 specs
+  stitchcraft-core/   v0.1 核心（9 模块流水线、契约、CLI、治理层），M1 已完成
+  desktop-studio/     v0.2 桌面工作室（设置/AI 客户端/数据层/主题/技能/生成/API/
+                      Pages），R1-R14 需求 + 设计 + 任务清单
+
+7.3 steering
+  product.md    产品愿景、原则（一个模块一件事、工件优先、先规格后代码、钩子守缝）
+  tech.md       技术栈、零依赖约束、桌面栈（stdlib server + 原生 JS + 本地 GSAP）、
+                密钥规则、新增目录规范
+  structure.md  仓库分层与所有权（modules/contracts/pipeline/app/themes/skills/
+                hackathon/docs），跨层规则
+
+7.4 hooks（7 个）
+  seam-check.kiro.hook        改 contracts/modules/pipeline → 跑 validate + plan 并修复
+  module-anatomy.kiro.hook    改模块 → 检查 frontmatter/七段结构/契约一致
+  pipeline-gate.kiro.hook     手动触发 → runCommand validate --strict
+  spec-sync.kiro.hook         改 specs → 保持 requirements/design/tasks 互相一致
+  skill-registry.kiro.hook    改 skills → 跑 skills verify + validate，更新 ATTRIBUTION
+  theme-anatomy.kiro.hook     改 themes → 校验 theme.toml/SKILL 结构/sample，跑 themes verify
+  desktop-server.kiro.hook    改 app/ 或 server/desktop → 跑单测 + app --smoke-test
+
+7.5 Kiro 工作流（每次功能开发）
+  ① 读 steering 与相关 spec ② 更新 requirements/design/tasks（spec-sync 会提醒）
+  ③ 按 tasks 实现 ④ 触发 seam-check/theme-anatomy 等 hook 自动校验
+  ⑤ 跑命令：python -m unittest discover -s tests -v / python -m stitchcraft validate
+     --strict / python -m stitchcraft app --smoke-test ⑥ 记录证据（命令输出、文件路径）
+
+7.6 评奖需要保留的 Kiro 证据（诚实记录）
+  - 至少一次「Kiro 里完成真实任务」的会话截图/提交记录：建议用 Kiro 实现 1~2 个
+    desktop-studio/tasks.md 中的任务（例如新增一个主题、或补一个 hook），保留对话与
+    diff 链接。
+  - .kiro/ 目录、hooks 配置、specs 文件本身即证据；提交说明中列出文件路径与命令。
+  - 不虚构 Kiro 使用范围；如果 Kiro 只参与了部分实现，就写清参与了哪些任务。
+
+8. 开发计划与里程碑
+--------------------------------------------------------------------------------
+8.1 当前状态（2026-11-19）
+  见 0.3。已完成 v0.1 + 技能层 + 后端核心 + 主题包骨架；待完成 server/desktop、
+  UI 样式与交互、两个示例站、hackathon 剩余材料、Kiro 补齐、集成测试、Pages、提交。
+
+8.2 里程碑（相对截止 12/4 14:00 PT）
+  M0 调研与合规（11/19 完成）
+     - 确认 Kiroween 规则/赛道/截止/提交物；确认两个官方技能来源与协议。
+  M1 v0.1 骨架（11/19 完成）
+     - 九模块流水线 + 契约 + CLI + Kiro 治理层 + 测试 + CI + 公开仓库。
+  M2 桌面后端（11/19~11/21）
+     - server.py / desktop.py / cli 新命令（app/generate/themes/skills）；
+     - settings/ai_client/storage/generator 联调；API 冒烟测试。
+  M3 桌面 UI（11/20~11/22）
+     - styles.css + app.js；5 步向导、9 阶段动画、预览/日志/历史；空态与错误态；
+     - Edge 应用窗口启动验证（Windows）。
+  M4 主题库（11/20~11/23）
+     - _blocks 8 个区块；warehouse-ops / personal-space 两个完整示例站；
+     - 其余 3 主题 mock 占位生成可用。
+  M5 技能与生成质量（11/21~11/24）
+     - 注入策略与预算调优；真实 API 联调（作者自备 key）；
+     - 生成结果质量检查（数据 CRUD 可用、GSAP 生效、无障碍底线）。
+  M6 集成与演示（11/24~11/27）
+     - 一键启动脚本；无网/无 key 演示路径；真实 AI 路径；
+     - 两个成品站质量打磨；截图（Edge headless）。
+  M7 黑客松材料（11/25~11/29）
+     - README 重写（v0.2）；hackathon/ 全套；docs/ Pages 展示页；
+     - 开启 GitHub Pages 并验证 URL；CI 全绿。
+  M8 视频与提交（11/30~12/04）
+     - 录制 <3 分钟视频（脚本已备）；上传 YouTube（公开/不公开可被评委访问）；
+     - Devpost 填表：标题/简介/描述/赛道/链接/视频；12/04 14:00 PT 前提交；
+     - 提交后复核链接可用、仓库公开、.kiro 可见、License 识别正常。
+
+8.3 每日节奏建议
+  每天固定：早上跑 validate + tests；下午推进一个 M 阶段；晚上提交 commit 并 push；
+  每完成一个 P0 功能就更新 README/演示材料，避免最后集中写文档。
+
+8.4 任务清单（T 编号，可直接转为 Kiro tasks）
+  T01 [后端] server.py：路由/静态/预览/ZIP/任务线程/JSON 校验
+  T02 [后端] desktop.py：找 Edge/开 app 窗口/端口选择/--smoke-test
+  T03 [CLI] app / generate / themes / skills 子命令
+  T04 [校验] validate.py 增加 skills/themes 校验层
+  T05 [前端] styles.css：Kiroween 视觉系统、响应式、组件样式
+  T06 [前端] app.js：5 步向导、API 调用、轮询、预览/日志/历史、键盘快捷键
+  T07 [主题] _blocks 8 个区块
+  T08 [主题] warehouse-ops/sample 完整可交互站
+  T09 [主题] personal-space/sample 完整可交互站
+  T10 [集成] 生成器 + UI 端到端：mock 生成、AI 生成（有 key）
+  T11 [测试] tests/test_studio.py：settings/storage/themes/skills/mock 生成/服务 API
+  T12 [CI] 更新 ci.yml：安装、单测、validate、skills verify、themes verify、node --check
+  T13 [文档] README v0.2 + hackathon/kiro-usage.md + checklist.md
+  T14 [Pages] docs/index.html + 截图 + 开启 Pages + 验证 URL
+  T15 [Kiro] desktop-studio/tasks.md + steering 更新 + 3 个 hooks + 验证
+  T16 [发布] 提交 commit、push、验证 CI、Devpost 提交
+
+9. 测试与 CI
+--------------------------------------------------------------------------------
+9.1 测试分层
+  - 单元：settings 读写/掩码/合并；storage SQLite CRUD；skills/themes 加载与校验；
+    ai_client.extract_json；generator mock 生成（临时目录）。
+  - 集成：启动本地服务（端口 0）→ /api/status → /api/themes → POST /api/generate
+    (mock) → 轮询 /api/jobs → /api/preview 200 → /api/export 返回 zip。
+  - 静态检查：python -m compileall src；node --check app/web/app.js（若装了 Node）。
+  - 契约检查：stitch validate --strict（模块/契约/流水线/hooks/skills/themes）。
+9.2 CI（GitHub Actions，ubuntu-latest，Python 3.11/3.12/3.13 矩阵）
+  - pip install -e .
+  - python -m unittest discover -s tests -v
+  - python -m stitchcraft validate --strict
+  - python -m stitchcraft skills verify && python -m stitchcraft themes verify
+  - python -m stitchcraft plan --mermaid-only
+  - python -m stitchcraft app --smoke-test
+  - node --check app/web/app.js（setup-node 可选）
+9.3 手工验收（演示前一遍）
+  - 断网双击 bat → UI 打开 → mock 生成 → 预览 → 导出 ZIP。
+  - 填真实 key → 测试连接 → AI 生成 → 数据 CRUD 可用 → 导出。
+  - 远端数据库配置 → 生成站 data-config.js 内容正确、请求头正确（可看 DevTools）。
+  - Edge 窗口 1440×900、390 宽度（DevTools 模拟）无横向滚动。
+
+10. 风险与对策
+--------------------------------------------------------------------------------
+  R1 GitHub 网络不稳定（已遇到）→ 推送走 ssh.github.com:443；文档/README 用
+     raw.githubusercontent 或 gh-proxy 访问；CI 在 GitHub 侧不受影响。
+  R2 用户 AI endpoint 不可达/超时/限流 → 友好错误提示、重试一次、建议换模型；
+     Mock 模式保证演示不翻车。
+  R3 API 费用/额度 → 生成前提示 token 预估；提供「演示模式」；单次生成限制文件与
+     长度；默认温度 0.7。
+  R4 生成质量不稳定 → 主题 SKILL.md 写死结构、输出契约校验、技能注入、示例数据要求、
+     QA 阶段启发式检查；必要时给出「重新生成」按钮。
+  R5 密钥泄漏 → 只存本地、GET 掩码、不写日志、不写生成站点、提交前 grep 检查。
+  R6 Devpost「可运行应用 URL」→ GitHub Pages 静态展示页（UI + 两个示例站）作为 URL；
+     视频中演示本地真实生成；提交说明中注明「桌面应用，本地运行」。
+  R7 视频/时间风险 → 脚本先行（hackathon/video-script.md），Mock 模式可重复录制；
+     把长任务拆成可独立验证的小步，每天可回滚。
+  R8 版权/商标 → 所有 vendor 技能带 LICENSE + UPSTREAM；ATTRIBUTION.md 声明 GSAP、
+     Chrome、Kiro 商标归属；不使用未授权素材。
+  R9 团队/资格 → 单人项目，避免多设备协作；提交前核对官方规则与地区限制。
+
+11. 验收标准（Definition of Done）
+--------------------------------------------------------------------------------
+  [ ] 双击启动文件可打开桌面应用窗口（Windows，Edge 存在时）。
+  [ ] AI 设置页可保存/测试连接；密钥重启后仍在（本地配置文件）。
+  [ ] 数据库本地/远端可切换、可测试连接；生成站点 data-config.js 内容与实际选择一致。
+  [ ] 5 个主题卡片可见；仓储/个人空间有示例标记并可直接预览示例站。
+  [ ] mock 模式完整生成并预览/导出；不依赖网络与 key。
+  [ ] AI 模式在配置可用 key 后生成一个可运行站点（含数据交互）。
+  [ ] 9 阶段进度、日志、错误提示、历史记录、删除均可用。
+  [ ] python -m unittest discover -s tests -v 全绿。
+  [ ] python -m stitchcraft validate --strict 0 错误 0 警告。
+  [ ] python -m stitchcraft skills verify / themes verify 无问题。
+  [ ] CI 绿灯；GitHub Pages URL 200。
+  [ ] hackathon/checklist.md 全勾选；README 含快速开始与 Kiroween 信息。
+  [ ] .kiro 目录完整、hooks JSON 合法、specs 三件套齐全。
+  [ ] 仓库公开、LICENSE 可识别、无密钥/绝对路径泄漏。
+
+12. 提交操作手册（Devpost）
+--------------------------------------------------------------------------------
+  1. 注册/登录 Devpost，打开 https://kiroween.devpost.com/ 点 Join hackathon。
+  2. 资源页申请 4000 Kiro credits（需要 Kiro 用户 ID 或 AWS 账号 ID，12/01 前）。
+  3. 建 Devpost Project：标题 Stitchcraft — AI site builder that stitches skills
+     into one pipeline；Tagline ≤ 60 字符；赛道勾选 Skeleton Crew（可加 Frankenstein）。
+  4. 填描述：直接粘贴 hackathon/submission.md（Inspiration / What it does / How we
+     built it / Challenges / Accomplishments / What we learned / What's next /
+     How Kiro was used / Built with / Links）。
+  5. 上传 YouTube 视频：按 hackathon/video-script.md 录制；设为「公开」或「不公开但
+     可链接访问」；时长 < 3 分钟。
+  6. 填 Links：GitHub 仓库、GitHub Pages URL；如有登录凭据放私密表单。
+  7. 复核：仓库公开、About 显示 MIT、根目录 .kiro 可见、视频可播放、URL 可打开。
+  8. 12/04 14:00 PT（北京时间 12/05 06:00）前点 Submit；提交后不可修改。
+  9. 提交后可选：写博客/社交贴（Kiroween 有 Bonus Blog Prize）。
+
+13. 附录
+--------------------------------------------------------------------------------
+13.1 命令速查
+  python -m pip install -e .
+  python -m stitchcraft list / show <module> / validate --strict / plan / doctor
+  python -m stitchcraft themes [list|show <id>|verify]
+  python -m stitchcraft skills [list|show <id>|verify]
+  python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
+  python -m stitchcraft app [--port 8765] [--no-window] [--smoke-test]
+  python -m unittest discover -s tests -v
+  PYTHONPATH=src python -m stitchcraft validate --strict   （未安装时）
+13.2 关键路径
+  %LOCALAPPDATA%\Stitchcraft\config.json            本地配置（含密钥，勿提交）
+  %LOCALAPPDATA%\Stitchcraft\projects\<id>\site\    生成站点
+  %LOCALAPPDATA%\Stitchcraft\projects\projects.sqlite3  项目历史
+13.3 参考链接
+  Kiroween 2026 Devpost : https://kiroween.devpost.com/
+  Kiro                  : https://kiro.dev/
+  Modern Web Guidance   : https://github.com/GoogleChrome/modern-web-guidance
+  GSAP skills           : https://github.com/greensock/gsap-skills
+  Web Animation Skills  : https://github.com/iart-ai/web-animation-skills
+  GSAP license          : https://gsap.com/licensing/
+  Chrome guidance docs  : https://developer.chrome.com/docs/modern-web-guidance
+  Kiroween 摘要（第三方）: https://ainave.com/events/hackathons/kiroween-2026
+  AWS 官方说明（日文）   : https://aws.amazon.com/jp/blogs/news/kiroween-2026/
+13.4 术语
+  主题包 Theme      = 一个风格方向的数据包（theme.toml + SKILL.md + 数据模型 + 示例站）
+  模块 Module       = v0.1 的九阶段专业能力（brief/site-plan/.../deploy）
+  技能 Skill        = 注入生成提示词的专家知识（Modern Web Guidance / GSAP / ...）
+  工件 Artifact     = 模块之间传递的 JSON（契约约束），位于 .stitch/
+  接缝 Seam         = 模块/主题/技能之间的契约边界
+  Mock 模式         = 无 API key 的演示生成（复制示例站或占位站）
+  Kiro specs        = requirements.md + design.md + tasks.md
+
+================================================================================
+文档结束。修改本文件时请同步更新 README.md 与 hackathon/checklist.md 的相关条目。
+================================================================================

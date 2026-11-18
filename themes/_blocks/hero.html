@@ -1,0 +1,68 @@
+<!--
+  Block: hero — compact header strip for dashboards and directory pages.
+  Replaceable fields:
+    .blk-hero__eyebrow  -> shift, date or section label
+    .blk-hero__title    -> page title (one <h1> per page)
+    .blk-hero__lede     -> one-sentence status line
+    .blk-hero__actions  -> primary action + optional secondary link
+  Styling hooks: --hero-ink, --hero-muted, --hero-panel, --hero-border, --hero-accent
+  Delete the <style> once the theme stylesheet covers these rules. Keep the
+  actions outside the heading, and never animate the background image.
+-->
+<section class="blk-hero" aria-labelledby="hero-title">
+  <div class="blk-hero__copy">
+    <p class="blk-hero__eyebrow">Day shift · Bay 4</p>
+    <h1 class="blk-hero__title" id="hero-title">Good morning, warehouse A.</h1>
+    <p class="blk-hero__lede">42 picks queued across zones A–D; two trailers land before noon.</p>
+  </div>
+  <div class="blk-hero__actions">
+    <button class="blk-hero__btn blk-hero__btn--primary" type="button">Add item</button>
+    <a class="blk-hero__btn" href="#inventory">Open inventory</a>
+  </div>
+</section>
+<style>
+  .blk-hero {
+    --hero-ink: var(--text, #e8e6e1); --hero-muted: var(--muted, #9aa3ad);
+    --hero-panel: var(--panel, #12161d); --hero-border: var(--border, #232a35);
+    --hero-accent: var(--accent, #ff8a3d);
+    container-type: inline-size;
+    display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between;
+    gap: clamp(0.75rem, 2vw, 1.5rem); padding: clamp(1rem, 2.5vw, 1.5rem);
+    color: var(--hero-ink); background: var(--hero-panel);
+    border: 1px solid var(--hero-border); border-radius: 14px;
+  }
+  .blk-hero__copy { min-width: 0; max-width: 62ch; }
+  .blk-hero__eyebrow {
+    margin: 0 0 0.35rem; color: var(--hero-accent);
+    font: 600 0.72rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .blk-hero__title {
+    margin: 0; font-size: clamp(1.35rem, 1rem + 1.6vw, 2rem);
+    line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance;
+  }
+  .blk-hero__lede { margin: 0.45rem 0 0; color: var(--hero-muted); line-height: 1.55; }
+  .blk-hero__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .blk-hero__btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.5rem; padding: 0 0.95rem;
+    color: var(--hero-ink); background: transparent;
+    border: 1px solid var(--hero-border); border-radius: 9px;
+    font: inherit; font-size: 0.875rem; font-weight: 600;
+    text-decoration: none; cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease;
+  }
+  .blk-hero__btn--primary { color: #14161a; background: var(--hero-accent); border-color: transparent; }
+  .blk-hero__btn:hover { transform: translateY(-1px); border-color: var(--hero-accent); }
+  .blk-hero__btn--primary:hover { border-color: transparent; filter: brightness(1.06); }
+  .blk-hero__btn:focus-visible { outline: 2px solid var(--hero-accent); outline-offset: 2px; }
+  @container (max-width: 640px) {
+    .blk-hero { align-items: start; }
+    .blk-hero__actions { width: 100%; }
+    .blk-hero__btn { flex: 1 1 auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .blk-hero__btn { transition: none; }
+    .blk-hero__btn:hover { transform: none; }
+  }
+</style>

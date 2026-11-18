@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Ember &amp; Bean Fulfilment · Inventory board</title>
+  <meta name="description" content="Offline warehouse inventory demo: stock levels, reorder alerts, inbound dock schedule and item create, edit and delete.">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("motion-pending");
+      }
+    } catch (err) { /* motion is optional */ }
+  </script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Ember and Bean Fulfilment — back to top">
+        <span class="brand__mark" aria-hidden="true">EB</span>
+        <span class="brand__text">
+          <span class="brand__name">Ember &amp; Bean Fulfilment</span>
+          <span class="brand__meta">Bay 4 · day shift · Portland, OR</span>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <span class="chip chip--live"><span class="chip__dot" aria-hidden="true"></span>Shift live</span>
+        <span class="topbar__sync" id="sync-time">Synced just now</span>
+        <nav class="jump" aria-label="Jump links">
+          <a href="#inventory">Inventory</a>
+          <a href="#inbound">Inbound</a>
+          <a href="#activity">Activity</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="layout">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="eyebrow">Tuesday · Week 47 · Zones A–D</p>
+          <h1 class="hero__title" id="hero-title">Morning, Ember &amp; Bean.</h1>
+          <p class="hero__lede" id="hero-lede">Loading today's stock summary…</p>
+        </div>
+        <button class="btn btn--primary" id="add-item" type="button">
+          <span aria-hidden="true">+</span> Add item
+        </button>
+      </section>
+
+      <section class="kpis" aria-labelledby="kpis-title">
+        <h2 class="sr-only" id="kpis-title">Inventory key figures</h2>
+        <dl class="stat-grid" id="stat-grid">
+          <div class="stat">
+            <dt>Total SKUs</dt>
+            <dd><span class="stat__value" id="kpi-total">—</span><span class="stat__note" id="kpi-total-note">tracked lines</span></dd>
+          </div>
+          <div class="stat">
+            <dt>Low stock</dt>
+            <dd><span class="stat__value" id="kpi-low">—</span><span class="stat__note" id="kpi-low-note">at or below reorder</span></dd>
+          </div>
+          <div class="stat">
+            <dt>Inbound today</dt>
+            <dd><span class="stat__value" id="kpi-inbound">—</span><span class="stat__note" id="kpi-inbound-note">trailers expected</span></dd>
+          </div>
+          <div class="stat">
+            <dt>Out of stock</dt>
+            <dd><span class="stat__value" id="kpi-out">—</span><span class="stat__note" id="kpi-out-note">expedite today</span></dd>
+          </div>
+        </dl>
+      </section>
+
+      <div class="workspace">
+        <section class="panel panel--table" id="inventory" aria-labelledby="inventory-title">
+          <div class="panel__head">
+            <div>
+              <p class="eyebrow">Zones A–D</p>
+              <h2 id="inventory-title">Inventory</h2>
+            </div>
+            <p class="panel__count" id="result-count" role="status" aria-live="polite">Loading inventory…</p>
+          </div>
+
+          <form class="filters" id="filters" role="search" aria-label="Filter inventory">
+            <label class="field field--grow">
+              <span class="field__label">Search</span>
+              <input type="search" id="search" name="q" placeholder="SKU, item or category" autocomplete="off">
+            </label>
+            <label class="field">
+              <span class="field__label">Status</span>
+              <select id="status-filter" name="status">
+                <option value="all">All statuses</option>
+                <option value="in-stock">In stock</option>
+                <option value="low">Low stock</option>
+                <option value="out">Out of stock</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field__label">Zone</span>
+              <select id="zone-filter" name="zone">
+                <option value="all">All zones</option>
+                <option value="A">Zone A</option>
+                <option value="B">Zone B</option>
+                <option value="C">Zone C</option>
+                <option value="D">Zone D</option>
+              </select>
+            </label>
+            <button class="btn btn--ghost filters__reset" id="reset-filters" type="button">Reset</button>
+          </form>
+
+          <div class="table-wrap">
+            <table class="inventory-table" id="inventory-table">
+              <caption class="sr-only">Inventory items with SKU, category, quantity, reorder level, zone and status</caption>
+              <thead>
+                <tr>
+                  <th scope="col" aria-sort="ascending">
+                    <button class="th-sort" type="button" data-sort="sku">SKU <span aria-hidden="true">↑</span></button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button class="th-sort" type="button" data-sort="name">Item <span aria-hidden="true">↕</span></button>
+                  </th>
+                  <th scope="col">Category</th>
+                  <th scope="col" class="is-num" aria-sort="none">
+                    <button class="th-sort" type="button" data-sort="quantity">Qty <span aria-hidden="true">↕</span></button>
+                  </th>
+                  <th scope="col" class="is-num">Reorder</th>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"><span class="sr-only">Row actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="inventory-body"></tbody>
+            </table>
+
+            <div class="empty" id="empty-state" hidden>
+              <p class="empty__glyph" aria-hidden="true">▦</p>
+              <h3 id="empty-title">No items match those filters</h3>
+              <p id="empty-copy">Try a different search term, clear a filter, or add a new item.</p>
+              <div class="empty__actions">
+                <button class="btn btn--ghost" type="button" id="empty-reset">Clear filters</button>
+                <button class="btn btn--primary" type="button" id="empty-add">Add item</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="rail" aria-label="Inbound and activity">
+          <section class="panel" id="inbound" aria-labelledby="inbound-title">
+            <div class="panel__head">
+              <div>
+                <p class="eyebrow">Dock plan</p>
+                <h2 id="inbound-title">Inbound &amp; docks</h2>
+              </div>
+            </div>
+            <ol class="timeline" id="inbound-list"></ol>
+          </section>
+
+          <section class="panel" id="activity" aria-labelledby="activity-title">
+            <div class="panel__head">
+              <div>
+                <p class="eyebrow">Log</p>
+                <h2 id="activity-title">Recent activity</h2>
+              </div>
+            </div>
+            <ol class="activity" id="activity-list"></ol>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p class="footer__mode">
+        <span class="chip" id="data-mode">Local demo</span>
+        Seed records live in this browser only.
+      </p>
+      <p class="footer__note">No network, no account, no tracking. Edits persist on this device via localStorage.</p>
+      <button class="btn btn--ghost" type="button" id="reset-demo">Reset demo data</button>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+  <dialog class="modal" id="item-dialog" aria-labelledby="item-dialog-title">
+    <form class="modal__form" id="item-form" novalidate>
+      <header class="modal__head">
+        <h2 id="item-dialog-title">Add item</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close dialog">✕</button>
+      </header>
+      <div class="modal__body">
+        <p class="form-error" id="form-error" role="alert" hidden></p>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label" for="item-sku">SKU</label>
+            <input id="item-sku" name="sku" required autocomplete="off" aria-describedby="sku-error">
+            <p class="field__error" id="sku-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-name">Item name</label>
+            <input id="item-name" name="name" required autocomplete="off" aria-describedby="name-error">
+            <p class="field__error" id="name-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-category">Category</label>
+            <input id="item-category" name="category" autocomplete="off" placeholder="e.g. Packaging">
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-zone">Zone</label>
+            <select id="item-zone" name="zone" required>
+              <option value="A">Zone A</option>
+              <option value="B">Zone B</option>
+              <option value="C">Zone C</option>
+              <option value="D">Zone D</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-quantity">Quantity on hand</label>
+            <input id="item-quantity" name="quantity" type="number" min="0" step="1" inputmode="numeric"
+              required aria-describedby="quantity-error">
+            <p class="field__error" id="quantity-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-reorder">Reorder level</label>
+            <input id="item-reorder" name="reorder_point" type="number" min="0" step="1" inputmode="numeric"
+              required aria-describedby="reorder-error">
+            <p class="field__error" id="reorder-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="item-cost">Unit cost (USD)</label>
+            <input id="item-cost" name="unit_cost" type="number" min="0" step="0.01" inputmode="decimal"
+              aria-describedby="cost-error">
+            <p class="field__error" id="cost-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <span class="field__label">Status</span>
+            <p class="readout" id="status-preview">Derived from quantity and reorder level</p>
+          </div>
+        </div>
+      </div>
+      <footer class="modal__foot">
+        <button class="btn btn--ghost" type="button" data-close>Cancel</button>
+        <button class="btn btn--primary" type="submit" id="item-save">Save item</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-copy">
+    <div class="modal__body">
+      <h2 id="confirm-title">Delete item?</h2>
+      <p id="confirm-copy">This removes the item from the board.</p>
+      <p class="form-error" id="confirm-error" role="alert" hidden></p>
+    </div>
+    <footer class="modal__foot">
+      <button class="btn btn--ghost" type="button" data-close>Cancel</button>
+      <button class="btn btn--danger" type="button" id="confirm-action">Delete item</button>
+    </footer>
+  </dialog>
+
+  <template id="row-template">
+    <tr>
+      <td data-label="SKU"><span class="mono row-sku"></span></td>
+      <td data-label="Item"><span class="row-name"></span></td>
+      <td data-label="Category"><span class="row-category"></span></td>
+      <td data-label="Qty" class="is-num"><span class="mono row-qty"></span></td>
+      <td data-label="Reorder" class="is-num"><span class="mono row-reorder"></span></td>
+      <td data-label="Zone"><span class="zone-badge row-zone"></span></td>
+      <td data-label="Status"><span class="pill row-status"></span></td>
+      <td data-label="Actions" class="row-actions">
+        <button class="icon-btn js-edit" type="button">Edit</button>
+        <button class="icon-btn icon-btn--danger js-delete" type="button">Delete</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="inbound-template">
+    <li class="timeline__item">
+      <span class="timeline__marker" aria-hidden="true"></span>
+      <p class="timeline__meta"><time class="timeline__time"></time><span class="timeline__state"></span></p>
+      <h3 class="timeline__title"></h3>
+      <p class="timeline__body"></p>
+    </li>
+  </template>
+
+  <template id="activity-template">
+    <li class="activity__item">
+      <span class="activity__time"></span>
+      <span class="activity__text"></span>
+    </li>
+  </template>
+
+  <noscript>
+    <p class="noscript">This demo needs JavaScript for its inventory, dialogs and saved edits. Nothing is sent anywhere.</p>
+  </noscript>
+
+  <script src="data-config.js"></script>
+  <script src="vendor/gsap.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

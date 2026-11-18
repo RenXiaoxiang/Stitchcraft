@@ -1,0 +1,38 @@
+{
+  "collections": [
+    {
+      "name": "employees",
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "role", "type": "string", "required": true },
+        { "name": "department", "type": "string", "required": true },
+        { "name": "email", "type": "string", "required": true },
+        { "name": "location", "type": "string", "required": false },
+        { "name": "started_on", "type": "string", "required": false },
+        { "name": "status", "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "departments",
+      "fields": [
+        { "name": "name", "type": "string", "required": true },
+        { "name": "head", "type": "string", "required": true },
+        { "name": "headcount", "type": "integer", "required": true },
+        { "name": "location", "type": "string", "required": false },
+        { "name": "budget_line", "type": "string", "required": false }
+      ]
+    },
+    {
+      "name": "onboarding_tasks",
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "employee_id", "type": "string", "required": true },
+        { "name": "task", "type": "string", "required": true },
+        { "name": "owner", "type": "string", "required": true },
+        { "name": "due_on", "type": "string", "required": false },
+        { "name": "done", "type": "boolean", "required": true }
+      ]
+    }
+  ]
+}

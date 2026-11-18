@@ -1,0 +1,11 @@
+[theme]
+id = "brand-launch"
+name = "Brand Launch"
+category = "brand"
+summary = "A high-contrast editorial landing page for a new brand: manifesto-led storytelling, launch timeline and a single conversion band that gets out of the way."
+tags = ["brand", "landing", "editorial", "launch"]
+accent = "#ff4d1f"
+blocks = ["hero", "stat-grid", "timeline", "cta-band"]
+skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger"]
+data_model = ""
+sample = ""

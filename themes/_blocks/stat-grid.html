@@ -1,0 +1,79 @@
+<!--
+  Block: stat-grid — four KPI cards for a dashboard overview.
+  Replaceable fields (repeat .blk-stats__item):
+    <dt>              metric label
+    .blk-stats__value headline number (tabular numerals)
+    .blk-stats__delta small trend text; add data-dir="up|down" to recolour
+  Styling hooks: --stat-panel, --stat-ink, --stat-muted, --stat-border,
+                 --stat-accent, --stat-good, --stat-bad
+  <dl> keeps each label paired with its value for screen readers. Derive the
+  numbers from the same collection the table renders; never hard-code both.
+-->
+<section class="blk-stats" aria-labelledby="stats-title">
+  <h2 class="blk-stats__title" id="stats-title">Inventory overview</h2>
+  <dl class="blk-stats__grid">
+    <div class="blk-stats__item">
+      <dt>Total SKUs</dt>
+      <dd><span class="blk-stats__value">1,284</span>
+        <span class="blk-stats__delta" data-dir="up">+18 this week</span></dd>
+    </div>
+    <div class="blk-stats__item">
+      <dt>Low stock</dt>
+      <dd><span class="blk-stats__value">7</span>
+        <span class="blk-stats__delta" data-dir="down">needs reorder</span></dd>
+    </div>
+    <div class="blk-stats__item">
+      <dt>Inbound today</dt>
+      <dd><span class="blk-stats__value">2</span>
+        <span class="blk-stats__delta">docks 2 &amp; 4</span></dd>
+    </div>
+    <div class="blk-stats__item">
+      <dt>Out of stock</dt>
+      <dd><span class="blk-stats__value">1</span>
+        <span class="blk-stats__delta" data-dir="down">expedite</span></dd>
+    </div>
+  </dl>
+</section>
+<style>
+  .blk-stats {
+    --stat-panel: var(--panel, #12161d); --stat-ink: var(--text, #e8e6e1);
+    --stat-muted: var(--muted, #9aa3ad); --stat-border: var(--border, #232a35);
+    --stat-accent: var(--accent, #ff8a3d); --stat-good: #6ee7a8; --stat-bad: #ff7a7a;
+    container-type: inline-size;
+  }
+  .blk-stats__title {
+    margin: 0 0 0.6rem; color: var(--stat-muted);
+    font: 600 0.72rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .blk-stats__grid {
+    display: grid; gap: 0.75rem; margin: 0;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  }
+  .blk-stats__item {
+    margin: 0; padding: clamp(0.8rem, 1.6vw, 1.1rem);
+    color: var(--stat-ink); background: var(--stat-panel);
+    border: 1px solid var(--stat-border); border-radius: 12px;
+    border-top: 2px solid var(--stat-accent);
+  }
+  .blk-stats__item dt { color: var(--stat-muted); font-size: 0.78rem; letter-spacing: 0.02em; }
+  .blk-stats__item dd { margin: 0.35rem 0 0; }
+  .blk-stats__value {
+    display: block; color: var(--stat-ink);
+    font-size: clamp(1.5rem, 1.1rem + 1.3vw, 2.1rem); font-weight: 700;
+    line-height: 1.05; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .blk-stats__delta {
+    display: block; margin-top: 0.35rem; color: var(--stat-muted);
+    font: 500 0.74rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .blk-stats__delta[data-dir="up"] { color: var(--stat-good); }
+  .blk-stats__delta[data-dir="down"] { color: var(--stat-bad); }
+  @container (max-width: 620px) {
+    .blk-stats__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container (max-width: 360px) {
+    .blk-stats__grid { grid-template-columns: 1fr; }
+  }
+</style>

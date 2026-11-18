@@ -1,0 +1,78 @@
+<!--
+  Block: photo-masonry — CSS-column photo wall made of gradients and glyphs.
+  Replace: each figure's caption, <time datetime>, palette modifier
+  (--dusk, --moss, --ink, --rust, --sand, --plum) and the aria-label that
+  describes the gradient as the image's alternative text. Never use a stock
+  photo URL: gradients + glyphs keep the site offline and honest.
+  Hooks: --photos-ink, --photos-muted, --photos-rule, --photos-accent.
+-->
+<section class="blk-photos" aria-labelledby="photos-title">
+  <header class="blk-photos__head">
+    <p class="blk-photos__kicker">Photographs</p>
+    <h2 id="photos-title">A wall of weather</h2>
+  </header>
+  <ul class="blk-photos__grid">
+    <li class="blk-photos__cell">
+      <figure class="blk-photos__item">
+        <div class="blk-photos__tile blk-photos__tile--dusk" role="img"
+          aria-label="Gradient study: pink dusk fading into slate water">
+          <span class="blk-photos__glyph" aria-hidden="true">🌾</span>
+        </div>
+        <figcaption>Dusk over the canal <time datetime="2026-09-14">Sep 2026</time></figcaption>
+      </figure>
+    </li>
+    <li class="blk-photos__cell">
+      <figure class="blk-photos__item">
+        <div class="blk-photos__tile blk-photos__tile--moss" role="img"
+          aria-label="Gradient study: moss green hills behind a pale mist">
+          <span class="blk-photos__glyph" aria-hidden="true">🌿</span>
+        </div>
+        <figcaption>North ridge, early mist <time datetime="2026-08-03">Aug 2026</time></figcaption>
+      </figure>
+    </li>
+    <li class="blk-photos__cell">
+      <figure class="blk-photos__item">
+        <div class="blk-photos__tile blk-photos__tile--ink" role="img"
+          aria-label="Gradient study: ink blue night with a single warm window">
+          <span class="blk-photos__glyph" aria-hidden="true">🌙</span>
+        </div>
+        <figcaption>Window light, 11pm <time datetime="2026-07-22">Jul 2026</time></figcaption>
+      </figure>
+    </li>
+    <li class="blk-photos__cell">
+      <figure class="blk-photos__item">
+        <div class="blk-photos__tile blk-photos__tile--rust" role="img"
+          aria-label="Gradient study: rust orange wall and long shadows">
+          <span class="blk-photos__glyph" aria-hidden="true">🍂</span>
+        </div>
+        <figcaption>The old dye house <time datetime="2026-06-30">Jun 2026</time></figcaption>
+      </figure>
+    </li>
+  </ul>
+</section>
+<style>
+  .blk-photos {
+    --photos-ink: var(--text, #f2ead9); --photos-muted: var(--muted, #a8a494);
+    --photos-rule: var(--border, #34352d);
+    container-type: inline-size; color: var(--photos-ink);
+  }
+  .blk-photos__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; margin-bottom: 1rem; }
+  .blk-photos__kicker { margin: 0; color: var(--photos-muted); font: 600 0.7rem/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+  .blk-photos__head h2 { margin: 0; font: 500 clamp(1.4rem, 1.1rem + 1vw, 1.9rem)/1.2 Georgia, "Times New Roman", serif; }
+  .blk-photos__grid { columns: 3 12rem; column-gap: 0.8rem; margin: 0; padding: 0; list-style: none; }
+  .blk-photos__cell { break-inside: avoid; margin: 0 0 0.8rem; }
+  .blk-photos__item { margin: 0; border: 1px solid var(--photos-rule); border-radius: 10px; overflow: hidden; background: #171814; }
+  .blk-photos__tile {
+    display: grid; place-items: center; aspect-ratio: 4 / 5;
+    background-image: linear-gradient(150deg, var(--from, #444), var(--to, #111));
+  }
+  .blk-photos__tile--dusk { --from: #d98fa0; --to: #3c4d63; aspect-ratio: 4 / 5; }
+  .blk-photos__tile--moss { --from: #9db98a; --to: #31453a; aspect-ratio: 1 / 1; }
+  .blk-photos__tile--ink { --from: #34405e; --to: #10131c; aspect-ratio: 3 / 4; }
+  .blk-photos__tile--rust { --from: #d98a5f; --to: #5a2d26; aspect-ratio: 4 / 3; }
+  .blk-photos__glyph { font-size: clamp(1.6rem, 4vw, 2.4rem); filter: drop-shadow(0 1px 6px rgb(0 0 0 / 0.4)); }
+  .blk-photos__item figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.2rem 0.6rem; padding: 0.55rem 0.7rem; color: var(--photos-muted); font-size: 0.78rem; line-height: 1.4; }
+  .blk-photos__item figcaption time { font: 500 0.7rem/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  @container (max-width: 620px) { .blk-photos__grid { columns: 2 10rem; } }
+  @container (max-width: 380px) { .blk-photos__grid { columns: 1; } }
+</style>

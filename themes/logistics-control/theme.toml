@@ -1,0 +1,11 @@
+[theme]
+id = "logistics-control"
+name = "Logistics Control"
+category = "data"
+summary = "A midnight-blue operations console for shipment tracking, carrier performance and incident response, built for teams who move goods across borders."
+tags = ["logistics", "tracking", "dashboard", "incidents"]
+accent = "#38d6e0"
+blocks = ["hero", "stat-grid", "timeline", "data-table"]
+skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-data-app"]
+data_model = "data-model.json"
+sample = ""

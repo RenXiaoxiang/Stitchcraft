@@ -1,0 +1,29 @@
+{
+  "collections": [
+    {
+      "name": "inventory_items",
+      "fields": [
+        { "name": "sku", "type": "string", "required": true },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "category", "type": "string", "required": false },
+        { "name": "zone", "type": "string", "required": true },
+        { "name": "quantity", "type": "integer", "required": true },
+        { "name": "reorder_point", "type": "integer", "required": true },
+        { "name": "unit_cost", "type": "number", "required": false },
+        { "name": "status", "type": "string", "required": true },
+        { "name": "updated_at", "type": "string", "required": false }
+      ]
+    },
+    {
+      "name": "inbound_shipments",
+      "fields": [
+        { "name": "id", "type": "string", "required": true },
+        { "name": "supplier", "type": "string", "required": true },
+        { "name": "dock", "type": "string", "required": true },
+        { "name": "eta", "type": "string", "required": true },
+        { "name": "lines", "type": "integer", "required": true },
+        { "name": "status", "type": "string", "required": true }
+      ]
+    }
+  ]
+}

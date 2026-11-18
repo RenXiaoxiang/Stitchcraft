@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Notes from the attic · Ren</title>
+  <meta name="description" content="Essays, field notes and gradient photographs from Ren — a quiet personal site that works offline and remembers your notes on this device.">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("motion-pending");
+      }
+    } catch (err) { /* motion is optional */ }
+  </script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="page">
+    <header class="masthead">
+      <a class="masthead__name" href="#top">Ren<span aria-hidden="true">.</span></a>
+      <nav class="masthead__nav" aria-label="Sections">
+        <a href="#writing" aria-current="page">Writing</a>
+        <a href="#photographs">Photographs</a>
+        <a href="#about">About</a>
+      </nav>
+      <p class="masthead__meta">Kanazawa · est. 2016</p>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <p class="hero__kicker" data-hero-line>Notes from the attic</p>
+        <h1 class="hero__title" id="hero-title" data-hero-line>Essays written <em>after</em> the house is quiet.</h1>
+        <p class="hero__intro" data-hero-line>I write about small weather, slow craft and the objects that keep a room
+          together. The attic has one window and a desk that faces it. Most weeks, that is enough.</p>
+        <p class="hero__meta" data-hero-line>
+          <span>Ren · writer &amp; maker</span>
+          <span>Kanazawa, JP</span>
+          <span id="note-count" role="status" aria-live="polite">4 notes</span>
+        </p>
+        <a class="hero__cue" href="#writing" data-hero-line>Read the latest <span aria-hidden="true">↓</span></a>
+      </section>
+
+      <section class="writing" id="writing" aria-labelledby="writing-title">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="kicker">The writing</p>
+            <h2 id="writing-title">Essays &amp; notes</h2>
+          </div>
+          <button class="btn btn--primary" type="button" id="new-note">
+            <span aria-hidden="true">+</span> New note
+          </button>
+        </div>
+
+        <article class="featured" id="featured" aria-labelledby="featured-title" data-reveal>
+          <p class="featured__kicker">Latest essay</p>
+          <p class="featured__meta"><time id="featured-date"></time><span id="featured-read"></span></p>
+          <h3 class="featured__title" id="featured-title"></h3>
+          <p class="featured__excerpt" id="featured-excerpt"></p>
+          <p class="featured__tags" id="featured-tags"></p>
+        </article>
+
+        <div class="tagbar" id="tagbar" role="group" aria-label="Filter writing by tag" data-reveal></div>
+
+        <ol class="note-list" id="note-list" data-reveal></ol>
+
+        <div class="empty" id="notes-empty" hidden>
+          <p class="empty__glyph" aria-hidden="true">✎</p>
+          <h3 id="notes-empty-title">Nothing with that tag yet</h3>
+          <p id="notes-empty-copy">Try another tag, or write the first note for it.</p>
+          <div class="empty__actions">
+            <button class="btn btn--ghost" type="button" id="empty-show-all">Show all notes</button>
+            <button class="btn btn--primary" type="button" id="empty-new-note">New note</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="photographs" id="photographs" aria-labelledby="photographs-title">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="kicker">Photographs</p>
+            <h2 id="photographs-title">A wall of weather</h2>
+          </div>
+          <p class="section-head__note">Gradient studies, not photographs of anyone. Captions are the only record.</p>
+        </div>
+        <ul class="photo-wall" id="photo-wall" aria-label="Gradient photographs"></ul>
+      </section>
+
+      <section class="about" id="about" aria-labelledby="about-title">
+        <div class="about__portrait-wrap" data-reveal>
+          <div class="portrait" role="img" aria-label="Portrait placeholder: a moss-green and gold gradient with a leaf glyph">
+            <span class="portrait__glyph" aria-hidden="true">🌿</span>
+          </div>
+          <p class="portrait__caption">Self-portrait, replaced by a gradient until the film is developed.</p>
+        </div>
+        <div class="about__copy" data-reveal>
+          <p class="kicker">About</p>
+          <h2 id="about-title">Ren writes, walks and keeps the receipts.</h2>
+          <p>I moved to Kanazawa in 2021 for a job that lasted a season and stayed for the rain. Before that:
+            Portland, a shared studio and a lot of bad coffee. I make notebooks, fix old lamps and write
+            here when the street goes quiet.</p>
+          <p>Nothing on this page is tracked. Notes you add are stored in this browser, which means they
+            are yours and only yours — until you clear your site data.</p>
+          <ol class="timeline">
+            <li class="timeline__item">
+              <time datetime="2021">2021 — now</time>
+              <h3>Kanazawa, Japan</h3>
+              <p>Attic apartment, one window, a desk that faces it.</p>
+            </li>
+            <li class="timeline__item">
+              <time datetime="2016">2016 — 2021</time>
+              <h3>Portland, Oregon</h3>
+              <p>Shared studio, letterpress, first essays.</p>
+            </li>
+            <li class="timeline__item">
+              <time datetime="2012">2012 — 2016</time>
+              <h3>Kyoto, Japan</h3>
+              <p>Apprentice years: paper, ink and patience.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="colophon">
+      <div class="footer__colophon">
+        <p class="footer__brand">Ren · Notes from the attic</p>
+        <p>Set in a system serif and sans. No trackers, no cookies, no external fonts.
+          Photographs are CSS gradients and glyphs.</p>
+      </div>
+      <div class="footer__meta">
+        <span class="chip" id="data-mode">Local</span>
+        <span>© <span id="year">2026</span> Ren</span>
+        <a class="footer__top" href="#top">Back to top <span aria-hidden="true">↑</span></a>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+  <dialog class="modal" id="note-dialog" aria-labelledby="note-dialog-title">
+    <form class="modal__form" id="note-form" novalidate>
+      <header class="modal__head">
+        <h2 id="note-dialog-title">New note</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close note editor">✕</button>
+      </header>
+      <div class="modal__body">
+        <p class="form-error" id="note-error" role="alert" hidden></p>
+        <div class="field">
+          <label class="field__label" for="note-title">Title</label>
+          <input id="note-title" name="title" required autocomplete="off" aria-describedby="title-error">
+          <p class="field__error" id="title-error" role="alert"></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="note-body">Note</label>
+          <textarea id="note-body" name="body" rows="7" required aria-describedby="body-error"></textarea>
+          <p class="field__error" id="body-error" role="alert"></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="note-tags">Tags</label>
+          <input id="note-tags" name="tags" autocomplete="off" aria-describedby="tags-hint">
+          <p class="field__hint" id="tags-hint">Comma separated, up to four. Existing tags are reused automatically.</p>
+        </div>
+      </div>
+      <footer class="modal__foot">
+        <button class="btn btn--ghost" type="button" data-close>Cancel</button>
+        <button class="btn btn--primary" type="submit" id="note-save">Save note</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <template id="note-template">
+    <li class="note-card">
+      <p class="note-card__meta"><time class="note-card__date"></time><span class="note-card__read"></span></p>
+      <h3 class="note-card__title"></h3>
+      <p class="note-card__excerpt"></p>
+      <p class="note-card__tags"></p>
+    </li>
+  </template>
+
+  <template id="photo-template">
+    <li class="photo-cell">
+      <figure class="photo-card">
+        <div class="photo-card__tile" role="img">
+          <span class="photo-card__glyph" aria-hidden="true"></span>
+        </div>
+        <figcaption class="photo-card__caption"><span class="photo-card__text"></span>
+          <time class="photo-card__time"></time></figcaption>
+      </figure>
+    </li>
+  </template>
+
+  <noscript>
+    <p class="noscript">This site keeps its notes in your browser, so it needs JavaScript to read and save them. Nothing is sent anywhere.</p>
+  </noscript>
+
+  <script src="data-config.js"></script>
+  <script src="vendor/gsap.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

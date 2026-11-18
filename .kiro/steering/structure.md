@@ -68,3 +68,20 @@ Stitchcraft/
 | 9 | `deploy` | `deploy` | `.stitch/09-deploy/deploy-plan.json` |
 
 Generated prompts and artifacts stay out of git: `.stitch/` is rebuildable from a request plus the skills, so it never enters the repository.
+
+## Desktop studio layout (v0.2)
+
+```text
+app/web/           local single-page UI (vanilla JS + vendored GSAP)
+themes/            theme packages (5) + _blocks + registry.toml
+skills/            vendored official skill packs + house skills + registry.toml
+src/stitchcraft/   loader/validator/renderer/CLI + settings, ai_client, storage,
+                   themes, skills, generator, server, desktop
+hackathon/         Devpost submission kit (description, video script, Kiro write-up, checklist)
+docs/              long-form docs + the GitHub Pages showcase (docs/index.html)
+```
+
+- **Ownership:** `app/` owns the browser experience; `src/stitchcraft/` owns everything the browser calls; `themes/` and `skills/` own prompt context. A UI change must not require a Python change to theme content, and a theme change must not require a UI change.
+- **Generated output never enters the repo:** project sites live under the user's app-data directory; `.stitch/generated/` (headless CLI output) is gitignored.
+- **Third-party code:** only under `skills/vendor/`, unmodified, with `LICENSE` + `UPSTREAM.md`; attribution in `skills/ATTRIBUTION.md`. Never edit a vendored file by hand.
+- **Hackathon artifacts:** `hackathon/` and `docs/index.html` are part of the deliverable (Kiroween 2026 submission), so they follow the same validation and review rules as code.

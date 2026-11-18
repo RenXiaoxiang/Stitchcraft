@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "theme-anatomy",
+  "description": "Check theme packages stay complete: manifest, skill, data model and sample site.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "themes/**/theme.toml",
+      "themes/**/SKILL.md",
+      "themes/registry.toml",
+      "themes/_blocks/*.html"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A theme package changed. Verify theme.toml keys, the SKILL.md sections (Job, When to use, Data model, Layout blueprint, Components, Motion, Data layer, Quality bar, Output contract), the data model JSON and that `sample` matches whether a sample/index.html exists. Run `python -m stitchcraft themes verify` and `python -m stitchcraft validate --strict`, then fix the theme or its registry entry."
+  }
+}

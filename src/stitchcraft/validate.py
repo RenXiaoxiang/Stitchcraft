@@ -53,6 +53,8 @@ def validate_repo(repo: Repo) -> list[Issue]:
     issues.extend(validate_graph(repo))
     issues.extend(validate_seams(repo))
     issues.extend(validate_contracts(repo))
+    issues.extend(validate_skills(repo))
+    issues.extend(validate_themes(repo))
     issues.extend(validate_governance(repo))
     return issues
 
@@ -334,6 +336,26 @@ def validate_seams(repo: Repo) -> list[Issue]:
                 )
             )
     return issues
+
+
+def validate_skills(repo: Repo) -> list[Issue]:
+    """The skill registry and every vendored pack must be resolvable."""
+    from .skills import verify_registry
+
+    return [
+        Issue("error", "skills.registry", finding, "skills/")
+        for finding in verify_registry(repo.root)
+    ]
+
+
+def validate_themes(repo: Repo) -> list[Issue]:
+    """Theme packages must be complete: manifest, skill, data model, samples."""
+    from .themes import verify_themes
+
+    return [
+        Issue("error", "themes.registry", finding, "themes/")
+        for finding in verify_themes(repo.root)
+    ]
 
 
 def validate_contracts(repo: Repo) -> list[Issue]:
