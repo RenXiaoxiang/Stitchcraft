@@ -70,7 +70,7 @@ The Skeleton Crew requirement is that one skeleton hold up under two distinct
 applications. Both of ours are in the repo, generated from the same theme-block
 vocabulary and the same data layer:
 
-- **Warehouse Operations** — "Nimbus Warehouse", an operations dashboard: KPI
+- **Warehouse Operations** — "Ember &amp; Bean Fulfilment", an operations dashboard: KPI
   tiles, filterable inventory with add/edit/delete, inbound dock shipments and
   an activity log. Source: [`themes/warehouse-ops/sample/`](../themes/warehouse-ops/sample/).
 - **Personal Space** — "Notes from the attic", a quiet literary site: notes with

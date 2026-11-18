@@ -114,7 +114,7 @@ must be handled by the author before the Devpost entry is final.
 | GitHub Pages URL currently returns 404 | The public showcase and the Skeleton Crew demo evidence must load for judges | Push `docs/`, configure Pages, wait for deployment, verify all links. **User action.** |
 | Kiro write-up contains author placeholders | Unfilled placeholders are not submittable and an unsupported “Kiro did everything” claim is worse | Complete the attestation table. **Author action.** |
 | GitHub About license is remote metadata | “Detectable license in About” is a separate check from having `LICENSE` in the tree | Set the About license to MIT. **Owner action.** |
-| Warehouse demo name drift | `hackathon/submission.md` and `hackathon/video-script.md` call the sample “Nimbus Warehouse”; the exported demo and screenshot now say “Ember &amp; Bean Fulfilment” | Reconcile the narrative with the exported demo before recording. **Owner action** (outside this checklist's edit scope). |
+| Warehouse demo name drift | Resolved in this revision | Demo, screenshots and narrative now consistently use “Ember &amp; Bean Fulfilment”; re-check the video script captions while recording.**Resolved.** |
 | Eligibility and submission-window attestations are not in the repo | The repository cannot prove entrant eligibility or project start date | Confirm both against the official rules and keep the evidence. **Author action.** |
 
 **Not a gap:** the seven Kiro hooks, both spec folders and the third-party
