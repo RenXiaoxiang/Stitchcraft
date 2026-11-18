@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "module-anatomy",
+  "description": "Check that every module keeps the standard anatomy whenever its SKILL.md or module.toml changes.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "modules/**/SKILL.md",
+      "modules/**/module.toml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A module changed. Verify the module anatomy and fix it if it drifted. (1) The SKILL.md frontmatter `name` equals the module id from module.toml, and `description` is present and non-empty. (2) The SKILL.md contains the required sections: Job, Inputs, Outputs, Procedure, Quality bar, Hand-off, Failure modes. (3) The consumes and produces lists in module.toml name only real contracts from contracts/ and agree with the module's stage in pipeline/pipeline.toml. (4) The Hand-off section names the exact artifact path .stitch/<NN>-<stage>/<artifact>.json. Update the module, its contract or the pipeline so they agree; never edit another module's folder. Finish by running `python -m stitchcraft validate --strict`."
+  }
+}

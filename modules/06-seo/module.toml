@@ -1,0 +1,9 @@
+[module]
+id = "seo"
+name = "Discovery Layer"
+stage = 6
+summary = "Add metadata, structured data, sitemap and robots policy so the built site can be discovered."
+skill = "SKILL.md"
+consumes = ["build-manifest", "page-content", "site-plan"]
+produces = ["seo-report"]
+gate = false

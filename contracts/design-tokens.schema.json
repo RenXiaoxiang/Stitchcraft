@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stitchcraft.dev/contracts/design-tokens.schema.json",
+  "title": "Design Tokens",
+  "description": "Sealed output of the Design System module: the visual language expressed as tokens, not screenshots.",
+  "type": "object",
+  "required": ["direction", "color", "typography"],
+  "properties": {
+    "direction": {
+      "type": "object",
+      "required": ["name", "keywords"],
+      "properties": {
+        "name": { "type": "string" },
+        "keywords": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "references": { "type": "array", "items": { "type": "string" } },
+        "rationale": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "color": {
+      "type": "object",
+      "required": ["roles"],
+      "properties": {
+        "roles": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "contrast_checked": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "typography": {
+      "type": "object",
+      "required": ["families", "scale"],
+      "properties": {
+        "families": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "scale": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["step", "size", "line_height"],
+            "properties": {
+              "step": { "type": "string" },
+              "size": { "type": "string" },
+              "line_height": { "type": "string" },
+              "weight": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "spacing": {
+      "type": "object",
+      "properties": {
+        "unit": { "type": "string" },
+        "scale": { "type": "array", "items": { "type": "number" } }
+      },
+      "additionalProperties": true
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "variants": { "type": "array", "items": { "type": "string" } },
+          "states": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "motion": {
+      "type": "object",
+      "properties": {
+        "durations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "easing": { "type": "string" },
+        "reduced_motion_fallback": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

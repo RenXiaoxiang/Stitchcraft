@@ -1,0 +1,9 @@
+[module]
+id = "a11y"
+name = "Accessibility Pass"
+stage = 7
+summary = "Audit the built site against WCAG 2.2 AA and publish the evidence and fixes it requires."
+skill = "SKILL.md"
+consumes = ["build-manifest", "page-content"]
+produces = ["a11y-audit"]
+gate = false

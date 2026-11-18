@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "pipeline-gate",
+  "description": "Manual release gate: a human triggers strict validation before trusting the stitch.",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "python -m stitchcraft validate --strict"
+  }
+}

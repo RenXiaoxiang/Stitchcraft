@@ -1,0 +1,9 @@
+[module]
+id = "design-system"
+name = "Design System"
+stage = 3
+summary = "Choose the visual language and emit design tokens the build stage can consume without screenshots."
+skill = "SKILL.md"
+consumes = ["brief", "site-plan"]
+produces = ["design-tokens"]
+gate = false

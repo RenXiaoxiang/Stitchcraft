@@ -1,0 +1,9 @@
+[module]
+id = "qa"
+name = "Release Gate"
+stage = 8
+summary = "Run the release gate: build, links, performance and accessibility verdicts that unlock deployment."
+skill = "SKILL.md"
+consumes = ["build-manifest", "seo-report", "a11y-audit"]
+produces = ["qa-report"]
+gate = true

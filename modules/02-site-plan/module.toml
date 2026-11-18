@@ -1,0 +1,9 @@
+[module]
+id = "site-plan"
+name = "Information Architecture"
+stage = 2
+summary = "Convert the sealed brief into a page graph, navigation model and content inventory for later stages."
+skill = "SKILL.md"
+consumes = ["brief"]
+produces = ["site-plan"]
+gate = false

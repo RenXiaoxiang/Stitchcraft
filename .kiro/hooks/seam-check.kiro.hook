@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "seam-check",
+  "description": "Re-validate the stitch whenever a contract, a module manifest or the pipeline graph changes.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "contracts/**/*.schema.json",
+      "modules/**/module.toml",
+      "pipeline/pipeline.toml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A seam changed. Run `python -m stitchcraft validate --strict` and `python -m stitchcraft plan`. Fix every error by updating modules, contracts and pipeline coherently. Never weaken a contract just to silence the validator."
+  }
+}

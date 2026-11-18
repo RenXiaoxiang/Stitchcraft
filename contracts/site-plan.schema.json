@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stitchcraft.dev/contracts/site-plan.schema.json",
+  "title": "Site Plan",
+  "description": "Sealed output of the Information Architecture module: the page graph and the content the site still needs.",
+  "type": "object",
+  "required": ["sitemap", "navigation"],
+  "properties": {
+    "sitemap": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "title"],
+        "properties": {
+          "path": { "type": "string", "pattern": "^/" },
+          "title": { "type": "string" },
+          "goal_id": { "type": "string" },
+          "purpose": { "type": "string" },
+          "sections": { "type": "array", "items": { "type": "string" } },
+          "primary_cta": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "href": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "navigation": {
+      "type": "object",
+      "required": ["primary"],
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "path"],
+            "properties": {
+              "label": { "type": "string" },
+              "path": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "footer": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "content_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset", "status"],
+        "properties": {
+          "asset": { "type": "string" },
+          "source": { "type": "string", "enum": ["client", "generated", "stock", "copy"] },
+          "status": { "type": "string", "enum": ["needed", "provided", "drafted", "approved"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "conversion_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "trigger": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

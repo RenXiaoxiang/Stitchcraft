@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stitchcraft"
+version = "0.1.0"
+description = "A solo AI site builder that stitches specialised skills into one pipeline, with Kiro specs and hooks holding the seams."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "RenXiaoxiang" }]
+keywords = ["ai", "agents", "site-builder", "pipeline", "kiro", "spec-driven"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Code Generators",
+]
+
+[project.urls]
+Homepage = "https://github.com/RenXiaoxiang/Stitchcraft"
+Repository = "https://github.com/RenXiaoxiang/Stitchcraft"
+Issues = "https://github.com/RenXiaoxiang/Stitchcraft/issues"
+
+[project.scripts]
+stitch = "stitchcraft.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

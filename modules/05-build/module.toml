@@ -1,0 +1,9 @@
+[module]
+id = "build"
+name = "Site Assembly"
+stage = 5
+summary = "Assemble planned routes and components into a static site and record a reproducible build manifest."
+skill = "SKILL.md"
+consumes = ["design-tokens", "page-content", "site-plan"]
+produces = ["build-manifest"]
+gate = false

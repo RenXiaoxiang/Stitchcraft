@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stitchcraft.dev/contracts/qa-report.schema.json",
+  "title": "QA Report",
+  "description": "Sealed output of the Release Gate module: the pass/conditional/fail verdict that unlocks deployment.",
+  "type": "object",
+  "required": ["verdict", "build"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["pass", "conditional", "fail"] },
+    "build": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail"] },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "checked": { "type": "integer", "minimum": 0 },
+        "broken": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["href", "from"],
+            "properties": {
+              "href": { "type": "string" },
+              "from": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "lighthouse": {
+          "type": "object",
+          "properties": {
+            "performance": { "type": "number", "minimum": 0, "maximum": 100 },
+            "accessibility": { "type": "number", "minimum": 0, "maximum": 100 },
+            "best_practices": { "type": "number", "minimum": 0, "maximum": 100 },
+            "seo": { "type": "number", "minimum": 0, "maximum": 100 }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "owner_module", "summary"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["blocker", "major", "minor"] },
+          "owner_module": { "type": "string" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "release_notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

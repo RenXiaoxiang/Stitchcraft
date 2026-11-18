@@ -1,0 +1,9 @@
+[module]
+id = "brief"
+name = "Brief Intake"
+stage = 1
+summary = "Turn a raw client request into a sealed brief with audience, goals and explicit open questions."
+skill = "SKILL.md"
+consumes = []
+produces = ["brief"]
+gate = false

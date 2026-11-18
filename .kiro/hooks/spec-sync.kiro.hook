@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "enabled": true,
+  "name": "spec-sync",
+  "description": "Keep requirements.md, design.md and tasks.md mutually consistent whenever the product spec changes.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".kiro/specs/**/*.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The product spec changed. Keep .kiro/specs/stitchcraft-core/requirements.md, design.md and tasks.md mutually consistent. Every numbered requirement R1..R14 must be covered by design.md and by at least one task in tasks.md, and every task must trace back to a requirement or an explicit design decision. Edit requirements.md first and let design.md and tasks.md follow in the same change. Do not tick a task checkbox unless the file or test it references actually exists."
+  }
+}

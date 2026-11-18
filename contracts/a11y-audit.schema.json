@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stitchcraft.dev/contracts/a11y-audit.schema.json",
+  "title": "Accessibility Audit",
+  "description": "Sealed output of the Accessibility module: WCAG 2.2 AA evidence and the patches the build must absorb.",
+  "type": "object",
+  "required": ["standard", "checks"],
+  "properties": {
+    "standard": { "type": "string", "const": "WCAG 2.2 AA" },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "manual"] },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "path", "summary", "fix"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["minor", "serious", "critical"] },
+          "path": { "type": "string" },
+          "selector": { "type": "string" },
+          "summary": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "keyboard": {
+      "type": "object",
+      "properties": {
+        "tab_order_ok": { "type": "boolean" },
+        "focus_visible": { "type": "boolean" },
+        "skip_link": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "pass": { "type": "integer", "minimum": 0 },
+        "fail": { "type": "integer", "minimum": 0 },
+        "manual": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,9 @@
+[module]
+id = "copy"
+name = "Copywriting"
+stage = 4
+summary = "Write every planned page section in the client's voice so the build has real content."
+skill = "SKILL.md"
+consumes = ["brief", "site-plan"]
+produces = ["page-content"]
+gate = false

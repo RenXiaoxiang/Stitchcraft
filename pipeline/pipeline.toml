@@ -1,0 +1,70 @@
+# Stitchcraft pipeline definition.
+#
+# This file is the single source of truth for how specialised modules are
+# stitched together. Modules never call each other directly: each stage hands
+# a contract-checked artifact to the next stage, and the seam is enforced by
+# `stitch validate` plus the Kiro hooks in `.kiro/hooks/`.
+#
+# Run `stitch plan` to render this graph and `stitch validate` to prove it.
+
+[project]
+name = "stitchcraft"
+version = "0.1.0"
+artifact_dir = ".stitch"
+default_profile = "solo"
+
+[[stages]]
+id = "brief"
+module = "brief"
+depends_on = []
+gate = false
+description = "Turn a raw request into a sealed brief that every later module can trust."
+
+[[stages]]
+id = "plan"
+module = "site-plan"
+depends_on = ["brief"]
+description = "Convert the brief into a page graph, navigation model and content inventory."
+
+[[stages]]
+id = "design"
+module = "design-system"
+depends_on = ["brief", "plan"]
+description = "Choose the visual language and emit design tokens the build module can consume."
+
+[[stages]]
+id = "copy"
+module = "copy"
+depends_on = ["brief", "plan"]
+description = "Write the page content, section by section, against the plan and the brief."
+
+[[stages]]
+id = "build"
+module = "build"
+depends_on = ["design", "copy"]
+description = "Assemble routes, components and build settings into a static site manifest."
+
+[[stages]]
+id = "seo"
+module = "seo"
+depends_on = ["build"]
+description = "Add discoverability: metadata, structured data, sitemap and robots policy."
+
+[[stages]]
+id = "a11y"
+module = "a11y"
+depends_on = ["build"]
+description = "Audit and patch the site against WCAG 2.2 AA and publish the audit artifact."
+
+[[stages]]
+id = "qa"
+module = "qa"
+depends_on = ["seo", "a11y"]
+gate = true
+description = "Run the release gate: build, links, performance and accessibility verdicts."
+
+[[stages]]
+id = "deploy"
+module = "deploy"
+depends_on = ["qa"]
+description = "Produce a reproducible deploy plan with environment, domain and rollback steps."

@@ -1,0 +1,9 @@
+[module]
+id = "deploy"
+name = "Ship It"
+stage = 9
+summary = "Produce a reproducible deploy plan with provider, environment, domain and rollback steps."
+skill = "SKILL.md"
+consumes = ["build-manifest", "qa-report"]
+produces = ["deploy-plan"]
+gate = false

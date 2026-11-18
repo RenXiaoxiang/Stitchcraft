@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Generated stitch artifacts and dry-run prompts
+.stitch/
+
+# Local auth scratch (never commit tokens)
+.tmp-auth/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
