@@ -111,9 +111,9 @@ must be handled by the author before the Devpost entry is final.
 | --- | --- | --- |
 | Public YouTube video URL is still a placeholder | Required submission field; no Devpost entry is complete without it | Record, publish as Public, verify under 3:00, paste the URL into `submission.md` and the Devpost field map. **User action.** |
 | Devpost submission is not complete | The hackathon entry lives on Devpost, not in this repository | Fill all fields, preview, submit, and save the confirmation. **User action.** |
-| GitHub Pages URL currently returns 404 | The public showcase and the Skeleton Crew demo evidence must load for judges | Push `docs/`, configure Pages, wait for deployment, verify all links. **User action.** |
+| GitHub Pages URL | **Resolved** — Pages enabled from `main` + `/docs`; build succeeded and the showcase, screenshots and both demo sites return HTTP 200 (`https://renxiaoxiang.github.io/Stitchcraft/`) | Re-verify after any future docs change. **Verified.** |
 | Kiro write-up contains author placeholders | Unfilled placeholders are not submittable and an unsupported “Kiro did everything” claim is worse | Complete the attestation table. **Author action.** |
-| GitHub About license is remote metadata | “Detectable license in About” is a separate check from having `LICENSE` in the tree | Set the About license to MIT. **Owner action.** |
+| GitHub About license is remote metadata | “Detectable license in About” is a separate check from having `LICENSE` in the tree | Verify on GitHub; the API reports `license: MIT` (`LICENSE`). **Verified.** |
 | Warehouse demo name drift | Resolved in this revision | Demo, screenshots and narrative now consistently use “Ember &amp; Bean Fulfilment”; re-check the video script captions while recording.**Resolved.** |
 | Eligibility and submission-window attestations are not in the repo | The repository cannot prove entrant eligibility or project start date | Confirm both against the official rules and keep the evidence. **Author action.** |
 

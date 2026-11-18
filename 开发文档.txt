@@ -47,8 +47,11 @@ License  : MIT
   - .kiro/specs/desktop-studio/tasks.md、steering 更新、3 个新 hooks
     （skill-registry / theme-anatomy / desktop-server）。
   - 18 个单元与 API 测试全绿；stitch validate --strict 0 错误 0 警告。
-  待完成：
-  - 推送并验证 GitHub Pages 上线；录制演示视频；提交 Devpost。
+  待完成（用户动作）：
+  - 录制 <3 分钟演示视频；Devpost 提交；在 Kiro 中补 1~2 个真实任务的证据并填写
+    kiro-usage.md 的作者占位；可选：用真实 AI key 联调生成质量。
+  GitHub Pages 已上线：https://renxiaoxiang.github.io/Stitchcraft/（构建成功，
+  展示页、三张截图与两个示例站均返回 200）。
 
 
 1. 项目定义
