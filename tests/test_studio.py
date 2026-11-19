@@ -1038,6 +1038,25 @@ class ServerApiTests(unittest.TestCase):
         finally:
             self.context.jobs.pop(job.id, None)
 
+    def test_sse_stream_limit_returns_429(self) -> None:
+        job = Job(
+            GenerationRequest(theme_id="warehouse-ops", prompt="A warehouse dashboard.", engine="mock", database={"mode": "local", "remote": {}}),
+            theme_id="warehouse-ops",
+            title="stream limit job",
+            engine="mock",
+        )
+        job.status = "done"
+        self.context.jobs[job.id] = job
+        previous = self.context.active_streams
+        self.context.active_streams = StudioContext.MAX_JOB_STREAMS
+        try:
+            status, _headers, body = _raw_request(self.base + f"/api/jobs/{job.id}/events")
+        finally:
+            self.context.active_streams = previous
+            self.context.jobs.pop(job.id, None)
+        self.assertEqual(status, 429)
+        self.assertIn("too many live progress streams", json.loads(body)["error"])
+
     def test_cancel_endpoint_rejects_unknown_job(self) -> None:
         status, _headers, body = _raw_request(
             self.base + "/api/jobs/not-a-job/cancel",

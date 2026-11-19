@@ -163,6 +163,8 @@ class Job:
 class StudioContext:
     """Shared state for the server: config, project store and jobs."""
 
+    MAX_JOB_STREAMS = 8
+
     def __init__(
         self,
         root: Path,
@@ -179,6 +181,7 @@ class StudioContext:
         self.jobs: dict[str, Job] = {}
         self.queue: list[Job] = []
         self.active_jobs = 0
+        self.active_streams = 0
         self.lock = threading.Lock()
 
     # -- queue helpers -------------------------------------------------------
@@ -795,15 +798,22 @@ class StudioHandler(BaseHTTPRequestHandler):
         job = self.context.jobs.get(job_id)
         if job is None:
             return self._send_json(404, {"ok": False, "error": "job not found"})
-        self.send_response(200)
-        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        self.send_header("Cache-Control", "no-cache, no-store")
-        self.send_header("Connection", "close")
-        self.send_header("X-Accel-Buffering", "no")
-        self.end_headers()
-        last = ""
-        deadline = time.time() + 300
+        with self.context.lock:
+            if self.context.active_streams >= StudioContext.MAX_JOB_STREAMS:
+                return self._send_json(
+                    429,
+                    {"ok": False, "error": "too many live progress streams; retry shortly."},
+                )
+            self.context.active_streams += 1
         try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-store")
+            self.send_header("Connection", "close")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+            last = ""
+            deadline = time.time() + 300
             while time.time() < deadline:
                 with self.context.lock:
                     payload = job.public_dict()
@@ -817,6 +827,9 @@ class StudioHandler(BaseHTTPRequestHandler):
                 time.sleep(0.25)
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
+        finally:
+            with self.context.lock:
+                self.context.active_streams = max(0, self.context.active_streams - 1)
 
     # -- browser helpers -----------------------------------------------------
     def _browser_report(self, project_id: str) -> None:

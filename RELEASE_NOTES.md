@@ -1,15 +1,28 @@
-# Stitchcraft v1.1.1 — 发布说明与交付审计
+# Stitchcraft v1.1.2 — 发布说明与交付审计
 
-> 版本：**1.1.1** · 核心功能提交：[`5893aa3`](https://github.com/RenXiaoxiang/Stitchcraft/commit/5893aa3)
-> Tag：[`v1.1.1`](https://github.com/RenXiaoxiang/Stitchcraft/tree/v1.1.1)
+> 版本：**1.1.2** · 核心功能提交：[`5893aa3`](https://github.com/RenXiaoxiang/Stitchcraft/commit/5893aa3)
+> Tag：[`v1.1.2`](https://github.com/RenXiaoxiang/Stitchcraft/tree/v1.1.2)
 > 仓库：[RenXiaoxiang/Stitchcraft](https://github.com/RenXiaoxiang/Stitchcraft)
 > 线上展示页：<https://renxiaoxiang.github.io/Stitchcraft/>
 
-这份说明记录 v1.1.x 的功能范围、验证证据、第三方归属、隐私边界和已知限制；v1.1.1 是发布后的归属审计与稳定性补丁。它是最终交付的一部分，不是营销页；没有真实 AI Key 时不会声称跑通了 AI benchmark，也没有把人工检查写成自动化通过。
+这份说明记录 v1.1.x 的功能范围、验证证据、第三方归属、隐私边界和已知限制；v1.1.2 是最终加固版本，包含归属审计、离线检查、SSE 流恢复和 CI 供应链固定。它是最终交付的一部分，不是营销页；没有真实 AI Key 时不会声称跑通了 AI benchmark，也没有把人工检查写成自动化通过。
 
 ---
 
-## 0. v1.1.1 审计补丁（2026-11-19）
+## 0. v1.1.2 最终加固（2026-11-19）
+
+在 v1.1.1 归属审计之后，继续处理剩余的稳定性/供应链问题：
+
+- **CI 供应链固定**：GitHub Actions 的 `actions/checkout` 与
+  `actions/setup-python` 从浮动 major tag 改为固定 commit SHA，并保留版本注释。
+- **SSE 并发上限**：单个 Studio 最多同时保留 **8** 条实时流；超过上限返回 429，
+  客户端自动回退轮询，避免本地线程被无限占用。
+- **测试**：新增 SSE 上限回归测试，套件从 102 增至 **103**。
+- 本轮仍未新增第三方依赖；上游二进制、license、UPSTREAM 文件未改动。
+
+---
+
+## 0.1 v1.1.1 审计补丁（2026-11-19）
 
 发布后重新逐项检查第三方组件、notice、license、upstream、生成物和运行时，发现并修复了以下问题：
 
@@ -119,7 +132,7 @@ stitch refine --input ./draft-site --theme brand-launch \
 以下结果来自本地最终验证，不是推测：
 
 ```text
-unittest             102 passed
+unittest             103 passed
 validate --strict    0 errors / 0 warnings
 themes verify        ok
 skills verify        ok

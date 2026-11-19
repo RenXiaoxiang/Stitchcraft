@@ -2,7 +2,7 @@
 
 > A solo AI site builder that stitches separate specialised skills into one pipeline — each module does one job, Kiro specs and hooks hold the seams together.
 >
-> Current release: **v1.1.1** — [release notes and delivery audit](RELEASE_NOTES.md).
+> Current release: **v1.1.2** — [release notes and delivery audit](RELEASE_NOTES.md).
 
 [![ci](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-ff8a3d.svg)](LICENSE)
