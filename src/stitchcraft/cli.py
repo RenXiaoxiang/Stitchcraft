@@ -120,6 +120,11 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--task", action="append", default=None, help="run only this task id (repeatable)")
     benchmark.add_argument("--repeat", type=int, default=1, help="attempts per task (default 1)")
     benchmark.add_argument("--out", type=Path, default=None, help="output directory (default: <repo>/.stitch/benchmarks/<run>)")
+    benchmark.add_argument(
+        "--strict",
+        action="store_true",
+        help="return non-zero when a required functional check fails or cannot run (release checks)",
+    )
 
     run = sub.add_parser("run", help="prepare the stitch for an agent")
     run.add_argument("--dry-run", action="store_true", help="write one PROMPT.md per stage; no model calls")
@@ -583,7 +588,12 @@ def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
     print()
     for item in report["results"]:
         marker = "PASS" if item["ok"] else "FAIL"
-        functional_state = str((item.get("functional") or {}).get("status") or "untested")
+        functional = item.get("functional") or {}
+        functional_state = str(functional.get("status") or "untested")
+        if functional_state == "failed" and functional.get("interrupted_at"):
+            functional_state += " @ " + str(functional["interrupted_at"])
+        if functional_state == "failed" and functional.get("missing_checks"):
+            functional_state += " (missing: " + ", ".join(str(step) for step in functional["missing_checks"]) + ")"
         detail = f"{item['files']} files, {len(item['warnings'])} warning(s), functional: {functional_state}"
         if item.get("missing_files"):
             detail += ", missing: " + ", ".join(item["missing_files"])
@@ -603,7 +613,14 @@ def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
         f"average {summary['average_duration_ms']} ms"
     )
     print(f"  report: {_display(Path(report['report_dir']), repo.root)}")
-    return EXIT_OK if summary["build_failed"] == 0 else EXIT_FINDINGS
+    if args.strict:
+        print(
+            "strict: " + ("ready" if summary["release_ready"] else "FAIL") +
+            f" · required functional {summary['functional_required_passed']}/{summary['functional_required']}"
+            f" · incomplete {summary['functional_incomplete_required']}"
+        )
+    release_ok = summary["build_failed"] == 0 and (not args.strict or summary["release_ready"])
+    return EXIT_OK if release_ok else EXIT_FINDINGS
 
 
 def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:

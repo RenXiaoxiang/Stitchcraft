@@ -45,7 +45,7 @@
           <h1 class="hero__title" id="hero-title">Morning, Ember &amp; Bean.</h1>
           <p class="hero__lede" id="hero-lede">Loading today's stock summary…</p>
         </div>
-        <button class="btn btn--primary" id="add-item" type="button">
+        <button class="btn btn--primary" id="add-item" type="button" data-testid="add-item">
           <span aria-hidden="true">+</span> Add item
         </button>
       </section>
@@ -59,7 +59,7 @@
           </div>
           <div class="stat">
             <dt>Low stock</dt>
-            <dd><span class="stat__value" id="kpi-low">—</span><span class="stat__note" id="kpi-low-note">at or below reorder</span></dd>
+            <dd><span class="stat__value" id="kpi-low" data-testid="low-stock">—</span><span class="stat__note" id="kpi-low-note">at or below reorder</span></dd>
           </div>
           <div class="stat">
             <dt>Inbound today</dt>
@@ -85,7 +85,7 @@
           <form class="filters" id="filters" role="search" aria-label="Filter inventory">
             <label class="field field--grow">
               <span class="field__label">Search</span>
-              <input type="search" id="search" name="q" placeholder="SKU, item or category" autocomplete="off">
+              <input type="search" id="search" name="q" data-testid="search" placeholder="SKU, item or category" autocomplete="off">
             </label>
             <label class="field">
               <span class="field__label">Status</span>
@@ -110,7 +110,7 @@
           </form>
 
           <div class="table-wrap">
-            <table class="inventory-table" id="inventory-table">
+            <table class="inventory-table" id="inventory-table" data-testid="inventory-table">
               <caption class="sr-only">Inventory items with SKU, category, quantity, reorder level, zone and status</caption>
               <thead>
                 <tr>
@@ -130,7 +130,7 @@
                   <th scope="col"><span class="sr-only">Row actions</span></th>
                 </tr>
               </thead>
-              <tbody id="inventory-body"></tbody>
+              <tbody id="inventory-body" data-testid="inventory-body"></tbody>
             </table>
 
             <div class="empty" id="empty-state" hidden>
@@ -192,12 +192,12 @@
         <div class="form-grid">
           <div class="field">
             <label class="field__label" for="item-sku">SKU</label>
-            <input id="item-sku" name="sku" required autocomplete="off" aria-describedby="sku-error">
+            <input id="item-sku" data-testid="item-sku" name="sku" required autocomplete="off" aria-describedby="sku-error">
             <p class="field__error" id="sku-error" role="alert"></p>
           </div>
           <div class="field">
             <label class="field__label" for="item-name">Item name</label>
-            <input id="item-name" name="name" required autocomplete="off" aria-describedby="name-error">
+            <input id="item-name" data-testid="item-name" name="name" required autocomplete="off" aria-describedby="name-error">
             <p class="field__error" id="name-error" role="alert"></p>
           </div>
           <div class="field">
@@ -215,13 +215,13 @@
           </div>
           <div class="field">
             <label class="field__label" for="item-quantity">Quantity on hand</label>
-            <input id="item-quantity" name="quantity" type="number" min="0" step="1" inputmode="numeric"
+            <input id="item-quantity" data-testid="item-quantity" name="quantity" type="number" min="0" step="1" inputmode="numeric"
               required aria-describedby="quantity-error">
             <p class="field__error" id="quantity-error" role="alert"></p>
           </div>
           <div class="field">
             <label class="field__label" for="item-reorder">Reorder level</label>
-            <input id="item-reorder" name="reorder_point" type="number" min="0" step="1" inputmode="numeric"
+            <input id="item-reorder" data-testid="item-reorder" name="reorder_point" type="number" min="0" step="1" inputmode="numeric"
               required aria-describedby="reorder-error">
             <p class="field__error" id="reorder-error" role="alert"></p>
           </div>
@@ -239,7 +239,7 @@
       </div>
       <footer class="modal__foot">
         <button class="btn btn--ghost" type="button" data-close>Cancel</button>
-        <button class="btn btn--primary" type="submit" id="item-save">Save item</button>
+        <button class="btn btn--primary" type="submit" id="item-save" data-testid="save-item">Save item</button>
       </footer>
     </form>
   </dialog>
@@ -252,7 +252,7 @@
     </div>
     <footer class="modal__foot">
       <button class="btn btn--ghost" type="button" data-close>Cancel</button>
-      <button class="btn btn--danger" type="button" id="confirm-action">Delete item</button>
+      <button class="btn btn--danger" type="button" id="confirm-action" data-testid="confirm-delete">Delete item</button>
     </footer>
   </dialog>
 
@@ -267,7 +267,7 @@
       <td data-label="Status"><span class="pill row-status"></span></td>
       <td data-label="Actions" class="row-actions">
         <button class="icon-btn js-edit" type="button">Edit</button>
-        <button class="icon-btn icon-btn--danger js-delete" type="button">Delete</button>
+        <button class="icon-btn icon-btn--danger js-delete" type="button" data-testid="delete-item">Delete</button>
       </td>
     </tr>
   </template>

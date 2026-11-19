@@ -86,6 +86,62 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue((ROOT / "themes" / "brand-launch" / "sample" / "index.html").is_file())
             self.assertEqual(report["summary"]["placeholders"], 0)
 
+    def test_functional_outcome_fails_when_interrupted_before_first_check(self) -> None:
+        required = ("add_control", "add_first", "search_control")
+        outcome = functional._functional_outcome(
+            {"status": "passed", "checks": [], "error": "boom before first assertion", "phase": "start"},
+            required,
+        )
+        self.assertEqual(outcome["status"], "failed")
+        self.assertEqual(outcome["interrupted_at"], "start")
+        self.assertEqual(outcome["missing_checks"], list(required))
+        self.assertIn("boom", outcome["error"])
+
+    def test_functional_outcome_fails_when_interrupted_after_save(self) -> None:
+        required = ("add_control", "save_control", "add_first", "search_control")
+        outcome = functional._functional_outcome(
+            {
+                "status": "passed",
+                "checks": [
+                    {"id": "add_control", "ok": True},
+                    {"id": "save_control", "ok": True},
+                    {"id": "add_first", "ok": True},
+                ],
+                "error": "boom after save",
+                "phase": "search",
+            },
+            required,
+        )
+        self.assertEqual(outcome["status"], "failed")
+        self.assertEqual(outcome["interrupted_at"], "search")
+        self.assertEqual(outcome["missing_checks"], ["search_control"])
+        self.assertEqual(outcome["failed_checks"], [])
+
+    def test_summary_marks_required_functional_incomplete(self) -> None:
+        result = {
+            "task": "warehouse-inventory",
+            "attempt": 1,
+            "build_ok": True,
+            "functional": {"status": "untested"},
+            "functional_required": True,
+            "retries": 0,
+            "duration_ms": 1,
+            "placeholder": False,
+            "model_calls": 0,
+        }
+        summary = benchmark._summary([result], [{"id": "warehouse-inventory"}])
+        self.assertEqual(summary["functional_required"], 1)
+        self.assertEqual(summary["functional_incomplete_required"], 1)
+        self.assertFalse(summary["release_ready"])
+
+    def test_warehouse_sample_exposes_stable_test_contract(self) -> None:
+        html = (ROOT / "themes" / "warehouse-ops" / "sample" / "index.html").read_text(encoding="utf-8")
+        for test_id in (
+            "add-item", "item-sku", "item-name", "item-quantity", "item-reorder",
+            "save-item", "search", "delete-item", "confirm-delete", "low-stock",
+        ):
+            self.assertIn(f'data-testid="{test_id}"', html)
+
     def test_functional_check_is_honest_without_a_browser(self) -> None:
         site = ROOT / "themes" / "warehouse-ops" / "sample"
         with tempfile.TemporaryDirectory() as tmp:

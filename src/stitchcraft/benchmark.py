@@ -75,6 +75,9 @@ def _summary(results: list[dict], tasks: list[dict]) -> dict:
     functional_passed = sum(1 for item in results if item["functional"].get("status") == "passed")
     functional_failed = sum(1 for item in results if item["functional"].get("status") == "failed")
     functional_untested = sum(1 for item in results if item["functional"].get("status") == "untested")
+    required_items = [item for item in results if item.get("functional_required")]
+    required_incomplete = sum(1 for item in required_items if item["functional"].get("status") == "untested")
+    required_failed = sum(1 for item in required_items if item["functional"].get("status") == "failed")
     no_retry = sum(1 for item in results if item["build_ok"] and item["retries"] == 0)
     recovered = sum(1 for item in results if item["build_ok"] and item["retries"] > 0)
     first_pass = 0
@@ -97,6 +100,11 @@ def _summary(results: list[dict], tasks: list[dict]) -> dict:
         "functional_passed": functional_passed,
         "functional_failed": functional_failed,
         "functional_untested": functional_untested,
+        "functional_required": len(required_items),
+        "functional_required_passed": sum(1 for item in required_items if item["functional"].get("status") == "passed"),
+        "functional_required_failed": required_failed,
+        "functional_incomplete_required": required_incomplete,
+        "release_ready": (total - build_passed) == 0 and functional_failed == 0 and required_incomplete == 0,
         "placeholders": sum(1 for item in results if item["placeholder"]),
         "no_retry_passes": no_retry,
         "recovered_after_retry": recovered,
@@ -159,6 +167,7 @@ def run_benchmarks(
                 "retries": 0,
                 "no_retry_pass": False,
                 "functional": {"status": "untested", "kind": task.get("functional"), "reason": "build did not run", "checks": []},
+                "functional_required": bool(task.get("functional")),
                 "error": None,
             }
             try:
@@ -258,7 +267,10 @@ def _markdown(report: dict) -> str:
         f"- Build: **{summary['build_passed']}/{summary['total']} passed** "
         f"({summary['pass_rate'] * 100:.0f}%), no-retry first pass {summary['first_pass_rate'] * 100:.0f}%",
         f"- Functional: {summary['functional_passed']} passed, {summary['functional_failed']} failed, "
-        f"{summary['functional_untested']} untested; placeholders: {summary['placeholders']}",
+        f"{summary['functional_untested']} untested; required {summary['functional_required_passed']}/"
+        f"{summary['functional_required']} passed, {summary['functional_incomplete_required']} incomplete; "
+        f"placeholders: {summary['placeholders']}",
+        f"- Release gate: {'ready' if summary['release_ready'] else 'not ready'}",
         f"- Retries: {summary['retries']} · model calls: {summary['model_calls']} · "
         f"average duration: {summary['average_duration_ms']} ms",
         "",
@@ -267,6 +279,13 @@ def _markdown(report: dict) -> str:
     ]
     for item in report["results"]:
         functional = item["functional"].get("status", "untested")
+        detail = item["functional"]
+        if functional == "failed":
+            if detail.get("interrupted_at"):
+                functional += " @ " + str(detail["interrupted_at"])
+            missing = detail.get("missing_checks") or []
+            if missing:
+                functional += " (missing: " + ", ".join(str(step) for step in missing) + ")"
         build = "PASS" if item["build_ok"] else "FAIL"
         lines.append(
             f"| {item['task']} | {item['attempt']} | {build} | {functional} | {item['retries']} | "

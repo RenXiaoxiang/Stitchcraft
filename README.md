@@ -178,8 +178,9 @@ theme, a brief and the files a usable build must contain. The benchmark reports
 
 - **Build** — the site generated and required files exist.
 - **Functional** — a browser-driven user-operation chain:
-  - `warehouse-inventory`: add an item, search for it, verify it survives a
-    fresh browser run, delete it, and check the low-stock indicator.
+  - `warehouse-inventory`: add two items, filter by one unique SKU and prove
+    the other row is hidden, verify both survive a fresh browser run, delete
+    the target, and check the low-stock indicator.
   - `brand-launch`: at a 390 px viewport, the primary CTA is visible, the page
     has no horizontal overflow, and clicking the CTA reaches a destination.
 - **Untested** — explicitly recorded when Obscura is not installed, the build
@@ -187,10 +188,14 @@ theme, a brief and the files a usable build must contain. The benchmark reports
   counted as a pass.
 - **Placeholder builds** are counted separately so mock-theme gaps cannot
   inflate the quality number.
+- **Strict release gate** — `--strict` returns non-zero when a required
+  functional scenario actually fails or cannot run (for example, the browser
+  is missing). The default mode stays cheap for daily mock builds.
 
 ```bash
 python -m stitchcraft benchmark --engine mock      # offline; placeholder + functional status
 python -m stitchcraft benchmark --engine ai --repeat 2
+python -m stitchcraft benchmark --engine mock --strict   # release gate
 ```
 
 Reports land in a **unique run directory** under the chosen output parent
@@ -198,9 +203,10 @@ Reports land in a **unique run directory** under the chosen output parent
 `report.md` and the generated sites beside them. The benchmark never passes
 `force=True`, so a user-supplied `--out` cannot be overwritten.
 
-Metrics: `build_passed`, `functional_passed/failed/untested`, `placeholders`,
-`model_calls`, `retries`, `no_retry_passes`, `recovered_after_retry`,
-`first_pass_rate` and `average_duration_ms`. See
+Metrics: `build_passed`, `functional_passed/failed/untested`,
+`functional_required_passed`, `functional_incomplete_required`,
+`release_ready`, `placeholders`, `model_calls`, `retries`, `no_retry_passes`,
+`recovered_after_retry`, `first_pass_rate` and `average_duration_ms`. See
 [`benchmarks/README.md`](benchmarks/README.md).
 
 ## Themes
@@ -211,7 +217,7 @@ Metrics: `build_passed`, `functional_passed/failed/untested`, `placeholders`,
 | `staff-directory` | data | Employee directory, departments and onboarding tasks. | AI only |
 | `logistics-control` | data | Shipments, carriers and an incident board. | AI only |
 | `personal-space` | personal | Essays, tag filtering, a photo wall and an about page. | ✅ |
-| `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | AI only |
+| `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | ✅ |
 
 Themes without a packaged sample still build a complete placeholder in demo
 mode, and the UI labels them **AI only** so the sample preview is not promised
