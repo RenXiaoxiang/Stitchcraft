@@ -74,10 +74,12 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   (tests use `STITCHCRAFT_HOME`). Generated sites may contain only the remote REST
   URL / public anon key the user configured.
 - **The local API is a security boundary.** Keep the Host/Origin/Content-Type
-  checks, the `localhost` preview origin, the sandboxed preview iframe and the
-  CSP headers in `server.py`/`app/web/`; keep `--out` cleaning behind the
-  Stitchcraft marker or `--force`. Security regressions belong in
-  `tests/test_studio.py`.
+  checks, the management-API-only-on-`127.0.0.1` rule, the `localhost`-preview
+  origin, the sandboxed preview iframe and the CSP headers in
+  `server.py`/`app/web/`. Builds must publish through a staging directory and
+  atomically replace the previous site only after success; keep `--out`
+  cleaning behind the Stitchcraft marker or `--force`. Security and data-loss
+  regressions belong in `tests/test_studio.py`.
 - **Do not commit generated output.** `.stitch/`, user project sites and ZIP
   exports are gitignored and rebuildable.
 - **Kiro hooks are part of the product.** If you change a seam, a theme or the

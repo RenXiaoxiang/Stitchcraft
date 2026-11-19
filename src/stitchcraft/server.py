@@ -28,6 +28,7 @@ from .storage import ProjectStore
 MAX_BODY_BYTES = 2 * 1024 * 1024
 MAX_JOBS = 50
 ALLOWED_HOSTNAMES = {"127.0.0.1", "localhost", "::1"}
+PREVIEW_PATH_PREFIXES = ("/api/preview", "/api/demo")
 
 STUDIO_CSP = (
     "default-src 'self'; "
@@ -90,6 +91,10 @@ __all__ = ["Job", "StudioContext", "StudioHandler", "make_server"]
 
 def _json_bytes(payload: object) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+
+def _is_preview_path(path: str) -> bool:
+    return any(path == prefix or path.startswith(prefix + "/") for prefix in PREVIEW_PATH_PREFIXES)
 
 
 def _find_repo_root() -> Path:
@@ -418,7 +423,6 @@ class StudioHandler(BaseHTTPRequestHandler):
             port = int(self.server.server_address[1])
             allowed = {
                 f"http://127.0.0.1:{port}",
-                f"http://localhost:{port}",
                 f"http://[::1]:{port}",
             }
             if origin.lower() not in allowed:
@@ -469,6 +473,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         path = urllib.parse.unquote(parsed.path)
         try:
             self._validate_request(method)
+            if self._hostname() == "localhost" and not _is_preview_path(path):
+                raise RequestError(403, "this origin only serves generated previews")
             if path.startswith("/api/"):
                 self._api(method, path)
             else:

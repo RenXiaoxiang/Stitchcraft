@@ -156,9 +156,10 @@ rate-limited request is enough. The nine-stage UI is a progress model: stages 2,
 3, 5 and 6 are deterministic assembly/validation steps, not separate model
 calls. The generator rejects absolute paths, `..`, unexpected extensions,
 oversized files and sites without `index.html`, reports local files referenced
-by `index.html` but never generated, then writes the site, injects
-`data-config.js`, copies the vendored GSAP build and libraries the site uses,
-and streams stage progress + logs to the UI.
+by `index.html` but never generated, builds into a private staging directory,
+and only replaces the previous site after the whole build succeeds. It then
+injects `data-config.js`, copies the vendored GSAP build and libraries the site
+uses, and streams stage progress + logs to the UI.
 
 ## Themes
 
@@ -377,6 +378,8 @@ AI agents alike.
 - The studio binds to `127.0.0.1` only. Requests with an unexpected `Host` are
   rejected (DNS-rebinding protection); writes with a foreign `Origin` or a
   non-JSON `Content-Type` are rejected too.
+- The management API is served **only** on `127.0.0.1`; `localhost` serves
+  generated previews and demo sites only and cannot read or change settings.
 - AI keys and database credentials are stored in your app-data directory
   (`%LOCALAPPDATA%\Stitchcraft\config.json`), never in the repo, logs or
   generated sites.
@@ -384,8 +387,10 @@ AI agents alike.
   origin from the studio API, inside a sandboxed iframe, with a CSP header.
   Their JavaScript cannot call `/api/settings` or read your AI keys.
 - Generated files are sandboxed: relative paths, extension whitelist, size caps.
-- The generator refuses to clean a non-empty output directory it did not create;
-  pass `--force` only when you mean it.
+- A build is written to a private staging directory and replaced into place only
+  after it succeeds; a failed AI call keeps the previous site intact. The
+  generator still refuses to replace a non-empty output directory it did not
+  create; pass `--force` only when you mean it.
 - No telemetry. No network calls except the AI endpoint you configure.
 
 ## Kiroween 2026

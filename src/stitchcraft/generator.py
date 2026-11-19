@@ -15,9 +15,11 @@ The engine itself makes no network calls except the one the user configured.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -110,24 +112,47 @@ def _clean_dir(directory: Path) -> None:
 SITE_MARKER = ".stitchcraft-site"
 
 
-def _prepare_out_dir(out_dir: Path, force: bool = False) -> None:
-    """Create the output directory, refusing to wipe a foreign non-empty one."""
+def _check_out_dir(out_dir: Path, force: bool = False) -> None:
+    """Validate the target without touching it; the publish step replaces it."""
     out_dir = Path(out_dir)
     if out_dir.exists() and not out_dir.is_dir():
         raise GenerationError(f"Output path is not a directory: {out_dir}")
-    marker = out_dir / SITE_MARKER
     if out_dir.exists():
+        marker = out_dir / SITE_MARKER
         entries = list(out_dir.iterdir())
         if entries and not marker.is_file() and not force:
             raise GenerationError(
-                f"Refusing to clean the non-empty directory {out_dir}. "
+                f"Refusing to replace the non-empty directory {out_dir}. "
                 "It was not created by Stitchcraft; choose a new --out or pass --force."
             )
-        if entries:
-            _clean_dir(out_dir)
-    else:
-        out_dir.mkdir(parents=True, exist_ok=True)
-    marker.write_text("Stitchcraft generated site. Safe to replace on the next build.\n", encoding="utf-8")
+
+
+def _prepare_staging_dir(staging: Path) -> None:
+    """Create the private build directory and mark it as Stitchcraft-owned."""
+    if staging.exists():
+        shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / SITE_MARKER).write_text(
+        "Stitchcraft generated site. Safe to replace on the next build.\n",
+        encoding="utf-8",
+    )
+
+
+def _publish(staging: Path, target: Path) -> None:
+    """Swap a completed staging build into place without risking the old site."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    backup = target.with_name(target.name + f".old-{uuid.uuid4().hex[:8]}")
+    had_old = target.exists()
+    try:
+        if had_old:
+            os.replace(target, backup)
+        os.replace(staging, target)
+    except Exception:
+        if had_old and not target.exists() and backup.exists():
+            os.replace(backup, target)
+        raise
+    if had_old:
+        shutil.rmtree(backup, ignore_errors=True)
 
 
 def _safe_relpath(raw: object) -> Path:
@@ -379,29 +404,61 @@ names. Do not write site code in this call; this plan is passed to the build cal
 
 
 def _validate_site_plan(plan: object, theme: Theme) -> dict:
-    """Small structural check mirroring contracts/site-plan.schema.json."""
+    """Validate the plan fields the build step actually consumes."""
     if not isinstance(plan, dict):
         raise GenerationError("The planning response was not a JSON object.")
     sitemap = plan.get("sitemap")
     if not isinstance(sitemap, list) or not sitemap:
         raise GenerationError("The plan is missing a non-empty sitemap.")
+    if len(sitemap) > 8:
+        raise GenerationError("The plan has more than 8 pages; keep the sitemap focused.")
+    pages: set[str] = set()
     for entry in sitemap:
         if not isinstance(entry, dict):
             raise GenerationError("The plan contains a malformed sitemap entry.")
-        if not str(entry.get("path", "")).startswith("/"):
+        path = str(entry.get("path", ""))
+        if not path.startswith("/"):
             raise GenerationError("Every planned page path must start with '/'.")
+        if path in pages:
+            raise GenerationError(f"The plan repeats the page path {path!r}.")
         if not str(entry.get("title", "")).strip():
             raise GenerationError("Every planned page needs a title.")
+        pages.add(path)
+
     navigation = plan.get("navigation")
     if not isinstance(navigation, dict) or not isinstance(navigation.get("primary"), list):
         raise GenerationError("The plan is missing navigation.primary.")
+    for item in navigation["primary"]:
+        if not isinstance(item, dict):
+            raise GenerationError("Every primary navigation item must be an object.")
+        label = str(item.get("label", "")).strip()
+        path = str(item.get("path", ""))
+        if not label:
+            raise GenerationError("Every primary navigation item needs a label.")
+        if not path.startswith("/"):
+            raise GenerationError("Primary navigation paths must start with '/'.")
+        if path not in pages:
+            raise GenerationError(f"Navigation points at a page missing from the sitemap: {path!r}")
+    footer = navigation.get("footer")
+    if footer is not None:
+        if not isinstance(footer, list):
+            raise GenerationError("navigation.footer must be an array when present.")
+        for item in footer:
+            if not isinstance(item, dict):
+                raise GenerationError("Every footer navigation item must be an object.")
+            if not str(item.get("label", "")).strip():
+                raise GenerationError("Every footer navigation item needs a label.")
+            path = str(item.get("path", ""))
+            if path.startswith("/") and path not in pages:
+                raise GenerationError(f"Footer navigation points at a missing page: {path!r}")
+
     sections = plan.get("sections")
     if sections is not None and not isinstance(sections, list):
         raise GenerationError("The plan's sections must be an array.")
     return {
-        "sitemap": sitemap[:8],
+        "sitemap": sitemap,
         "navigation": navigation,
-        "sections": (sections or [])[:16],
+        "sections": sections or [],
         "design": plan.get("design") if isinstance(plan.get("design"), dict) else {},
     }
 
@@ -530,14 +587,13 @@ HARD RULES
     ]
 
 
-def generate_site(
+def _generate_into(
     root: Path,
     config: AppConfig,
     request: GenerationRequest,
     out_dir: Path,
     on_progress=None,
     sleep=time.sleep,
-    force: bool = False,
 ) -> GenerationResult:
     started = time.perf_counter()
     root = Path(root)
@@ -566,7 +622,7 @@ def generate_site(
         warnings.append("Unknown bundled libraries ignored: " + ", ".join(sorted(missing_library_ids)))
     library_context = library_pack.build_prompt_context(theme_libraries)
 
-    _prepare_out_dir(out_dir, force=force)
+    _prepare_staging_dir(out_dir)
 
     def active(index: int, message: str) -> None:
         _emit(on_progress, index, "active", message)
@@ -847,3 +903,37 @@ def generate_site(
         warnings=warnings,
         duration_ms=int((time.perf_counter() - started) * 1000),
     )
+
+def generate_site(
+    root: Path,
+    config: AppConfig,
+    request: GenerationRequest,
+    out_dir: Path,
+    on_progress=None,
+    sleep=time.sleep,
+    force: bool = False,
+) -> GenerationResult:
+    """Build into a private staging directory, then publish atomically.
+
+    A failed AI call, validation error or interrupted build leaves the previous
+    successful site untouched; only a fully written result replaces it.
+    """
+    target = Path(out_dir)
+    _check_out_dir(target, force=force)
+    staging = target.parent / f".{target.name}.build-{uuid.uuid4().hex[:8]}"
+    try:
+        result = _generate_into(
+            root,
+            config,
+            request,
+            staging,
+            on_progress=on_progress,
+            sleep=sleep,
+        )
+        _publish(staging, target)
+        result.out_dir = target
+        result.files = _list_files(target)
+        return result
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)

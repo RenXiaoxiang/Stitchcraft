@@ -19,19 +19,24 @@ Threats:
 | --- | --- |
 | CSRF | `Origin` allow-list for writes; JSON-only content type; no CORS headers |
 | DNS rebinding | `Host` allow-list on every request (`127.0.0.1`, `localhost`, `::1`) |
-| Generated-site origin | preview served from `http://localhost:<port>`; API/preview host split |
+| Generated-site origin | management API only on `127.0.0.1`; `localhost` serves previews only; iframe sandbox + CSP |
 | Framed studio | studio CSP + `X-Frame-Options: DENY`; preview iframe sandbox |
 | Generated-site injection | preview CSP (self/data/blob, inline allowed, remote code not) |
-| Directory wipe | `.stitchcraft-site` marker or explicit `--force` |
+| Directory wipe | `.stitchcraft-site` marker, staging build, atomic publish or explicit `--force` |
+| Failed build | staging directory discarded; previous published site untouched |
 | Oversized body | `MAX_BODY_BYTES` → 413 before reading |
 | Request errors | `RequestError` → 400/403/413/415 JSON responses |
 
 ## Notes
 
 - `Origin` is optional so CLI/curl use still works; browsers send it for writes.
-- The preview host is a different origin from the studio by hostname, not a
-  second process, so lifecycle stays simple and offline.
-- Preview CSP allows inline scripts/styles because generated sites are static
-  and offline; external code is still blocked by the `'self'` allow-lists.
+- `localhost` is a preview-only host: `/api/preview` and `/api/demo` are allowed,
+  every other path is rejected. The studio API and UI remain on `127.0.0.1`.
+- The management write `Origin` allow-list contains only `127.0.0.1`/`::1`, so
+  a generated page on `localhost` cannot mutate settings even if it can reach
+  the port.
+- Generated builds use a private staging directory; `os.replace` publishes only
+  after success and a backup/restore path protects the previous site.
 - The generation plan/build split lives in `generator.py`; blocks from
-  `themes/_blocks/` are injected into the build prompt.
+  `themes/_blocks/` are injected into the build prompt, and plan navigation is
+  validated against the final page set before the build call.

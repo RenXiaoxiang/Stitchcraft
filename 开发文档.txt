@@ -894,3 +894,41 @@ License  : MIT
   - 为另外三个主题补示例站；拆分 app.js/styles.css 为模块；SSE 替代轮询；
     prompt token 用量记录；更细的浏览器 console/网络错误回传与自动修复。
 
+================================================================================
+16. v0.6.1 安全边界收口与失败保护
+--------------------------------------------------------------------------------
+16.1 预览主机与管理 API 彻底分离
+  - 管理 API（settings/themes/projects/generate/jobs/export/browser...）只在
+    127.0.0.1（Studio 主机）提供；localhost 只允许 /api/preview/* 与 /api/demo/*，
+    其它路径（包括 /、/api/settings、/api/status）返回 403。
+  - 写请求 Origin 白名单只保留 http://127.0.0.1:<port> 与 http://[::1]:<port>；
+    localhost 源不再被接受。这样即使预览站能访问同端口，也无法同源/跨源修改设置。
+  - 回归：localhost GET/POST settings 必须 403；localhost demo/preview 必须 200；
+    Studio 的 127 管理请求保持正常。
+
+16.2 事务式生成（失败不丢旧站）
+  - generate_site 拆成 wrapper + _generate_into：
+      1) 先校验目标目录（空/Stitchcraft 标记/--force）；
+      2) 在目标同级私有 staging 目录生成；
+      3) 成功后 os.replace 备份旧站 -> 替换 staging -> 删除备份；
+      4) 失败时 finally 清理 staging，旧站完全不变。
+  - 标记 .stitchcraft-site 仍不进入文件列表/导出 ZIP；--out 外部非空目录仍默认拒绝。
+  - 回归：先建可用旧站 -> 第二次 AI 生成抛错 -> 旧 index.html 内容不变、无残留
+    staging 目录。
+
+16.3 规划契约运行时校验
+  - 校验 sitemap：1~8 页、path 以 / 开头、页面标题非空、路径不重复。
+  - 校验 navigation.primary：每项必须是对象，label 非空，path 以 / 开头，且目标页
+    必须存在于最终 sitemap；footer 的内部路径同样校验。
+  - 不再静默截断 sitemap（超过 8 页直接拒绝并回退主题计划），避免导航指向被截掉
+    的页面。
+  - 非法规划不会中断生成：捕获后记录 warning 并使用主题确定性计划继续 build。
+
+16.4 测试与验证
+  - unittest 62 个通过，新增：预览主机管理 API 拒绝、localhost 写设置拒绝、
+    localhost demo 正常、失败生成保留旧站、规划字段/导航目标/重复页校验、
+    非法规划回退。
+  - validate --strict 0/0；libraries/skills/themes verify；smoke test PASS；
+    真实复现脚本确认：localhost GET/POST settings -> 403，失败生成后旧站保留，
+    非法规划被拒绝。
+

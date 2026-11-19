@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from stitchcraft import settings  # noqa: E402
 from stitchcraft import browser  # noqa: E402
+from stitchcraft import generator  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
 from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
@@ -32,6 +33,7 @@ from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_
 from stitchcraft.skills import build_skill_context, select_for_theme, verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
 from stitchcraft.themes import verify_themes  # noqa: E402
+from stitchcraft.themes import get_theme  # noqa: E402
 
 
 def _get_json(url: str, method: str = "GET", payload: dict | None = None):
@@ -327,6 +329,101 @@ class OutputSafetyTests(unittest.TestCase):
             self.assertTrue((out / "index.html").is_file())
             self.assertIn("index.html", result.files)
 
+    def test_failed_generation_preserves_the_previous_site(self) -> None:
+        config = AppConfig()
+        config.ai.provider = "openai"
+        config.ai.base_url = "https://api.openai.com/v1"
+        config.ai.model = "gpt-4o-mini"
+        config.ai.api_key = "sk-test-key-12345678"
+        request = GenerationRequest(
+            theme_id="warehouse-ops",
+            prompt="A warehouse dashboard with inventory and inbound shipments.",
+            engine="ai",
+            database={"mode": "local", "remote": {}},
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            out.mkdir()
+            (out / ".stitchcraft-site").write_text("owned", encoding="utf-8")
+            (out / "index.html").write_text("OLD SITE", encoding="utf-8")
+            with mock.patch("stitchcraft.ai_client.chat", side_effect=RuntimeError("network down")):
+                with self.assertRaises(RuntimeError):
+                    generate_site(ROOT, config, request, out)
+            self.assertEqual((out / "index.html").read_text(encoding="utf-8"), "OLD SITE")
+            self.assertFalse(list(Path(tmp).glob(".*.build-*")), "staging directory was not cleaned up")
+
+
+class PlanValidationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.theme = get_theme(ROOT, "warehouse-ops")
+
+    def _plan(self) -> dict:
+        return {
+            "sitemap": [{"path": "/", "title": "Home"}],
+            "navigation": {"primary": [{"label": "Home", "path": "/"}]},
+            "sections": [],
+        }
+
+    def test_valid_plan_is_accepted(self) -> None:
+        plan = generator._validate_site_plan(self._plan(), self.theme)
+        self.assertEqual(plan["navigation"]["primary"][0]["path"], "/")
+
+    def test_navigation_item_needs_label_and_path(self) -> None:
+        plan = self._plan()
+        plan["navigation"]["primary"] = [{"label": "", "path": "/"}]
+        with self.assertRaises(GenerationError):
+            generator._validate_site_plan(plan, self.theme)
+        plan["navigation"]["primary"] = [{"label": "Home", "path": "#missing"}]
+        with self.assertRaises(GenerationError):
+            generator._validate_site_plan(plan, self.theme)
+
+    def test_navigation_target_must_exist_in_sitemap(self) -> None:
+        plan = self._plan()
+        plan["navigation"]["primary"] = [{"label": "Missing", "path": "/missing"}]
+        with self.assertRaises(GenerationError):
+            generator._validate_site_plan(plan, self.theme)
+
+    def test_duplicate_pages_are_rejected(self) -> None:
+        plan = self._plan()
+        plan["sitemap"].append({"path": "/", "title": "Duplicate"})
+        with self.assertRaises(GenerationError):
+            generator._validate_site_plan(plan, self.theme)
+
+    def test_invalid_model_plan_falls_back_to_theme_plan(self) -> None:
+        invalid_plan = {"sitemap": [{"path": "/", "title": "Home"}], "navigation": {"primary": [{"label": "", "path": "#"}]}}
+        files = {
+            "files": [
+                {"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Fallback</title><link rel="stylesheet" href="styles.css"></head><body><h1>Fallback</h1></body></html>'},
+                {"path": "styles.css", "content": "body{color:#222}"},
+            ],
+            "summary": "Fallback build.",
+        }
+        calls: list[list[dict]] = []
+
+        def fake_chat(_config, messages, json_mode=True):
+            calls.append(messages)
+            return json.dumps(invalid_plan if len(calls) == 1 else files)
+
+        config = AppConfig()
+        config.ai.provider = "openai"
+        config.ai.base_url = "https://api.openai.com/v1"
+        config.ai.model = "gpt-4o-mini"
+        config.ai.api_key = "sk-test-key-12345678"
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("stitchcraft.ai_client.chat", side_effect=fake_chat):
+            result = generate_site(
+                ROOT,
+                config,
+                GenerationRequest(
+                    theme_id="warehouse-ops",
+                    prompt="A warehouse dashboard with inventory and inbound shipments.",
+                    engine="ai",
+                    database={"mode": "local", "remote": {}},
+                ),
+                Path(tmp) / "site",
+            )
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(any("model plan was invalid" in warning for warning in result.warnings), result.warnings)
+
 
 class AIGenerationTests(unittest.TestCase):
     def _config(self, provider: str = "openai") -> AppConfig:
@@ -525,6 +622,26 @@ class ServerApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Content-Security-Policy", headers)
         self.assertIn(b"Notes from the attic", body)
+
+    def test_preview_host_only_serves_previews(self) -> None:
+        for path in ("/", "/api/settings", "/api/status", "/api/projects"):
+            status, _headers, _body = _raw_request(self.preview_base + path)
+            self.assertEqual(status, 403, path)
+        status, _headers, _body = _raw_request(self.preview_base + "/api/demo/personal-space/")
+        self.assertEqual(status, 200)
+
+    def test_preview_host_cannot_write_management_settings(self) -> None:
+        payload = json.dumps({"ai": {"base_url": "https://evil.example/v1"}}).encode("utf-8")
+        status, _headers, _body = _raw_request(
+            self.preview_base + "/api/settings",
+            "POST",
+            payload,
+            {"Content-Type": "application/json", "Origin": self.preview_base},
+        )
+        self.assertEqual(status, 403)
+        status, settings = _get_json(self.base + "/api/settings")
+        self.assertEqual(status, 200)
+        self.assertNotIn("evil.example", json.dumps(settings))
 
     def test_status_exposes_cross_origin_preview_base(self) -> None:
         status, payload = _get_json(self.base + "/api/status")
