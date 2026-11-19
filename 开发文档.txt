@@ -1024,3 +1024,33 @@ License  : MIT
     validate --strict 0/0；designs/themes/libraries/skills verify；smoke test PASS；
     mock 基准仍通过（design 不参与 mock 内容生成）。
 
+================================================================================
+20. v0.10.0 启动器多语言与 RTL
+--------------------------------------------------------------------------------
+20.1 语言范围
+  - 顶栏语言选择器：中文（zh）、English（en）、Deutsch（de）、العربية（ar）、
+    Русский（ru）。注意需求文字写“4 种”但列出 5 种，按列出的 5 种实现。
+  - 首次启动按 navigator.language 推断；选择结果写入 localStorage 与
+    config.json 的 ui.language（空字符串表示跟随系统）。
+  - 阿拉伯语自动设置 html[dir=rtl]，增加 RTL 布局覆盖与阿拉伯字体栈；中文增加
+    Microsoft YaHei/PingFang/Noto CJK 字体回退。
+
+20.2 实现
+  - 新增 app/web/i18n.js（无依赖、无网络）：英文原文作为 key，包含 zh/de/ar/ru
+    字典；对静态文本/placeholder/title/aria-label 做翻译，MutationObserver 处理
+    动态渲染；setLanguage 切换语言并派发 stitchcraft:language 事件。
+  - app/web/index.html：topbar 增加 #language-select；i18n.js 在 app.js 之前加载；
+    logs/history/preview-title 标记 data-no-i18n，避免用户内容被翻译。
+  - app/web/app.js：bindLanguage 绑定选择并 POST /api/settings；applySettings 应用
+    服务端语言；主题备注、demo 提示、主题数量、错误等动态文案使用 I18N.format。
+  - settings.py：UISettings.language；SUPPORTED_LANGUAGES；merge_patch 校验非法值；
+    public/to_dict 持久化。server 无需新增路由，现有 /api/settings 生效。
+  - styles.css：语言选择器、RTL（方向、边框/间距、输入框 LTR 特例）、阿拉伯/中文
+    字体回退。
+
+20.3 验证
+  - unittest 76 个通过（新增语言配置/API/frontend contract 测试）；
+  - Edge headless 实际截图：中文完整渲染、阿拉伯语 RTL 布局正常；
+  - Obscura 实测动态文案（provider 说明、主题数量、demo 提示）已翻译；
+  - validate --strict、designs/libraries/skills/themes verify、smoke test 全绿。
+

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stitchcraft"
-version = "0.9.0"
+version = "0.10.0"
 description = "A solo AI site builder that stitches specialised skills into one pipeline, with Kiro specs and hooks holding the seams."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -14,6 +14,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+SUPPORTED_LANGUAGES = ("en", "zh", "de", "ar", "ru")
+
 PRESETS: dict[str, dict[str, object]] = {
     # Free, no key required (community endpoint — rate limited, not for secrets).
     "pollinations": {
@@ -238,9 +240,10 @@ class DatabaseSettings:
 class UISettings:
     theme: str = "kiroween"
     demo_mode: bool = False
+    language: str = ""
 
     def public_dict(self) -> dict:
-        return {"theme": self.theme, "demo_mode": self.demo_mode}
+        return {"theme": self.theme, "demo_mode": self.demo_mode, "language": self.language}
 
 
 @dataclass
@@ -290,7 +293,7 @@ class AppConfig:
                     "table_prefix": self.database.remote.table_prefix,
                 },
             },
-            "ui": {"theme": self.ui.theme, "demo_mode": self.ui.demo_mode},
+            "ui": {"theme": self.ui.theme, "demo_mode": self.ui.demo_mode, "language": self.ui.language},
             "browser": {
                 "auto_check": self.browser.auto_check,
                 "allow_private_network": self.browser.allow_private_network,
@@ -341,6 +344,10 @@ class AppConfig:
             self.ui.theme = str(ui.get("theme") or "kiroween")
         if "demo_mode" in ui:
             self.ui.demo_mode = bool(ui.get("demo_mode"))
+        if "language" in ui:
+            language = str(ui.get("language") or "").strip().lower()
+            if language in {"", *SUPPORTED_LANGUAGES}:
+                self.ui.language = language
 
         browser = payload.get("browser") or {}
         if "auto_check" in browser:

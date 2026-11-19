@@ -12,6 +12,8 @@
 (function () {
   'use strict';
 
+  const I18N = window.StitchcraftI18n || null;
+
   /* ---------- 1. Constants ------------------------------------------------- */
   const STAGES = [
     { key: 'brief', label: 'Brief' }, { key: 'structure', label: 'Structure' }, { key: 'design', label: 'Design tokens' },
@@ -70,7 +72,7 @@
   const announce = (message) => setText('sr-status', message);
   function isHttpUrl(value) { try { const url = new URL(value); return url.protocol === 'http:' || url.protocol === 'https:'; } catch (_) { return false; } }
   function formatDate(value) {
-    if (!value) return 'Unknown date';
+    if (!value) return I18N ? I18N.translate('Unknown date') : 'Unknown date';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     try { return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date); } catch (_) { return String(value); } }
@@ -238,8 +240,14 @@
   function updateThemeNote() {
     const note = $('theme-note'); if (!note) return;
     const samples = state.themes.filter((theme) => theme.has_sample).length;
-    note.textContent = state.themesOffline ? 'Offline — showing the built-in theme catalogue.'
-      : state.themes.length ? state.themes.length + ' themes · ' + samples + ' with demo samples' : 'No themes loaded yet.'; }
+    if (I18N) {
+      note.textContent = state.themesOffline ? I18N.translate('Offline — showing the built-in theme catalogue.')
+        : state.themes.length ? I18N.format('{count} themes · {samples} with demo samples', { count: state.themes.length, samples: samples })
+        : I18N.translate('No themes loaded yet.');
+    } else {
+      note.textContent = state.themesOffline ? 'Offline — showing the built-in theme catalogue.'
+        : state.themes.length ? state.themes.length + ' themes · ' + samples + ' with demo samples' : 'No themes loaded yet.';
+    } }
   function renderThemes() {
     const grid = $('theme-grid'); if (!grid) return;
     clear(grid);
@@ -282,22 +290,22 @@
       const themes = list.map(normalizeTheme).filter(Boolean);
       if (!themes.length) throw new Error('The backend returned an empty theme list.');
       state.themes = themes; state.themesOffline = false; renderThemes();
-      if (opts.manual) toast('Themes refreshed — ' + themes.length + ' available.', 'success');
+      if (opts.manual) toast(I18N ? I18N.format('Themes refreshed — {count} available.', { count: themes.length }) : 'Themes refreshed — ' + themes.length + ' available.', 'success');
       return true;
     } catch (error) {
       state.themes = FALLBACK_THEMES.map((theme) => Object.assign({}, theme, { tags: theme.tags.slice() }));
       state.themesOffline = true; renderThemes();
-      if (opts.manual) toast('Could not refresh themes: ' + error.message, 'error');
+      if (opts.manual) toast(I18N ? I18N.format('Could not refresh themes: {message}', { message: error.message }) : 'Could not refresh themes: ' + error.message, 'error');
       return false; } }
   function updateDemoButton() {
     const button = $('preview-demo-btn'), hint = $('preview-demo-hint'), theme = currentTheme();
     if (!button) return;
     button.disabled = !(theme && theme.has_sample && !state.themesOffline && state.online);
     if (!hint) return;
-    if (!theme) hint.textContent = 'Pick a theme in the Style step to preview a demo sample.';
-    else if (!theme.has_sample) hint.textContent = theme.name + ' has no packaged sample — generate it to see a preview.';
-    else if (state.themesOffline || !state.online) hint.textContent = 'Demo previews need the local backend. Start the server, then retry.';
-    else hint.textContent = 'Preview the ' + theme.name + ' sample site.'; }
+    if (!theme) hint.textContent = I18N ? I18N.translate('Pick a theme in the Style step to preview a demo sample.') : 'Pick a theme in the Style step to preview a demo sample.';
+    else if (!theme.has_sample) hint.textContent = I18N ? I18N.format('{theme} has no packaged sample — generate it to see a preview.', { theme: theme.name }) : theme.name + ' has no packaged sample — generate it to see a preview.';
+    else if (state.themesOffline || !state.online) hint.textContent = I18N ? I18N.translate('Demo previews need the local backend. Start the server, then retry.') : 'Demo previews need the local backend. Start the server, then retry.';
+    else hint.textContent = I18N ? I18N.format('Preview the {theme} sample site.', { theme: theme.name }) : 'Preview the ' + theme.name + ' sample site.'; }
 
   /* ---------- 10. Settings: presets, masks, save, test --------------------- */
   const PLACEHOLDERS = { api: 'sk-…', db: 'public anon key' };
@@ -314,7 +322,7 @@
     const settings = state.settings || {}, section = isAI ? settings.ai || {} : (settings.database || {}).remote || {};
     const saved = Boolean(section.has_key), typed = input.value.trim().length > 0;
     if (isAI && providerPreset((($('provider') || {}).value || 'pollinations')).requires_key === false) {
-      input.disabled = true; input.placeholder = 'not required';
+      input.disabled = true; input.placeholder = I18N ? I18N.translate('not required') : 'not required';
       hint.dataset.state = 'saved'; label.textContent = 'No API key needed for this provider';
       return; }
     input.disabled = false;
@@ -358,6 +366,7 @@
     if (demo) demo.checked = typeof ui.demo_mode === 'boolean' ? ui.demo_mode : typeof config.demo_mode === 'boolean' ? config.demo_mode : demo.checked;
     const browser = config.browser || {};
     if ($('browser-auto-check')) $('browser-auto-check').checked = browser.auto_check !== false;
+    if (I18N && ui.language) I18N.setLanguage(ui.language);
     syncProviderUI(); syncDBMode(); updateSummary(); updateGenerateNote(); }
   function aiPayload() {
     const payload = {
@@ -462,8 +471,9 @@
   function updateGenerateNote() {
     if (state.generating) return;
     const note = $('generate-note'); if (!note) return;
-    note.textContent = ($('demo-mode') || {}).checked ? 'Demo mode copies a packaged sample and makes no model calls — usually a few seconds.'
-      : 'Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.'; }
+    note.textContent = ($('demo-mode') || {}).checked
+      ? (I18N ? I18N.translate('Demo mode copies a packaged sample and makes no model calls — usually a few seconds.') : 'Demo mode copies a packaged sample and makes no model calls — usually a few seconds.')
+      : (I18N ? I18N.translate('Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.') : 'Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.'); }
   function updateCharCount() {
     const prompt = $('prompt'), count = $('prompt-count'); if (!prompt || !count) return;
     count.textContent = String(prompt.value.length);
@@ -1082,6 +1092,20 @@
     else if (opts.manual) toast('Connected to the Stitchcraft backend.', 'success');
     if (!opts.silent) announce(online ? 'Studio ready.' : 'Backend offline.');
     ensureInitialTheme(); }
+  function bindLanguage() {
+    const select = $('language-select');
+    if (!select || !I18N) return;
+    select.value = I18N.getLanguage();
+    on(select, 'change', async () => {
+      const language = String(select.value || 'en');
+      I18N.setLanguage(language);
+      state.settings = state.settings || {};
+      state.settings.ui = Object.assign({}, state.settings.ui || {}, { language: language });
+      try { await api('/api/settings', { method: 'POST', body: { ui: { language: language } } }); }
+      catch (_) { /* the choice is still remembered locally */ }
+    });
+  }
+
   function bindConnection() {
     on($('offline-retry'), 'click', () => bootstrap({ manual: true }));
     window.addEventListener('offline', () => { setConnection(false); toast('Network offline.', 'error'); });
@@ -1115,7 +1139,7 @@
     PLACEHOLDERS.api = (($('api-key') || {}).placeholder) || 'sk-…';
     PLACEHOLDERS.db = (($('db-key') || {}).placeholder) || 'public anon key';
     makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindGeneration();
-    bindHistory(); bindPreview(); bindConnection(); bindGlobalKeys(); bindBrowser();
+    bindHistory(); bindPreview(); bindLanguage(); bindConnection(); bindGlobalKeys(); bindBrowser();
     paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); syncProviderUI(); setPreviewLoading(false);
     bootstrap({ silent: true }); loadLibrariesNote(); loadBrowser();
     animateEntrance(); }

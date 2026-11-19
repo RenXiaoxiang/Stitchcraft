@@ -52,6 +52,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
 | Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
 | Job queue | One build runs at a time; additional requests wait with a visible queue position. Finished history is capped without evicting running or queued jobs. |
+| Five UI languages | 中文 / English / Deutsch / العربية / Русский selector in the launcher; Arabic switches the whole studio to RTL. The choice is saved locally and in the app config. |
 | Acceptance benchmark | Five fixed tasks under `benchmarks/tasks/` measure first-pass success, latency, warnings and retries with `stitch benchmark` (mock or your configured AI). |
 
 ## Free AI options (no paid key needed)
@@ -235,6 +236,29 @@ Skills are data: `skills/registry.toml` declares paths, license and prompt
 budgets; `src/stitchcraft/skills.py` loads and injects them. Attribution is in
 [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md); vendored files are never edited
 by hand.
+
+## Languages
+
+The launcher has a language selector in the top bar with five languages:
+
+| Language | Code | Direction |
+| --- | --- | --- |
+| 中文 (Simplified Chinese) | `zh` | LTR |
+| English | `en` | LTR |
+| Deutsch (German) | `de` | LTR |
+| العربية (Arabic) | `ar` | **RTL** |
+| Русский (Russian) | `ru` | LTR |
+
+The UI shell, wizard, settings, validation hints, theme labels and common status
+messages are translated. The choice is stored in the local config
+(`ui.language`) and in `localStorage`; first launch follows the browser language.
+Arabic switches `dir="rtl"` and uses Arabic-safe font fallbacks; dynamic
+technical messages from the model/backend may remain English.
+
+The implementation is dependency-free: `app/web/i18n.js` holds the dictionaries
+and a `MutationObserver` for dynamically rendered UI. Add a language by adding
+its code to `SUPPORTED_LANGUAGES` in `src/stitchcraft/settings.py` and a
+dictionary block to `i18n.js`.
 
 ## DESIGN.md design references
 

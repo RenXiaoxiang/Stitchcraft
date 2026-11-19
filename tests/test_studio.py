@@ -31,7 +31,7 @@ from stitchcraft.generator import GenerationError, GenerationRequest, generate_s
 from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
 from stitchcraft.server import Job, StudioContext  # noqa: E402
-from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
+from stitchcraft.settings import AppConfig, SUPPORTED_LANGUAGES, provider_catalog, provider_requires_key  # noqa: E402
 from stitchcraft.skills import build_skill_context, select_for_theme, verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
 from stitchcraft.themes import get_theme, load_themes, verify_themes  # noqa: E402
@@ -97,6 +97,22 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(config.ai.api_key, "sk-keep-me-12345678")
         config.merge_patch({"ai": {"clear_api_key": True}})
         self.assertEqual(config.ai.api_key, "")
+
+    def test_language_roundtrip_and_validation(self) -> None:
+        self.assertEqual(set(SUPPORTED_LANGUAGES), {"en", "zh", "de", "ar", "ru"})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            config = AppConfig()
+            self.assertEqual(config.ui.language, "")
+            for language in SUPPORTED_LANGUAGES:
+                config.merge_patch({"ui": {"language": language}})
+                self.assertEqual(config.ui.language, language)
+            config.merge_patch({"ui": {"language": "xx"}})
+            self.assertEqual(config.ui.language, "ru")
+            settings.save_config(config, path)
+            loaded = settings.load_config(path)
+            self.assertEqual(loaded.ui.language, "ru")
+            self.assertEqual(loaded.public_dict()["ui"]["language"], "ru")
 
 
 class RegistryTests(unittest.TestCase):
@@ -637,6 +653,23 @@ class ServerApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(payload["ok"])
 
+    def test_language_setting_roundtrip(self) -> None:
+        for language in SUPPORTED_LANGUAGES:
+            status, payload = _get_json(
+                self.base + "/api/settings",
+                "POST",
+                {"ui": {"language": language}},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["settings"]["ui"]["language"], language)
+        status, payload = _get_json(
+            self.base + "/api/settings",
+            "POST",
+            {"ui": {"language": "not-a-language"}},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["settings"]["ui"]["language"], "ru")
+
     def test_rejects_cross_origin_settings_write(self) -> None:
         payload = json.dumps({"ai": {"base_url": "https://evil.example/v1"}}).encode("utf-8")
         status, _headers, _body = _raw_request(
@@ -735,6 +768,19 @@ class ServerApiTests(unittest.TestCase):
         app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")
         self.assertIn("preview_base", app_js)
         self.assertIn("function previewBase", app_js)
+
+    def test_frontend_language_contract(self) -> None:
+        html = (ROOT / "app" / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="language-select"', html)
+        self.assertIn("i18n.js", html)
+        self.assertIn('dir="ltr"', html)
+        i18n_js = (ROOT / "app" / "web" / "i18n.js").read_text(encoding="utf-8")
+        self.assertIn("var SUPPORTED = ['zh', 'en', 'de', 'ar', 'ru']", i18n_js)
+        self.assertIn("document.documentElement.dir", i18n_js)
+        self.assertIn("'rtl'", i18n_js)
+        app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("bindLanguage", app_js)
+        self.assertIn("StitchcraftI18n", app_js)
 
     def test_generate_mock_preview_and_export(self) -> None:
         status, payload = _get_json(
