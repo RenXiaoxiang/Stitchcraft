@@ -584,6 +584,69 @@ class BrowserManager:
         (target / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         return report
 
+    def evaluate(
+        self,
+        url: str,
+        expression: str,
+        *,
+        timeout: int = 30,
+        wait_seconds: float = 2.0,
+        allow_private_network: bool = True,
+        storage_dir: Path | None = None,
+    ) -> dict:
+        """Run one JavaScript expression after a page settles and return its object."""
+        status = self.status()
+        if not status["installed"]:
+            raise BrowserError("Obscura is not installed yet. Run `stitch browser install` or install it in the studio.")
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise BrowserError(f"Browser evaluation needs an http(s) URL, got {url!r}.")
+        command = [
+            str(status["binary"]),
+            "fetch",
+            url,
+            "--eval",
+            expression,
+            "--wait",
+            str(int(max(0, float(wait_seconds)))),
+            "--wait-until",
+            "networkidle0",
+            "--timeout",
+            str(max(5, int(timeout))),
+            "--quiet",
+        ]
+        if storage_dir is not None:
+            command.extend(["--storage-dir", str(Path(storage_dir))])
+        if allow_private_network:
+            command.append("--allow-private-network")
+        completed = self._runner(command, timeout + 30)
+        if int(getattr(completed, "returncode", 1)) != 0:
+            raise BrowserError(
+                "Obscura could not evaluate the page: "
+                + _tail(str(getattr(completed, "stderr", "") or getattr(completed, "stdout", "")))
+            )
+        raw = str(getattr(completed, "stdout", "") or "").strip()
+        if not raw:
+            raise BrowserError("Obscura returned an empty evaluation result.")
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError:
+            start, end = raw.find("{"), raw.rfind("}")
+            if start < 0 or end <= start:
+                raise BrowserError(f"Obscura returned non-JSON evaluation output: {raw[:200]!r}")
+            try:
+                value = json.loads(raw[start : end + 1])
+            except json.JSONDecodeError as exc:
+                raise BrowserError(f"Obscura returned invalid JSON: {raw[:200]!r}") from exc
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        if not isinstance(value, dict):
+            raise BrowserError("The browser evaluation did not return a JSON object.")
+        return value
+
     # -- manual commands -----------------------------------------------------
     def serve_command(
         self,

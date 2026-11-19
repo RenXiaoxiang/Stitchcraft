@@ -548,7 +548,8 @@ def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
     print()
     for item in report["results"]:
         marker = "PASS" if item["ok"] else "FAIL"
-        detail = f"{item['files']} files, {len(item['warnings'])} warning(s)"
+        functional_state = str((item.get("functional") or {}).get("status") or "untested")
+        detail = f"{item['files']} files, {len(item['warnings'])} warning(s), functional: {functional_state}"
         if item.get("missing_files"):
             detail += ", missing: " + ", ".join(item["missing_files"])
         if item.get("error"):
@@ -556,12 +557,18 @@ def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
         print(f"  [{marker}] {item['task']:<22} {item['duration_ms']:>6} ms  {detail}")
     print()
     print(
-        f"summary: {summary['passed']}/{summary['total']} passed · "
-        f"first-pass {summary['first_pass_rate'] * 100:.0f}% · "
-        f"average {summary['average_duration_ms']} ms · repairs {summary['repairs']}"
+        f"build: {summary['build_passed']}/{summary['total']} passed · "
+        f"no-retry first-pass {summary['first_pass_rate'] * 100:.0f}% · "
+        f"functional {summary['functional_passed']} passed / {summary['functional_failed']} failed / "
+        f"{summary['functional_untested']} untested · "
+        f"placeholders {summary['placeholders']}"
+    )
+    print(
+        f"cost: {summary['model_calls']} model call(s), {summary['retries']} retr(ies) · "
+        f"average {summary['average_duration_ms']} ms"
     )
     print(f"  report: {_display(Path(report['report_dir']), repo.root)}")
-    return EXIT_OK if summary["failed"] == 0 else EXIT_FINDINGS
+    return EXIT_OK if summary["build_failed"] == 0 else EXIT_FINDINGS
 
 
 def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:

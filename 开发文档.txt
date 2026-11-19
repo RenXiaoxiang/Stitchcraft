@@ -959,3 +959,39 @@ License  : MIT
   - unittest 66 个通过；validate --strict 0/0；libraries/skills/themes verify；
     smoke test PASS；benchmark mock warehouse-inventory PASS。
 
+================================================================================
+18. v0.8.0 功能验收与基准真实性
+--------------------------------------------------------------------------------
+18.1 基准输出目录安全
+  - benchmark --out 视为“父目录”；每次运行在其下创建唯一的 run-<timestamp>-<id>/
+    （冲突再加后缀）。任务目录只写在这个新 run 下，不再 force=True。
+  - 用户预置的同名目录不会被替换；回归：预放 warehouse-inventory-1/notes.txt，
+    运行后文件仍在，报告在 run-* 下。
+
+18.2 用户操作验收
+  - benchmark 现在分别报告 build（文件/引用/占位）与 functional（真实浏览器操作）。
+  - warehouse-inventory：新增商品 → 搜索找到 → 用同一 origin + 同一 Obscura storage
+    再开一次浏览器验证刷新后仍在 → 删除并确认消失 → 低库存指标存在。
+  - brand-launch：iframe 宽度 390px 模拟移动端；主 CTA 可见、在视口内、无横向溢出、
+    点击后到达目标（href 或 URL 变化）。
+  - 浏览器未安装 / 占位页 / 无场景时 functional 明确记为 untested，不计入通过；
+    占位构建单独计数，不再用 5/5 掩盖 3 个占位页。
+  - 新增 src/stitchcraft/functional.py：同源 harness 服务器 + Obscura --eval，
+    --storage-dir 复用同一浏览器 profile；BrowserManager.evaluate 支持 storage-dir。
+  - 回归：无浏览器时 untested、占位页 untested；本地安装 Obscura 时仓储链路实测通过。
+
+18.3 真实模型指标
+  - GenerationResult 新增 model_calls / retries / placeholder；AI 路径统计 planning、
+    build、重试与限速重试；mock 为 0。
+  - benchmark 记录 provider/model、model_calls、retries、no_retry_pass；
+    summary 输出 build_passed、functional_*、placeholders、no_retry_passes、
+    recovered_after_retry、first_pass_rate、model_calls。
+  - “首轮通过”改为：第一次尝试且无重试即 build 通过；重试后通过单独计数。
+    报告 markdown 增加 Build/Functional/Retries/Calls 列与口径说明。
+
+18.4 验证
+  - unittest 70 个通过；validate --strict 0/0；CI benchmark 步骤通过；
+  - mock 全量基准：build 5/5，placeholders 3，functional 1 passed / 4 untested；
+  - 安装了 Obscura 的本地环境：warehouse-inventory functional passed
+    （add/search/persist/delete/low-stock 全部通过）；brand 因占位页 untested。
+

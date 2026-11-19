@@ -78,6 +78,9 @@ class GenerationResult:
     summary: str
     warnings: list[str] = field(default_factory=list)
     duration_ms: int = 0
+    model_calls: int = 0
+    retries: int = 0
+    placeholder: bool = False
 
     def public_dict(self) -> dict:
         return {
@@ -89,6 +92,9 @@ class GenerationResult:
             "summary": self.summary,
             "warnings": list(self.warnings),
             "duration_ms": self.duration_ms,
+            "model_calls": self.model_calls,
+            "retries": self.retries,
+            "placeholder": self.placeholder,
         }
 
 
@@ -646,6 +652,7 @@ def _generate_into(
         active(5, "Adding components")
         done(5)
         sample = sample_dir(root, theme)
+        placeholder = sample is None
         active(6, "Demo engine: adding packaged motion and sample data")
         sleep(0.12)
         if sample is not None:
@@ -681,6 +688,7 @@ def _generate_into(
             summary=summary,
             warnings=warnings,
             duration_ms=int((time.perf_counter() - started) * 1000),
+            placeholder=placeholder,
         )
 
     # ---- AI engine -------------------------------------------------------
@@ -701,7 +709,12 @@ def _generate_into(
             "(Pollinations needs no key), or switch to demo mode."
         )
 
+    model_calls = 0
+    retries = 0
+
     def _chat(messages_to_use: list[dict], max_tokens: int) -> dict:
+        nonlocal model_calls
+        model_calls += 1
         request_config = ai_client.AIConfig(
             provider=config.ai.provider,
             base_url=config.ai.base_url,
@@ -823,6 +836,7 @@ def _generate_into(
     for attempt, (messages_to_use, max_tokens) in enumerate(attempts, start=1):
         try:
             if attempt > 1:
+                retries += 1
                 _emit(on_progress, 4, "active", "Retrying the AI with a compact single-file prompt")
                 warnings.append("The AI needed a compact single-file retry.")
             payload = _request(messages_to_use, max_tokens)
@@ -837,6 +851,7 @@ def _generate_into(
             "Free endpoint is rate-limited or returned partial output; waiting 40s before one retry",
         )
         warnings.append("The free endpoint needed a rate-limit retry (40s wait).")
+        retries += 1
         sleep(40)
         try:
             payload = _request(compact_retry_messages, compact_max_tokens)
@@ -902,6 +917,9 @@ def _generate_into(
         summary=summary,
         warnings=warnings,
         duration_ms=int((time.perf_counter() - started) * 1000),
+        model_calls=model_calls,
+        retries=retries,
+        placeholder=False,
     )
 
 def generate_site(

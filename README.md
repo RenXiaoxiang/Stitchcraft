@@ -171,18 +171,35 @@ queued job.
 ## Acceptance benchmark
 
 Five fixed tasks live in [`benchmarks/tasks/`](benchmarks/tasks/); each names a
-theme, a brief and the files a usable build must contain. The benchmark records
-pass/fail, latency, file count, warnings and retry/repair notes:
+theme, a brief and the files a usable build must contain. The benchmark reports
+**build success** and **functional acceptance** separately:
+
+- **Build** — the site generated and required files exist.
+- **Functional** — a browser-driven user-operation chain:
+  - `warehouse-inventory`: add an item, search for it, verify it survives a
+    fresh browser run, delete it, and check the low-stock indicator.
+  - `brand-launch`: at a 390 px viewport, the primary CTA is visible, the page
+    has no horizontal overflow, and clicking the CTA reaches a destination.
+- **Untested** — explicitly recorded when Obscura is not installed, the build
+  is a placeholder, or the task declares no functional scenario. It is never
+  counted as a pass.
+- **Placeholder builds** are counted separately so mock-theme gaps cannot
+  inflate the quality number.
 
 ```bash
-python -m stitchcraft benchmark --engine mock      # offline, deterministic
+python -m stitchcraft benchmark --engine mock      # offline; placeholder + functional status
 python -m stitchcraft benchmark --engine ai --repeat 2
 ```
 
-Reports land in `.stitch/benchmarks/<run>/report.json` + `report.md`, with the
-generated sites beside them for review. A pass only means the build completed
-and required files exist; copy, layout and interactions still need human review.
-See [`benchmarks/README.md`](benchmarks/README.md).
+Reports land in a **unique run directory** under the chosen output parent
+(`.stitch/benchmarks/run-<timestamp>/` by default), with `report.json`,
+`report.md` and the generated sites beside them. The benchmark never passes
+`force=True`, so a user-supplied `--out` cannot be overwritten.
+
+Metrics: `build_passed`, `functional_passed/failed/untested`, `placeholders`,
+`model_calls`, `retries`, `no_retry_passes`, `recovered_after_retry`,
+`first_pass_rate` and `average_duration_ms`. See
+[`benchmarks/README.md`](benchmarks/README.md).
 
 ## Themes
 

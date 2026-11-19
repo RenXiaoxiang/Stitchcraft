@@ -424,6 +424,8 @@ class PlanValidationTests(unittest.TestCase):
             )
         self.assertEqual(len(calls), 2)
         self.assertTrue(any("model plan was invalid" in warning for warning in result.warnings), result.warnings)
+        self.assertEqual(result.model_calls, 2)
+        self.assertEqual(result.retries, 0)
 
 
 class AIGenerationTests(unittest.TestCase):
@@ -468,6 +470,9 @@ class AIGenerationTests(unittest.TestCase):
         self.assertIn("Approved site plan", build_prompt)
         self.assertIn("Theme reference blocks", build_prompt)
         self.assertIn("index.html", result.files)
+        self.assertEqual(result.model_calls, 2)
+        self.assertEqual(result.retries, 0)
+        self.assertFalse(result.placeholder)
 
     def test_missing_local_reference_is_reported(self) -> None:
         files = {
