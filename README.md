@@ -47,7 +47,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Demo mode | No API key? Generate from the packaged sample sites so the whole flow still works (and can be recorded for the demo video). |
 | Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
 | Project history | SQLite-backed local history; reopen or delete any generation. |
-| Skills runtime | 18 registry entries over three vendored packs plus two house skills; prompt budgets keep generations focused. |
+| Skills runtime | 21 registry entries over four vendored packs plus three house skills; prompt budgets keep generations focused. |
 | Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
 | Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
 
@@ -163,6 +163,7 @@ machine-readable list.
 | Pack | Upstream | License | What it teaches |
 | --- | --- | --- | --- |
 | Modern Web Guidance | [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance) | Apache-2.0 | Accessible, modern, high-performance web UI patterns. |
+| AI Design Skills | [elayadesign/ai-design-skills](https://github.com/elayadesign/ai-design-skills) | MIT | Conversion-first landing-page structure and a strict visual system for marketing pages. |
 | GSAP official skills | [greensock/gsap-skills](https://github.com/greensock/gsap-skills) | MIT | Correct GSAP timelines, ScrollTrigger, plugins and cleanup. |
 | Web Animation Skills | [iart-ai/web-animation-skills](https://github.com/iart-ai/web-animation-skills) | MIT | 60fps budgets, accessible motion, page transitions and micro-interactions. |
 | GSAP browser build | [gsap@3.13.0](https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js) | GSAP standard license | Offline animation runtime for the studio UI and generated sites. |
@@ -322,7 +323,8 @@ whole repository coherent; the hooks call it whenever a seam changes.
 ├── .kiro/                                   steering, specs and hooks
 ├── hackathon/                               Kiroween 2026 submission kit
 ├── docs/                                    architecture/authoring/roadmap + Pages showcase
-│   └── demo/whiteboard/                     offline Fabric.js whiteboard demo
+│   ├── demo/whiteboard/                     offline Fabric.js whiteboard demo
+│   └── integrations/                        optional Playwright MCP setup
 ├── tests/                                   unit tests + API smoke tests
 ├── 开发文档.txt                              full development plan (Chinese)
 └── examples/                                seed requests for dry runs
@@ -342,6 +344,12 @@ python -m stitchcraft skills verify
 CI runs the same checks on Python 3.11, 3.12 and 3.13. Read
 [AGENTS.md](AGENTS.md) before changing anything: the rules apply to humans and
 AI agents alike.
+
+- [`.kiro/steering/lean-engineering.md`](.kiro/steering/lean-engineering.md) —
+  necessity-first engineering guardrails (inspired by Ponytail, MIT).
+- [`docs/integrations/playwright-mcp.md`](docs/integrations/playwright-mcp.md) —
+  optional Playwright MCP setup for interactive E2E tests; not bundled and not
+  required at runtime.
 
 ## Privacy and security
 

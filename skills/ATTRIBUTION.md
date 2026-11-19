@@ -11,6 +11,7 @@ and deterministically. Vendored packs are copied unmodified (their original
 | --- | --- | --- | --- | --- | --- |
 | Modern Web Guidance | https://github.com/GoogleChrome/modern-web-guidance | `64a6d708f5a43f2cd3fde5d4d7db3905ba1bdf65` | Apache-2.0 | `skills/vendor/modern-web-guidance/` (SKILL.md, guides/) | `skills/vendor/modern-web-guidance/LICENSE` |
 | GSAP official skills | https://github.com/greensock/gsap-skills | `aed9cfd3277740755f6bfc1155c7aa645403b760` | MIT | `skills/vendor/gsap-skills/skills/` (8 skills + llms.txt) | `skills/vendor/gsap-skills/LICENSE` |
+| AI Design Skills | https://github.com/elayadesign/ai-design-skills | `456d9e0d3e2d84c748bb143c6ca3d90c45e16213` | MIT | `skills/vendor/ai-design-skills/skills/landing-page-design/SKILL.md` | `skills/vendor/ai-design-skills/LICENSE` |
 | Web Animation Skills | https://github.com/iart-ai/web-animation-skills | `ed3a045192679b24d32090ee7a983871311ababd` | MIT | `skills/vendor/web-animation-skills/skills/` (7 skills) | `skills/vendor/web-animation-skills/LICENSE` |
 | GSAP browser build | https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js | 3.13.0 | GSAP standard license | `skills/vendor/gsap-lib/gsap.min.js` | `skills/vendor/gsap-lib/UPSTREAM.md` |
 
@@ -21,6 +22,8 @@ and deterministically. Vendored packs are copied unmodified (their original
   the GSAP standard license (https://gsap.com/licensing/).
 - **Google Chrome**, **Chrome**, and **Modern Web Guidance** are trademarks or
   projects of Google LLC. The guidance pack is used under Apache-2.0.
+- **AI Design Skills** is an Elaya project, used under MIT; only the
+  landing-page-design skill is redistributed.
 - **Kiro** and **Kiroween** are trademarks of Amazon Web Services; this project
   was built for the Kiroween 2026 hackathon and does not claim affiliation.
 - Other project names referenced by the skills belong to their respective owners.

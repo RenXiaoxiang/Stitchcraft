@@ -104,6 +104,15 @@ License, Version 2.0.
 - License: MIT — [`skills/vendor/web-animation-skills/LICENSE`](skills/vendor/web-animation-skills/LICENSE)
 - Provenance: [`skills/vendor/web-animation-skills/UPSTREAM.md`](skills/vendor/web-animation-skills/UPSTREAM.md)
 
+### AI Design Skills — Elaya (MIT)
+
+- Copyright: Copyright (c) 2026 Elaya
+- Upstream: https://github.com/elayadesign/ai-design-skills (commit `456d9e0d3e2d84c748bb143c6ca3d90c45e16213`)
+- License: MIT — [`skills/vendor/ai-design-skills/LICENSE`](skills/vendor/ai-design-skills/LICENSE)
+- Provenance: [`skills/vendor/ai-design-skills/UPSTREAM.md`](skills/vendor/ai-design-skills/UPSTREAM.md)
+- Copied: the `landing-page-design` skill only, unmodified. The upstream
+  `figma-designer` skill, tests and scripts are not redistributed.
+
 ### GSAP browser build — GreenSock, Inc. (GSAP standard license)
 
 - Version: 3.13.0 (npm `gsap`)
@@ -136,7 +145,20 @@ digest, extracts it locally, and writes the license and notice beside it.
   AI browser check. The user can set `STITCHCRAFT_BROWSER_MIRROR` to fetch the
   same pinned asset through a mirror; the SHA-256 verification is unchanged.
 
-## 4. Trademark notes
+## 4. Optional developer tooling (not distributed)
+
+These tools are documented as optional integrations. They are **not** bundled,
+downloaded or required by the Stitchcraft runtime.
+
+- **Playwright MCP** — https://github.com/microsoft/playwright-mcp, Apache-2.0,
+  Copyright Microsoft Corporation. Requires Node.js 18+. See
+  [`docs/integrations/playwright-mcp.md`](docs/integrations/playwright-mcp.md).
+- **Ponytail** — https://github.com/DietrichGebert/ponytail, MIT,
+  Copyright (c) 2026 DietrichGebert. Its necessity-first approach inspired
+  [`.kiro/steering/lean-engineering.md`](.kiro/steering/lean-engineering.md);
+  that file is Stitchcraft's own summary and does not redistribute upstream text.
+
+## 5. Trademark notes
 
 - **GSAP** and **GreenSock** are trademarks of GreenSock, Inc. The official
   skills are used under MIT; the GSAP browser build is used under the GSAP
@@ -151,6 +173,12 @@ digest, extracts it locally, and writes the license and notice beside it.
   licenses.
 - **Obscura** is the name of the Apache-2.0 headless browser by its upstream
   authors (https://github.com/h4ckf0r0day/obscura), used here under that license.
+- **AI Design Skills** is an Elaya project (https://github.com/elayadesign/ai-design-skills),
+  used under the MIT license; only the landing-page-design skill is redistributed.
+- **Playwright** and **Playwright MCP** are projects of Microsoft Corporation;
+  Playwright MCP is referenced as optional developer tooling under Apache-2.0.
+- **Ponytail** is a project by DietrichGebert under the MIT license; it inspired
+  Stitchcraft's lean-engineering steering file, without redistributing its text.
 - **Fabric.js**, **Chart.js**, **SortableJS**, **Rough.js**, **Swiper** and
   **GridStack** are names/projects of their respective authors and are used
   under the MIT license.
@@ -158,7 +186,7 @@ digest, extracts it locally, and writes the license and notice beside it.
   trademarks of their respective owners and are used for identification only.
   No third-party name or logo here implies endorsement of Stitchcraft.
 
-## 5. Redistribution policy
+## 6. Redistribution policy
 
 - No upstream file's contents are modified: vendored code, skill text and
   license files are byte-for-byte upstream. Provenance and notice files

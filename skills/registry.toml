@@ -9,8 +9,8 @@
 # (like the GSAP browser build) that are not prompt context.
 
 [meta]
-version = "0.1.0"
-description = "Skills baked into Stitchcraft generations: Chrome Modern Web Guidance, official GSAP skills, web-animation skills and Stitchcraft house skills."
+version = "0.2.0"
+description = "Skills baked into Stitchcraft generations: Chrome Modern Web Guidance, landing-page design, official GSAP skills, web-animation skills and Stitchcraft house skills."
 
 [[skills]]
 id = "modern-web-guidance"
@@ -23,6 +23,19 @@ summary = "Chrome team guidance for modern, accessible, high-performance web UI,
 stages = ["design", "build", "qa"]
 enabled = true
 budget_chars = 14000
+kind = "skill"
+
+[[skills]]
+id = "landing-page-design"
+name = "Landing Page Design"
+category = "design"
+source = "elayadesign/ai-design-skills"
+license = "MIT"
+path = "skills/vendor/ai-design-skills/skills/landing-page-design"
+summary = "Conversion-first landing-page structure plus strict visual rules for typography, spacing, radius, backgrounds and motion."
+stages = ["design", "build"]
+enabled = true
+budget_chars = 6000
 kind = "skill"
 
 [[skills]]

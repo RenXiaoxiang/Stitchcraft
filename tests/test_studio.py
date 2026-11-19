@@ -28,7 +28,7 @@ from stitchcraft.generator import GenerationError, GenerationRequest, generate_s
 from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
 from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
-from stitchcraft.skills import verify_registry  # noqa: E402
+from stitchcraft.skills import build_skill_context, select_for_theme, verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
 from stitchcraft.themes import verify_themes  # noqa: E402
 
@@ -95,6 +95,23 @@ class RegistryTests(unittest.TestCase):
 
     def test_library_registry_is_healthy(self) -> None:
         self.assertEqual(verify_libraries(ROOT), [])
+
+    def test_landing_page_design_is_vendored(self) -> None:
+        pack = ROOT / "skills" / "vendor" / "ai-design-skills"
+        self.assertTrue((pack / "LICENSE").is_file())
+        self.assertTrue((pack / "UPSTREAM.md").is_file())
+        self.assertTrue((pack / "skills" / "landing-page-design" / "SKILL.md").is_file())
+
+    def test_brand_theme_includes_landing_page_design(self) -> None:
+        selected = select_for_theme(
+            ROOT,
+            ["modern-web-guidance", "landing-page-design", "gsap-core", "gsap-scrolltrigger"],
+        )
+        ids = [skill.id for skill in selected]
+        self.assertIn("landing-page-design", ids)
+        context = build_skill_context(ROOT, ids, budget_chars=26000)
+        self.assertIn("Landing Page Design", context)
+        self.assertIn("landing page", context.lower())
 
 
 class FreeProviderTests(unittest.TestCase):

@@ -62,6 +62,10 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   follow this; do not merge jobs for convenience.
 - **Keep the backend dependency-free.** Python 3.11+ standard library only
   (`tomllib`, `json`, `sqlite3`, `http.server`, `urllib`). No SDKs, no frameworks.
+- **Lean by default.** `.kiro/steering/lean-engineering.md` is the necessity
+  ladder: reuse the existing module, theme block or standard library before
+  adding a new layer or dependency. Never trim validation, security,
+  accessibility or tests to make a diff smaller.
 - **Never edit vendored files** under `skills/vendor/`. Re-vendor from the pinned
   upstream commit, update `UPSTREAM.md` + `ATTRIBUTION.md` + the registry.
 - **Secrets never enter the repo, logs or generated sites.** AI keys and
