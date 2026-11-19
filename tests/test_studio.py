@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -502,14 +503,20 @@ class ServerApiTests(unittest.TestCase):
         self.assertEqual(status, 403)
 
     def test_rejects_oversized_request_body(self) -> None:
-        payload = b'{"x":"' + b"a" * (2 * 1024 * 1024 + 1) + b'"}'
-        status, _headers, _body = _raw_request(
-            self.base + "/api/settings",
-            "POST",
-            payload,
-            {"Content-Type": "application/json"},
-        )
-        self.assertEqual(status, 413)
+        # Send only the headers: the server must reject on Content-Length before
+        # reading the body. This avoids a platform-dependent reset while the
+        # client is still uploading 2 MB.
+        with socket.create_connection(("127.0.0.1", self.port), timeout=10) as sock:
+            request = (
+                f"POST /api/settings HTTP/1.1\r\n"
+                f"Host: 127.0.0.1:{self.port}\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {2 * 1024 * 1024 + 1}\r\n"
+                "Connection: close\r\n\r\n"
+            )
+            sock.sendall(request.encode("ascii"))
+            response = sock.recv(4096)
+        self.assertIn(b" 413 ", response.split(b"\r\n", 1)[0])
 
     def test_preview_is_cross_origin_and_has_csp(self) -> None:
         status, _headers, _body = _raw_request(self.base + "/api/demo/personal-space/")
