@@ -27,6 +27,39 @@ from .storage import ProjectStore
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
 MAX_JOBS = 50
+ALLOWED_HOSTNAMES = {"127.0.0.1", "localhost", "::1"}
+
+STUDIO_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "frame-src http://localhost:* http://127.0.0.1:*; "
+    "object-src 'none'; base-uri 'none'; form-action 'self'"
+)
+PREVIEW_CSP = (
+    "default-src 'self' data: blob:; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob: https: http:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' https: http:; "
+    "media-src 'self' data: blob:; "
+    "frame-src 'self' https:; "
+    "object-src 'none'; base-uri 'self'; "
+    "form-action 'self' https: http:"
+)
+
+
+class RequestError(Exception):
+    """A request rejected before reaching an API handler."""
+
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -187,7 +220,7 @@ class StudioContext:
             raise ValueError("project not found")
         if not self.port:
             raise ValueError("the studio is not listening")
-        url = f"http://127.0.0.1:{self.port}/api/preview/{project_id}/"
+        url = f"http://localhost:{self.port}/api/preview/{project_id}/"
         report = self.browser.check(
             url,
             self.browser.checks_dir / project_id,
@@ -269,6 +302,7 @@ class StudioContext:
                 job.request,
                 site_dir,
                 on_progress=on_progress,
+                force=True,  # the project directory is app-managed
             )
             self.store.update(
                 project["id"],
@@ -337,6 +371,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
 
@@ -346,6 +382,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
         download_name: str | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -353,27 +390,66 @@ class StudioHandler(BaseHTTPRequestHandler):
         if download_name:
             self.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
+
+    # -- request validation -------------------------------------------------
+    def _hostname(self) -> str:
+        raw = (self.headers.get("Host") or "").strip().lower()
+        if not raw:
+            return ""
+        if raw.startswith("["):
+            end = raw.find("]")
+            return raw[1:end] if end > 0 else raw
+        return raw.split(":", 1)[0]
+
+    def _validate_request(self, method: str) -> None:
+        """Reject DNS-rebinding hosts, cross-origin writes and form posts."""
+        if self._hostname() not in ALLOWED_HOSTNAMES:
+            raise RequestError(403, "unexpected Host header (DNS rebinding protection)")
+        if method not in {"POST", "DELETE"}:
+            return
+        origin = (self.headers.get("Origin") or "").strip().rstrip("/")
+        if origin:
+            port = int(self.server.server_address[1])
+            allowed = {
+                f"http://127.0.0.1:{port}",
+                f"http://localhost:{port}",
+                f"http://[::1]:{port}",
+            }
+            if origin.lower() not in allowed:
+                raise RequestError(403, "cross-origin request rejected")
+        if method == "POST":
+            content_type = (self.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+            if content_type != "application/json":
+                raise RequestError(415, "Content-Type must be application/json")
 
     def _read_json(self) -> dict:
         try:
             length = int(self.headers.get("Content-Length", "0") or "0")
         except ValueError as exc:
-            raise ValueError("invalid Content-Length") from exc
+            raise RequestError(400, "invalid Content-Length") from exc
         if length > MAX_BODY_BYTES:
-            raise ValueError("request body is too large")
+            raise RequestError(413, "request body is too large")
         raw = self.rfile.read(length) if length else b"{}"
         try:
             data = json.loads(raw.decode("utf-8") or "{}")
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError("request body must be JSON") from exc
+            raise RequestError(400, "request body must be JSON") from exc
         if not isinstance(data, dict):
-            raise ValueError("request body must be a JSON object")
+            raise RequestError(400, "request body must be a JSON object")
         return data
 
     # -- HTTP verbs ----------------------------------------------------------
     def do_OPTIONS(self) -> None:  # noqa: N802
+        try:
+            self._validate_request("OPTIONS")
+        except RequestError as exc:
+            return self._send_json(exc.status, {"ok": False, "error": str(exc)})
         self.send_response(204)
         self.send_header("Allow", "GET, POST, DELETE, OPTIONS")
         self.send_header("Content-Length", "0")
@@ -392,10 +468,13 @@ class StudioHandler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlsplit(self.path)
         path = urllib.parse.unquote(parsed.path)
         try:
+            self._validate_request(method)
             if path.startswith("/api/"):
                 self._api(method, path)
             else:
                 self._static(path)
+        except RequestError as exc:
+            self._send_json(exc.status, {"ok": False, "error": str(exc)})
         except Exception as exc:  # noqa: BLE001 - never kill the connection thread
             self._send_json(500, {"ok": False, "error": f"internal server error: {exc}"})
 
@@ -408,7 +487,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "not found"})
             return
         content_type = CONTENT_TYPES.get(target.suffix.lower(), "application/octet-stream")
-        self._send_bytes(200, target.read_bytes(), content_type)
+        headers = {"Content-Security-Policy": STUDIO_CSP, "X-Frame-Options": "DENY"} if target.suffix.lower() == ".html" else None
+        self._send_bytes(200, target.read_bytes(), content_type, extra_headers=headers)
 
     def _serve_tree(self, base: Path, parts: list[str]) -> None:
         base = base.resolve()
@@ -422,7 +502,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "file not found"})
             return
         content_type = CONTENT_TYPES.get(target.suffix.lower(), "application/octet-stream")
-        self._send_bytes(200, target.read_bytes(), content_type)
+        self._send_bytes(200, target.read_bytes(), content_type, extra_headers={"Content-Security-Policy": PREVIEW_CSP})
 
     # -- API ----------------------------------------------------------------
     def _api(self, method: str, path: str) -> None:
@@ -440,6 +520,7 @@ class StudioHandler(BaseHTTPRequestHandler):
                         "config_path": str(settings.config_path()),
                         "edge": edge_available(),
                         "root": str(context.root),
+                        "preview_base": f"http://localhost:{self.server.server_address[1]}",
                     },
                 )
             if resource == "settings":
@@ -499,11 +580,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             if resource == "jobs" and len(parts) == 3:
                 return self._job_status(parts[2])
             if resource == "preview" and len(parts) >= 3:
+                if self._hostname() != "localhost":
+                    raise RequestError(403, "previews are served from http://localhost:<port> only")
                 site_dir = context.store.site_dir(parts[2])
                 if site_dir is None:
                     return self._send_json(404, {"ok": False, "error": "project not found"})
                 return self._serve_tree(site_dir, parts[3:])
             if resource == "demo" and len(parts) >= 3:
+                if self._hostname() != "localhost":
+                    raise RequestError(403, "previews are served from http://localhost:<port> only")
                 theme = themes.get_theme(context.root, parts[2])
                 if theme is None or theme.sample_path is None:
                     return self._send_json(404, {"ok": False, "error": "no demo sample for this theme"})
@@ -513,10 +598,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self._send_json(404, {"ok": False, "error": "unknown endpoint"})
 
         if method == "POST":
-            try:
-                body = self._read_json()
-            except ValueError as exc:
-                return self._send_json(400, {"ok": False, "error": str(exc)})
+            body = self._read_json()
             if resource == "settings":
                 return self._save_settings(body)
             if resource == "ai" and len(parts) == 3 and parts[2] == "test":
@@ -694,7 +776,7 @@ class StudioHandler(BaseHTTPRequestHandler):
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
             for file_path in sorted(site_dir.rglob("*")):
-                if file_path.is_file():
+                if file_path.is_file() and file_path.name != generator.SITE_MARKER:
                     archive.write(file_path, file_path.relative_to(site_dir).as_posix())
         self._send_bytes(
             200,

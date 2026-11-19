@@ -107,6 +107,29 @@ def _clean_dir(directory: Path) -> None:
             entry.unlink(missing_ok=True)
 
 
+SITE_MARKER = ".stitchcraft-site"
+
+
+def _prepare_out_dir(out_dir: Path, force: bool = False) -> None:
+    """Create the output directory, refusing to wipe a foreign non-empty one."""
+    out_dir = Path(out_dir)
+    if out_dir.exists() and not out_dir.is_dir():
+        raise GenerationError(f"Output path is not a directory: {out_dir}")
+    marker = out_dir / SITE_MARKER
+    if out_dir.exists():
+        entries = list(out_dir.iterdir())
+        if entries and not marker.is_file() and not force:
+            raise GenerationError(
+                f"Refusing to clean the non-empty directory {out_dir}. "
+                "It was not created by Stitchcraft; choose a new --out or pass --force."
+            )
+        if entries:
+            _clean_dir(out_dir)
+    else:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    marker.write_text("Stitchcraft generated site. Safe to replace on the next build.\n", encoding="utf-8")
+
+
 def _safe_relpath(raw: object) -> Path:
     if not isinstance(raw, str) or not raw.strip():
         raise GenerationError("AI returned a file without a path.")
@@ -145,7 +168,7 @@ def _list_files(directory: Path) -> list[str]:
     return sorted(
         path.relative_to(directory).as_posix()
         for path in directory.rglob("*")
-        if path.is_file()
+        if path.is_file() and path.name != SITE_MARKER
     )
 
 
@@ -294,6 +317,117 @@ if (button) {
     (out_dir / "app.js").write_text(js, encoding="utf-8")
 
 
+def _theme_block_context(root: Path, theme: Theme, budget_chars: int = 10000) -> str:
+    """Read the theme's reference blocks so the model assembles, not invents."""
+    chunks: list[str] = []
+    used = 0
+    for block in theme.blocks:
+        path = Path(root) / "themes" / "_blocks" / f"{block}.html"
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace").strip()
+        except OSError:
+            continue
+        snippet = text[:3500]
+        chunk = f"### {block}.html\n```html\n{snippet}\n```"
+        if chunks and used + len(chunk) > budget_chars:
+            break
+        chunks.append(chunk)
+        used += len(chunk)
+    return "\n\n".join(chunks)
+
+
+def _theme_plan(theme: Theme, title: str, prompt: str) -> dict:
+    """Deterministic site-plan-shaped fallback used by compact providers."""
+    blocks = list(theme.blocks) or ["hero"]
+    return {
+        "sitemap": [
+            {
+                "path": "/",
+                "title": title,
+                "purpose": prompt[:500],
+                "sections": blocks,
+            }
+        ],
+        "navigation": {"primary": [{"label": "Home", "path": "/"}]},
+        "sections": [{"id": block, "block": block, "purpose": f"{block} section"} for block in blocks],
+        "design": {"mood": theme.category, "accent": theme.accent},
+    }
+
+
+def _build_plan_messages(theme: Theme, title: str, prompt: str) -> list[dict]:
+    """One planning call: return a contract-shaped site plan, not files."""
+    system = """You are Stitchcraft's information architect.
+Return ONLY one JSON object, no markdown fences:
+{"sitemap":[{"path":"/","title":"...","purpose":"...","sections":["hero","..."]}],
+ "navigation":{"primary":[{"label":"Home","path":"/"}]},
+ "sections":[{"id":"hero","block":"hero","purpose":"..."}],
+ "design":{"mood":"...","accent":"#......","type_scale":"...","motion":"..."}}
+
+The sitemap needs at least one page with path starting with "/" and a title.
+navigation.primary must be an array. Sections should reuse the theme's block
+names. Do not write site code in this call; this plan is passed to the build call."""
+    user = (
+        f"# Site title\n{title}\n\n"
+        f"# User brief\n{prompt}\n\n"
+        f"# Theme\n{theme.name} ({theme.id}) — {theme.summary}\n"
+        f"Category: {theme.category}\nAccent: {theme.accent}\n"
+        f"Available blocks: {', '.join(theme.blocks) or 'hero'}"
+    )
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def _validate_site_plan(plan: object, theme: Theme) -> dict:
+    """Small structural check mirroring contracts/site-plan.schema.json."""
+    if not isinstance(plan, dict):
+        raise GenerationError("The planning response was not a JSON object.")
+    sitemap = plan.get("sitemap")
+    if not isinstance(sitemap, list) or not sitemap:
+        raise GenerationError("The plan is missing a non-empty sitemap.")
+    for entry in sitemap:
+        if not isinstance(entry, dict):
+            raise GenerationError("The plan contains a malformed sitemap entry.")
+        if not str(entry.get("path", "")).startswith("/"):
+            raise GenerationError("Every planned page path must start with '/'.")
+        if not str(entry.get("title", "")).strip():
+            raise GenerationError("Every planned page needs a title.")
+    navigation = plan.get("navigation")
+    if not isinstance(navigation, dict) or not isinstance(navigation.get("primary"), list):
+        raise GenerationError("The plan is missing navigation.primary.")
+    sections = plan.get("sections")
+    if sections is not None and not isinstance(sections, list):
+        raise GenerationError("The plan's sections must be an array.")
+    return {
+        "sitemap": sitemap[:8],
+        "navigation": navigation,
+        "sections": (sections or [])[:16],
+        "design": plan.get("design") if isinstance(plan.get("design"), dict) else {},
+    }
+
+
+def _reference_warnings(out_dir: Path) -> list[str]:
+    """Report local files referenced by index.html but never generated."""
+    index = Path(out_dir) / "index.html"
+    if not index.is_file():
+        return []
+    try:
+        html = index.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for raw in re.findall(r"""(?:src|href)\s*=\s*["']([^"']+)["']""", html, flags=re.IGNORECASE):
+        ref = raw.strip().split("#", 1)[0].split("?", 1)[0]
+        if not ref or ref in seen or ref.startswith(("http://", "https://", "//", "data:", "mailto:", "tel:", "javascript:")):
+            continue
+        seen.add(ref)
+        target = (Path(out_dir) / ref).resolve()
+        if not target.is_relative_to(Path(out_dir).resolve()) or not target.is_file():
+            warnings.append(f"index.html references a missing local file: {ref}")
+    return warnings
+
+
 def _build_messages(
     root: Path,
     theme: Theme,
@@ -304,6 +438,8 @@ def _build_messages(
     skill_context: str,
     library_context: str = "",
     compact: bool = False,
+    plan: dict | None = None,
+    block_context: str = "",
 ) -> list[dict]:
     data_model = load_data_model(root, theme)
     has_gsap = (Path(root) / "skills" / "vendor" / "gsap-lib" / "gsap.min.js").is_file()
@@ -366,6 +502,16 @@ HARD RULES
         f"# Theme\n{theme.name} ({theme.id}) — {theme.summary}\nCategory: {theme.category}\nAccent: {theme.accent}",
         "# Theme skill (follow it)\n" + theme_skill_text(root, theme),
     ]
+    if plan:
+        user_parts.append(
+            "# Approved site plan (follow it; JSON)\n```json\n"
+            + json.dumps(plan, indent=2, ensure_ascii=False)[:6000]
+            + "\n```"
+        )
+    if block_context:
+        user_parts.append(
+            "# Theme reference blocks (adapt these patterns, do not copy them wholesale)\n" + block_context
+        )
     if data_model:
         user_parts.append("# Data model\n```json\n" + json.dumps(data_model, indent=2)[:8000] + "\n```")
     if skill_context:
@@ -391,6 +537,7 @@ def generate_site(
     out_dir: Path,
     on_progress=None,
     sleep=time.sleep,
+    force: bool = False,
 ) -> GenerationResult:
     started = time.perf_counter()
     root = Path(root)
@@ -419,8 +566,7 @@ def generate_site(
         warnings.append("Unknown bundled libraries ignored: " + ", ".join(sorted(missing_library_ids)))
     library_context = library_pack.build_prompt_context(theme_libraries)
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    _clean_dir(out_dir)
+    _prepare_out_dir(out_dir, force=force)
 
     def active(index: int, message: str) -> None:
         _emit(on_progress, index, "active", message)
@@ -431,19 +577,18 @@ def generate_site(
     active(0, f"Sealing the brief for '{title}'")
     done(0)
 
-    active(1, f"Planning structure from {theme.name}")
-    done(1)
-    active(2, f"Choosing design tokens ({theme.accent})")
-    done(2)
-    active(3, f"Preparing data layer ({mode} mode)")
-    done(3)
-    active(4, "Mounting hero and layout modules")
-    done(4)
-    active(5, "Adding components")
-    done(5)
-
     summary: str
     if engine == "mock":
+        active(1, f"Planning structure from {theme.name}")
+        done(1)
+        active(2, f"Choosing design tokens ({theme.accent})")
+        done(2)
+        active(3, f"Preparing data layer ({mode} mode)")
+        done(3)
+        active(4, "Mounting hero and layout modules")
+        done(4)
+        active(5, "Adding components")
+        done(5)
         sample = sample_dir(root, theme)
         active(6, "Demo engine: adding packaged motion and sample data")
         sleep(0.12)
@@ -459,6 +604,7 @@ def generate_site(
         _write_data_config(out_dir, _data_config(mode, remote))
         _ensure_data_config_link(out_dir, warnings)
         _copy_gsap_if_needed(root, out_dir)
+        warnings.extend(_reference_warnings(out_dir))
         done(6, "Demo modules mounted")
         active(7, "Checking accessible defaults")
         html = ""
@@ -492,13 +638,14 @@ def generate_site(
     compact_mode = bool(provider_preset.get("compact", False)) or provider_preset.get("kind") == "free-keyless"
     compact_max_tokens = 4096
     skill_context = build_skill_context(root, resolved, budget_chars=12000 if compact_mode else 26000)
+    block_context = _theme_block_context(root, theme, budget_chars=4000 if compact_mode else 10000)
     if provider_requires_key(config.ai.provider) and not config.ai.api_key:
         raise GenerationError(
             "This provider needs an API key. Add one in Settings → AI API, pick a free provider "
             "(Pollinations needs no key), or switch to demo mode."
         )
 
-    def _request(messages_to_use: list[dict], max_tokens: int) -> dict:
+    def _chat(messages_to_use: list[dict], max_tokens: int) -> dict:
         request_config = ai_client.AIConfig(
             provider=config.ai.provider,
             base_url=config.ai.base_url,
@@ -508,25 +655,72 @@ def generate_site(
             max_tokens=max_tokens,
         )
         text = ai_client.chat(request_config, messages_to_use, json_mode=True)
-        parsed = ai_client.extract_json(text)
-        plan = parsed.get("files")
-        if not isinstance(plan, list) or not plan:
+        return ai_client.extract_json(text)
+
+    def _request(messages_to_use: list[dict], max_tokens: int) -> dict:
+        parsed = _chat(messages_to_use, max_tokens)
+        file_plan = parsed.get("files")
+        if not isinstance(file_plan, list) or not file_plan:
             raise ai_client.AIError("The AI response did not contain any files.")
         return parsed
 
-    active(6, f"Assembling skills and calling {config.ai.provider}/{config.ai.model}")
-    _emit(on_progress, 6, "active", f"Skills injected: {', '.join(resolved) or 'none'}")
+    # Stage 1 is a real planning call for full-sized providers; compact/free
+    # keyless providers get a deterministic, contract-shaped plan so a single
+    # rate-limited request is still enough.
+    plan = _theme_plan(theme, title, prompt)
+    if compact_mode:
+        active(1, f"Planning {theme.name} from its blocks (compact single-pass provider)")
+        done(1, "Deterministic plan prepared from the theme")
+    else:
+        active(1, f"Planning {theme.name} with {config.ai.provider}/{config.ai.model}")
+        try:
+            plan = _validate_site_plan(
+                _chat(_build_plan_messages(theme, title, prompt), 2048),
+                theme,
+            )
+            done(1, f"Plan approved: {len(plan['sitemap'])} page(s), {len(plan['sections'])} section(s)")
+        except (ai_client.AIError, GenerationError, ValueError) as exc:
+            warnings.append("The model plan was invalid; used the deterministic theme plan. " + str(exc)[:160])
+            done(1, "Model plan rejected; using the theme plan")
+
+    active(2, f"Deriving design tokens from the plan ({theme.accent})")
+    done(2)
+    active(3, f"Preparing the data layer ({mode} mode)")
+    done(3)
+
+    active(4, f"Calling {config.ai.provider}/{config.ai.model} to build the site")
+    _emit(on_progress, 4, "active", f"Skills injected: {', '.join(resolved) or 'none'}")
     is_keyless = provider_preset.get("kind") == "free-keyless"
     if compact_mode:
-        _emit(on_progress, 6, "active", "Free provider: generating a compact single-file site")
+        _emit(on_progress, 4, "active", "Compact provider: one build pass with inline CSS and JS")
         minimal_context = build_skill_context(root, resolved, budget_chars=4000)
         compact_retry_messages = _build_messages(
-            root, theme, title, prompt, mode, remote, minimal_context, library_context, compact=True
+            root,
+            theme,
+            title,
+            prompt,
+            mode,
+            remote,
+            minimal_context,
+            library_context,
+            compact=True,
+            plan=plan,
+            block_context=block_context,
         )
         attempts: list[tuple[list[dict], int]] = [
             (
                 _build_messages(
-                    root, theme, title, prompt, mode, remote, skill_context, library_context, compact=True
+                    root,
+                    theme,
+                    title,
+                    prompt,
+                    mode,
+                    remote,
+                    skill_context,
+                    library_context,
+                    compact=True,
+                    plan=plan,
+                    block_context=block_context,
                 ),
                 compact_max_tokens,
             )
@@ -536,12 +730,33 @@ def generate_site(
     else:
         attempts = [
             (
-                _build_messages(root, theme, title, prompt, mode, remote, skill_context, library_context),
+                _build_messages(
+                    root,
+                    theme,
+                    title,
+                    prompt,
+                    mode,
+                    remote,
+                    skill_context,
+                    library_context,
+                    plan=plan,
+                    block_context=block_context,
+                ),
                 0,
             ),
             (
                 _build_messages(
-                    root, theme, title, prompt, mode, remote, skill_context, library_context, compact=True
+                    root,
+                    theme,
+                    title,
+                    prompt,
+                    mode,
+                    remote,
+                    skill_context,
+                    library_context,
+                    compact=True,
+                    plan=plan,
+                    block_context=block_context,
                 ),
                 compact_max_tokens,
             ),
@@ -552,7 +767,7 @@ def generate_site(
     for attempt, (messages_to_use, max_tokens) in enumerate(attempts, start=1):
         try:
             if attempt > 1:
-                _emit(on_progress, 6, "active", "Retrying the AI with a compact single-file prompt")
+                _emit(on_progress, 4, "active", "Retrying the AI with a compact single-file prompt")
                 warnings.append("The AI needed a compact single-file retry.")
             payload = _request(messages_to_use, max_tokens)
             break
@@ -561,7 +776,7 @@ def generate_site(
     if payload is None and is_keyless:
         _emit(
             on_progress,
-            6,
+            4,
             "active",
             "Free endpoint is rate-limited or returned partial output; waiting 40s before one retry",
         )
@@ -590,7 +805,12 @@ def generate_site(
     if not isinstance(file_plan, list) or not file_plan:
         raise GenerationError("The AI response did not contain any files.")
     summary = str(payload.get("summary") or "").strip() or f"{theme.name} generated from your brief."
-    done(6, f"AI returned {len(file_plan)} files")
+    done(4, f"AI returned {len(file_plan)} files from the approved plan")
+
+    active(5, "Validating the returned section structure")
+    done(5)
+    active(6, "Checking motion and reduced-motion defaults")
+    done(6)
 
     index_html = ""
     for item in file_plan:
@@ -613,6 +833,7 @@ def generate_site(
         _emit(on_progress, 8, "active", "Bundled tools copied: " + ", ".join(lib.name for lib in used_libraries))
     elif theme_libraries:
         warnings.append("The theme offers bundled libraries but the generated site did not reference any.")
+    warnings.extend(_reference_warnings(out_dir))
     files = _list_files(out_dir)
     done(8, f"Packaged {len(files)} files ({len(written)} from the AI)")
 

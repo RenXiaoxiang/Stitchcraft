@@ -106,6 +106,7 @@ Headless variants:
 
 ```bash
 stitch generate --theme warehouse-ops --prompt "A warehouse dashboard with inventory CRUD." --engine mock
+stitch generate --theme brand-launch --prompt "Launch page for a coffee brand." --out ./my-site   # refuses to clean a foreign non-empty dir
 stitch themes list
 stitch skills verify
 stitch validate --strict
@@ -129,29 +130,49 @@ The generator composes a prompt from four inputs, then validates and writes the
 result:
 
 1. **Theme package** — `themes/<id>/SKILL.md` (layout blueprint, components,
-   motion and data-layer rules) plus `data-model.json` for data themes.
-2. **Bundled skills** — the Modern Web Guidance reference set, official GSAP
-   skills (core, timeline, ScrollTrigger, plugins, performance, utils) and
-   web-animation skills, each truncated to its prompt budget.
+   motion and data-layer rules), `data-model.json` for data themes, and the
+   theme's reference HTML blocks from `themes/_blocks/`.
+2. **Bundled skills** — the Modern Web Guidance reference set, landing-page
+   design, official GSAP skills and web-animation skills, each truncated to its
+   prompt budget.
 3. **Your brief** — the sentence(s) you typed, plus an optional site title.
 4. **Database configuration** — written into the site as
    `window.STITCHCRAFT_DB`; the generated `app.js` reads it and uses a
    `localStorage` adapter or a Supabase-compatible REST adapter.
 
-The AI must answer with a JSON file plan. The generator rejects absolute paths,
-`..`, unexpected extensions, oversized files and sites without `index.html`, then
-writes the files, injects `data-config.js`, copies the vendored GSAP build when
-the site uses it, and streams stage progress + logs to the UI.
+### Planning and build calls
+
+For a full-size provider the generator makes **two model calls**:
+
+1. **Plan** — returns a contract-shaped site plan (`sitemap`, `navigation`,
+   `sections`, `design`); the generator checks it against the site-plan shape
+   (page paths, titles, primary navigation) before the build.
+2. **Build** — receives the approved plan, the theme reference blocks and the
+   selected skills, then returns the file plan.
+
+Compact/free-keyless providers (Pollinations, Ollama and friends) use **one
+build call** with a deterministic plan built from the theme, so a single
+rate-limited request is enough. The nine-stage UI is a progress model: stages 2,
+3, 5 and 6 are deterministic assembly/validation steps, not separate model
+calls. The generator rejects absolute paths, `..`, unexpected extensions,
+oversized files and sites without `index.html`, reports local files referenced
+by `index.html` but never generated, then writes the site, injects
+`data-config.js`, copies the vendored GSAP build and libraries the site uses,
+and streams stage progress + logs to the UI.
 
 ## Themes
 
 | Theme | Category | What it builds | Demo sample |
 | --- | --- | --- | --- |
 | `warehouse-ops` | data | Inventory command center: KPIs, filterable stock table, add/edit/delete, inbound timeline. | ✅ |
-| `staff-directory` | data | Employee directory, departments and onboarding tasks. | — |
-| `logistics-control` | data | Shipments, carriers and an incident board. | — |
+| `staff-directory` | data | Employee directory, departments and onboarding tasks. | AI only |
+| `logistics-control` | data | Shipments, carriers and an incident board. | AI only |
 | `personal-space` | personal | Essays, tag filtering, a photo wall and an about page. | ✅ |
-| `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | — |
+| `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | AI only |
+
+Themes without a packaged sample still build a complete placeholder in demo
+mode, and the UI labels them **AI only** so the sample preview is not promised
+for them.
 
 Shared building blocks live in `themes/_blocks/` (hero, stat grid, data table,
 CRUD modal, article list, photo masonry, timeline, CTA band) as reference HTML
@@ -353,11 +374,18 @@ AI agents alike.
 
 ## Privacy and security
 
-- The studio binds to `127.0.0.1` only.
+- The studio binds to `127.0.0.1` only. Requests with an unexpected `Host` are
+  rejected (DNS-rebinding protection); writes with a foreign `Origin` or a
+  non-JSON `Content-Type` are rejected too.
 - AI keys and database credentials are stored in your app-data directory
   (`%LOCALAPPDATA%\Stitchcraft\config.json`), never in the repo, logs or
   generated sites.
+- Generated sites are previewed from `http://localhost:<port>`, a different
+  origin from the studio API, inside a sandboxed iframe, with a CSP header.
+  Their JavaScript cannot call `/api/settings` or read your AI keys.
 - Generated files are sandboxed: relative paths, extension whitelist, size caps.
+- The generator refuses to clean a non-empty output directory it did not create;
+  pass `--force` only when you mean it.
 - No telemetry. No network calls except the AI endpoint you configure.
 
 ## Kiroween 2026
@@ -379,9 +407,13 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 - **本地 / 远端数据库**：选本地时生成站点用浏览器 localStorage；选远端时填入数据库
   URL 与公开 anon key，配置会被写进生成站点，站点的增删改查直接访问它。
 - **风格主题**：仓储管理、人员管理、后勤管理、个人空间、品牌落地页。
-- **内置技能**：Chrome 官方 Modern Web Guidance、GSAP 官方 skills、web-animation
-  skills，生成时自动注入提示词。
-- **零 Key 演示**：演示模式内置两个成品站（仓储看板、个人空间），断网也能完整演示。
+- **内置技能**：Chrome 官方 Modern Web Guidance、landing-page design、GSAP 官方
+  skills、web-animation skills，生成时自动注入提示词；主题的 `_blocks/` 参考区块
+  也会一起交给模型。
+- **零 Key 演示**：演示模式内置两个成品站（仓储看板、个人空间），断网也能完整演示；
+  另外三个主题会标注 **AI only**，演示模式只输出占位页。
+- **安全**：本地接口校验 Host / Origin / Content-Type；预览从 `localhost` 另一
+  个源加载并放在 sandbox iframe 里；生成目录非空且不是 Stitchcraft 创建时拒绝清理。
 - **参赛**：Kiroween 2026（Skeleton Crew 赛道），提交材料见 `hackathon/`。
 
 完整开发计划见 [`开发文档.txt`](开发文档.txt)。

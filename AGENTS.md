@@ -8,8 +8,9 @@ hooks. Read this before changing anything.
 
 1. `README.md` — what Stitchcraft is and how the studio works.
 2. `.kiro/steering/*.md` — persistent rules for product, tech and structure.
-3. `.kiro/specs/stitchcraft-core/` and `.kiro/specs/desktop-studio/` —
-   requirements, design and tasks for the pipeline and the desktop studio.
+3. `.kiro/specs/stitchcraft-core/`, `.kiro/specs/desktop-studio/` and
+   `.kiro/specs/security-hardening/` — requirements, design and tasks for the
+   pipeline, the desktop studio and the local-API threat model.
 4. `pipeline/pipeline.toml` + `contracts/README.md` — the originals seam rules.
 5. `skills/ATTRIBUTION.md`, `vendor/ATTRIBUTION.md` and `themes/registry.toml` —
    third-party and theme data. `THIRD_PARTY_NOTICES.md` is the canonical index.
@@ -72,6 +73,11 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   database credentials live only in `%LOCALAPPDATA%\Stitchcraft\config.json`
   (tests use `STITCHCRAFT_HOME`). Generated sites may contain only the remote REST
   URL / public anon key the user configured.
+- **The local API is a security boundary.** Keep the Host/Origin/Content-Type
+  checks, the `localhost` preview origin, the sandboxed preview iframe and the
+  CSP headers in `server.py`/`app/web/`; keep `--out` cleaning behind the
+  Stitchcraft marker or `--force`. Security regressions belong in
+  `tests/test_studio.py`.
 - **Do not commit generated output.** `.stitch/`, user project sites and ZIP
   exports are gitignored and rebuildable.
 - **Kiro hooks are part of the product.** If you change a seam, a theme or the
@@ -108,8 +114,8 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   and `obscura-NOTICE.txt` are copied into the install directory; the canonical
   index is `THIRD_PARTY_NOTICES.md`.
 - **Checks are optional and local.** A missing runtime must never fail site
-  generation or the studio smoke test. Browser checks run against
-  `127.0.0.1` with `--allow-private-network`; no remote browser service.
+  generation or the studio smoke test. Browser checks may only target loopback
+  previews (`http://localhost:<port>`); no remote browser service.
 - **Respect restricted networks.** `STITCHCRAFT_BROWSER_MIRROR` may rewrite the
   GitHub URL; the pinned SHA-256 check still applies before extraction.
 - **Never weaken archive safety.** Zip/tar extraction rejects absolute paths,

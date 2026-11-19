@@ -246,7 +246,9 @@
       const card = el('button', 'theme-card');
       card.type = 'button'; card.dataset.themeId = theme.id; card.setAttribute('aria-pressed', 'false'); card.style.setProperty('--theme-accent', theme.accent);
       const top = el('div', 'theme-card__top'); top.append(el('span', 'theme-card__swatch'), el('span', 'theme-card__name', theme.name));
-      if (theme.has_sample) top.appendChild(el('span', 'theme-card__badge', 'Sample'));
+      const badge = el('span', 'theme-card__badge', theme.has_sample ? 'Sample' : 'AI only');
+      if (!theme.has_sample) badge.classList.add('theme-card__badge--ai');
+      top.appendChild(badge);
       card.appendChild(top);
       if (theme.summary) card.appendChild(el('p', 'theme-card__summary', theme.summary));
       if (theme.tags.length) { const tags = el('div', 'theme-card__tags'); theme.tags.slice(0, 4).forEach((tag) => tags.appendChild(el('span', 'theme-card__tag', tag))); card.appendChild(tags); }
@@ -493,10 +495,15 @@
   const setPreviewLoading = (loading) => {
     setHidden('preview-loading', !loading);
     const wrap = $('preview-frame-wrap'); if (wrap) wrap.setAttribute('aria-busy', String(Boolean(loading))); };
+  function previewBase() {
+    const configured = state.status && state.status.preview_base;
+    if (configured) return String(configured).replace(/\/$/, '');
+    return 'http://localhost:' + (window.location.port || '8765');
+  }
   function openPreview(options) {
     const opts = options || {}, preview = $('preview-wrap'), empty = $('preview-empty'), frame = $('preview-frame');
     const id = opts.id ? String(opts.id) : '', demoId = opts.demoTheme ? String(opts.demoTheme) : '';
-    const url = id ? '/api/preview/' + encodeURIComponent(id) + '/' : demoId ? '/api/demo/' + encodeURIComponent(demoId) + '/' : '';
+    const url = id ? previewBase() + '/api/preview/' + encodeURIComponent(id) + '/' : demoId ? previewBase() + '/api/demo/' + encodeURIComponent(demoId) + '/' : '';
     if (!url) return;
     state.preview = { url: url, projectId: id || null, demo: !id, title: opts.title || 'Untitled site' };
     setPreviewLoading(true); if (empty) empty.hidden = true; if (preview) preview.hidden = false;

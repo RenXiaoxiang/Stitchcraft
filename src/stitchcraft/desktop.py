@@ -165,7 +165,8 @@ def _smoke_test(base_url: str, context) -> int:
         checks.append(("job completed", job.get("status") == "done", job.get("status", "timeout")))
         project_id = job.get("project_id")
         if project_id:
-            status, _body = _request(f"{base_url}/api/preview/{project_id}/")
+            preview_base = base_url.replace("127.0.0.1", "localhost", 1)
+            status, _body = _request(f"{preview_base}/api/preview/{project_id}/")
             checks.append(("preview served", status == 200, ""))
             status, _body = _request(f"{base_url}/api/export/{project_id}")
             checks.append(("export zip", status == 200, ""))

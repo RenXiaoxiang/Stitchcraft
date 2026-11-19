@@ -105,6 +105,11 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--db-key", default="", help="remote public/anon key")
     generate.add_argument("--db-prefix", default="stitchcraft", help="remote table prefix")
     generate.add_argument("--out", type=Path, default=None, help="output directory (default: <repo>/.stitch/generated/<theme>)")
+    generate.add_argument(
+        "--force",
+        action="store_true",
+        help="allow cleaning a non-empty output directory that Stitchcraft did not create",
+    )
 
     run = sub.add_parser("run", help="prepare the stitch for an agent")
     run.add_argument("--dry-run", action="store_true", help="write one PROMPT.md per stage; no model calls")
@@ -544,7 +549,14 @@ def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:
             print(f"  [{index + 1}/9] {message}")
 
     try:
-        result = generate_site(repo.root, settings_module.load_config(), request, out_dir, on_progress=progress)
+        result = generate_site(
+            repo.root,
+            settings_module.load_config(),
+            request,
+            out_dir,
+            on_progress=progress,
+            force=args.force,
+        )
     except GenerationError as exc:
         print(f"stitch generate: {exc}", file=sys.stderr)
         return EXIT_ERROR

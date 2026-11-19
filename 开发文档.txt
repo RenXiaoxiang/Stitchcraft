@@ -841,3 +841,56 @@ License  : MIT
   未安装、下载失败、检查失败都不得让生成任务失败：任务日志记录跳过原因，UI 显示
   状态；生成、预览、导出、导出 ZIP 保持可用。
 
+================================================================================
+15. v0.6 安全加固与生成架构修正
+--------------------------------------------------------------------------------
+15.1 本地 API 安全边界
+  - 所有请求校验 Host：仅允许 127.0.0.1 / localhost / ::1，阻断 DNS rebinding。
+  - POST/DELETE 校验 Origin（浏览器写操作）：只允许本机同源；无 Origin 的 CLI
+    请求仍可用。POST 强制 Content-Type: application/json；text/plain 表单被 415。
+  - 请求体超过 2 MB 在读取前返回 413；错误统一 RequestError -> 400/403/413/415。
+  - 预览与 Studio 拆源：Studio 仍在 http://127.0.0.1:<port>，生成站/示例站只从
+    http://localhost:<port>/api/preview/... 与 /api/demo/... 提供；127.0.0.1 访问
+    预览返回 403。这样生成站 JS 无法同源调用 /api/settings 读取 API Key。
+  - iframe 增加 sandbox="allow-scripts allow-forms allow-modals allow-popups
+    allow-same-origin" 与 referrerpolicy=no-referrer；Studio HTML 加 CSP 与
+    X-Frame-Options: DENY；预览响应加适合静态站的 CSP（self/data/blob/inline）。
+  - /api/status 返回 preview_base=http://localhost:<port>，前端 iframe/新标签统一使用。
+
+15.2 生成目录保护
+  - generate_site 只清理“空目录”或带 .stitchcraft-site 标记的目录；外部非空目录
+    默认拒绝并提示使用新的 --out 或显式 --force。
+  - 标记文件不进入 files 列表、不进入导出 ZIP；CLI 增加 generate --force。
+
+15.3 生成阶段与契约的诚实化
+  - 全尺寸 provider：两次真实模型调用——
+      1) planning：返回 sitemap/navigation/sections/design 的站点规划 JSON，按
+         contracts/site-plan.schema.json 的结构做轻量校验，失败则回退主题计划并记录
+         warning；
+      2) build：把已批准计划、主题 _blocks 参考 HTML、主题 skill、bundled skills、
+         数据模型和数据库配置一起注入，返回文件计划。
+  - compact / free-keyless provider：一次 build 调用 + 由主题确定性生成的计划，
+    避免免费端点限流导致两次调用失败；在日志与 README 中明确说明。
+  - 阶段 2/3/5/6 是确定性组装/校验/检查，不是独立模型调用；UI 仍保留九阶段进度
+    模型，但文档与日志不再声称每阶段都是 AI 调用。
+  - themes/_blocks/*.html 现在会作为参考区块进入 build prompt（以前只用于存在性
+    校验）。
+  - 生成完成后检查 index.html 引用的本地文件是否存在，缺失写入 warnings。
+
+15.4 主题与 QA
+  - 无示例站的主题在 UI 标记 “AI only”（staff-directory / logistics-control /
+    brand-launch），演示模式仍可生成占位页但不再暗示有示例预览。
+  - 现有 Obscura AI browser 自动检查继续作为截图 + DOM 审计证据；其预览 URL 也
+    改为 localhost 源，避免与 Studio API 同源。
+
+15.5 测试与验证
+  - 新增：跨站 POST、text/plain POST、伪造 Host、2MB+ 请求体、预览跨源 + CSP、
+    iframe sandbox、同源写请求通过、--out 保护/标记/--force、非 compact provider
+    两次调用 + planning 校验 + _blocks 注入、缺失本地引用 warning。
+  - 全量 unittest 54 个通过；validate --strict 0/0；smoke test PASS；
+    CI（3.11/3.12/3.13）通过。
+
+15.6 仍未做的（后续版本）
+  - 为另外三个主题补示例站；拆分 app.js/styles.css 为模块；SSE 替代轮询；
+    prompt token 用量记录；更细的浏览器 console/网络错误回传与自动修复。
+

@@ -54,6 +54,15 @@ def _status(url: str, method: str = "GET") -> int:
         return int(exc.code)
 
 
+def _raw_request(url: str, method: str = "GET", data: bytes | None = None, headers: dict | None = None):
+    request = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, dict(response.headers), response.read()
+    except urllib.error.HTTPError as exc:
+        return int(exc.code), dict(exc.headers), exc.read()
+
+
 class SettingsTests(unittest.TestCase):
     def test_roundtrip_masks_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -276,6 +285,114 @@ class GenerationTests(unittest.TestCase):
             self.assertIn("vendor/fabric/fabric.min.js", result.files)
 
 
+class OutputSafetyTests(unittest.TestCase):
+    def _request(self) -> GenerationRequest:
+        return GenerationRequest(
+            theme_id="warehouse-ops",
+            prompt="A warehouse operations dashboard with inventory CRUD.",
+            engine="mock",
+            database={"mode": "local", "remote": {}},
+        )
+
+    def test_refuses_to_clean_a_foreign_non_empty_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "precious"
+            out.mkdir()
+            kept = out / "notes.txt"
+            kept.write_text("do not delete", encoding="utf-8")
+            with self.assertRaises(GenerationError):
+                generate_site(ROOT, AppConfig(), self._request(), out)
+            self.assertTrue(kept.is_file())
+            self.assertEqual(kept.read_text(encoding="utf-8"), "do not delete")
+
+    def test_marker_allows_replacing_a_previous_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            out.mkdir()
+            (out / ".stitchcraft-site").write_text("owned", encoding="utf-8")
+            (out / "stale.html").write_text("old", encoding="utf-8")
+            result = generate_site(ROOT, AppConfig(), self._request(), out)
+            self.assertFalse((out / "stale.html").exists())
+            self.assertTrue((out / "index.html").is_file())
+            self.assertIn("index.html", result.files)
+
+    def test_force_allows_a_foreign_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "scratch"
+            out.mkdir()
+            (out / "old.txt").write_text("old", encoding="utf-8")
+            result = generate_site(ROOT, AppConfig(), self._request(), out, force=True)
+            self.assertFalse((out / "old.txt").exists())
+            self.assertTrue((out / "index.html").is_file())
+            self.assertIn("index.html", result.files)
+
+
+class AIGenerationTests(unittest.TestCase):
+    def _config(self, provider: str = "openai") -> AppConfig:
+        config = AppConfig()
+        config.ai.provider = provider
+        config.ai.base_url = "https://api.openai.com/v1"
+        config.ai.model = "gpt-4o-mini"
+        config.ai.api_key = "sk-test-key-12345678"
+        return config
+
+    def test_non_compact_provider_gets_a_planning_call_and_block_context(self) -> None:
+        plan = {
+            "sitemap": [{"path": "/", "title": "Warehouse", "sections": ["hero", "stat-grid"]}],
+            "navigation": {"primary": [{"label": "Home", "path": "/"}]},
+            "sections": [{"id": "hero", "block": "hero", "purpose": "Open with the headline"}],
+            "design": {"mood": "operations", "accent": "#ff8a3d"},
+        }
+        files = {
+            "files": [
+                {"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Warehouse</title><link rel="stylesheet" href="styles.css"></head><body><h1>Warehouse</h1><script src="app.js"></script><script src="data-config.js"></script></body></html>'},
+                {"path": "styles.css", "content": "body{color:#222}"},
+                {"path": "app.js", "content": "document.documentElement.dataset.ready='true';"},
+            ],
+            "summary": "Warehouse operations.",
+        }
+        calls: list[list[dict]] = []
+
+        def fake_chat(_config, messages, json_mode=True):
+            calls.append(messages)
+            return json.dumps(plan if len(calls) == 1 else files)
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("stitchcraft.ai_client.chat", side_effect=fake_chat):
+            result = generate_site(ROOT, self._config(), GenerationRequest(
+                theme_id="warehouse-ops",
+                prompt="A warehouse dashboard with inventory and inbound shipments.",
+                engine="ai",
+                database={"mode": "local", "remote": {}},
+            ), Path(tmp) / "site")
+        self.assertEqual(len(calls), 2)
+        build_prompt = calls[1][1]["content"]
+        self.assertIn("Approved site plan", build_prompt)
+        self.assertIn("Theme reference blocks", build_prompt)
+        self.assertIn("index.html", result.files)
+
+    def test_missing_local_reference_is_reported(self) -> None:
+        files = {
+            "files": [
+                {"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Missing</title><link rel="stylesheet" href="missing.css"></head><body><h1>Missing asset</h1><script src="app.js"></script></body></html>'},
+                {"path": "app.js", "content": "document.documentElement.dataset.ready='true';"},
+            ],
+            "summary": "Broken reference test.",
+        }
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("stitchcraft.ai_client.chat", return_value=json.dumps(files)):
+            result = generate_site(
+                ROOT,
+                self._config("pollinations"),
+                GenerationRequest(
+                    theme_id="warehouse-ops",
+                    prompt="A warehouse dashboard with a deliberately missing stylesheet reference.",
+                    engine="ai",
+                    database={"mode": "local", "remote": {}},
+                ),
+                Path(tmp) / "site",
+            )
+        self.assertTrue(any("missing local file" in warning for warning in result.warnings), result.warnings)
+
+
 class ServerApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -286,6 +403,7 @@ class ServerApiTests(unittest.TestCase):
         cls.httpd, cls.context = make_server(ROOT, port=0, config=AppConfig(), store=cls.store)
         cls.port = int(cls.httpd.server_address[1])
         cls.base = f"http://127.0.0.1:{cls.port}"
+        cls.preview_base = f"http://localhost:{cls.port}"
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
         cls.thread.start()
 
@@ -351,6 +469,79 @@ class ServerApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(payload["ok"])
 
+    def test_rejects_cross_origin_settings_write(self) -> None:
+        payload = json.dumps({"ai": {"base_url": "https://evil.example/v1"}}).encode("utf-8")
+        status, _headers, _body = _raw_request(
+            self.base + "/api/settings",
+            "POST",
+            payload,
+            {"Content-Type": "application/json", "Origin": "https://evil.example"},
+        )
+        self.assertEqual(status, 403)
+        status, settings = _get_json(self.base + "/api/settings")
+        self.assertEqual(status, 200)
+        self.assertNotIn("evil.example", json.dumps(settings))
+
+    def test_rejects_text_plain_settings_write(self) -> None:
+        payload = json.dumps({"ai": {"base_url": "https://evil.example/v1"}}).encode("utf-8")
+        status, _headers, _body = _raw_request(
+            self.base + "/api/settings",
+            "POST",
+            payload,
+            {"Content-Type": "text/plain"},
+        )
+        self.assertEqual(status, 415)
+
+    def test_rejects_foreign_host_header(self) -> None:
+        status, _headers, _body = _raw_request(
+            self.base + "/api/settings",
+            "GET",
+            None,
+            {"Host": "evil.example"},
+        )
+        self.assertEqual(status, 403)
+
+    def test_rejects_oversized_request_body(self) -> None:
+        payload = b'{"x":"' + b"a" * (2 * 1024 * 1024 + 1) + b'"}'
+        status, _headers, _body = _raw_request(
+            self.base + "/api/settings",
+            "POST",
+            payload,
+            {"Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 413)
+
+    def test_preview_is_cross_origin_and_has_csp(self) -> None:
+        status, _headers, _body = _raw_request(self.base + "/api/demo/personal-space/")
+        self.assertEqual(status, 403)
+        status, headers, body = _raw_request(self.preview_base + "/api/demo/personal-space/")
+        self.assertEqual(status, 200)
+        self.assertIn("Content-Security-Policy", headers)
+        self.assertIn(b"Notes from the attic", body)
+
+    def test_status_exposes_cross_origin_preview_base(self) -> None:
+        status, payload = _get_json(self.base + "/api/status")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["preview_base"], self.preview_base)
+
+    def test_same_origin_json_write_is_accepted(self) -> None:
+        payload = json.dumps({"browser": {"auto_check": True}}).encode("utf-8")
+        status, _headers, body = _raw_request(
+            self.base + "/api/settings",
+            "POST",
+            payload,
+            {"Content-Type": "application/json", "Origin": self.base},
+        )
+        self.assertEqual(status, 200)
+
+    def test_frontend_security_contract(self) -> None:
+        html = (ROOT / "app" / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('sandbox="allow-scripts', html)
+        self.assertIn("preview-frame", html)
+        app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("preview_base", app_js)
+        self.assertIn("function previewBase", app_js)
+
     def test_generate_mock_preview_and_export(self) -> None:
         status, payload = _get_json(
             self.base + "/api/generate",
@@ -374,12 +565,13 @@ class ServerApiTests(unittest.TestCase):
         self.assertEqual(job.get("status"), "done", job.get("error"))
         project_id = job["project_id"]
         self.assertTrue(project_id)
-        self.assertEqual(_status(self.base + f"/api/preview/{project_id}/"), 200)
+        self.assertEqual(_status(self.preview_base + f"/api/preview/{project_id}/"), 200)
+        self.assertEqual(_status(self.base + f"/api/preview/{project_id}/"), 403)
         self.assertEqual(_status(self.base + f"/api/export/{project_id}"), 200)
         status, payload = _get_json(self.base + "/api/projects")
         self.assertIn(project_id, [item["id"] for item in payload["projects"]])
         self.assertEqual(_status(self.base + f"/api/projects/{project_id}", "DELETE"), 200)
-        self.assertEqual(_status(self.base + f"/api/preview/{project_id}/"), 404)
+        self.assertEqual(_status(self.preview_base + f"/api/preview/{project_id}/"), 404)
 
 
 if __name__ == "__main__":
