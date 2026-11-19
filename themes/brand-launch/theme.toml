@@ -10,4 +10,4 @@ skills = ["modern-web-guidance", "landing-page-design", "gsap-core", "gsap-scrol
 libraries = ["swiper", "roughjs"]
 design_reference = "stripe"
 data_model = ""
-sample = ""
+sample = "sample"

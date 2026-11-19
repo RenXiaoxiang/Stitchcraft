@@ -61,9 +61,8 @@ jobs:
 
       - name: Check front-end JavaScript syntax
         run: |
-          if [ -f app/web/app.js ]; then
-            node --check app/web/app.js
-          fi
-          if [ -f docs/showcase.js ]; then
-            node --check docs/showcase.js
-          fi
+          for file in app/web/app.js app/web/i18n.js docs/showcase.js; do
+            if [ -f "$file" ]; then
+              node --check "$file"
+            fi
+          done

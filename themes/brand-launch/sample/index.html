@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0b0a09">
+  <meta name="description" content="Hollow Roast — a small-batch coffee roastery launching the Ember Set. Pre-order the first roast.">
+  <title>Hollow Roast — The Ember Set</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="data-config.js"></script>
+  <script defer src="vendor/gsap.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-head">
+    <a class="wordmark" href="#top" aria-label="Hollow Roast home">
+      <span class="wordmark__mark" aria-hidden="true">HR</span>
+      <span>Hollow Roast</span>
+    </a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+      <span class="menu-toggle__label">Menu</span>
+      <span class="menu-toggle__lines" aria-hidden="true"><span></span><span></span></span>
+    </button>
+    <nav class="site-nav" id="site-nav" aria-label="Primary">
+      <a href="#story">Story</a>
+      <a href="#release">The release</a>
+      <a class="nav-cta" href="#reserve">Pre-order <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero__meta reveal">
+        <span>Autumn release · 2026</span>
+        <span>Portland, Oregon</span>
+        <span>Small batch. No ceremony.</span>
+      </div>
+      <div class="hero__copy">
+        <p class="eyebrow reveal">The Ember Set / first roast</p>
+        <h1 id="hero-title">
+          <span class="hero__line">Coffee,</span>
+          <span class="hero__line hero__line--indent">without the</span>
+          <span class="hero__line hero__line--accent">ceremony.</span>
+        </h1>
+        <p class="hero__lede reveal">A small-batch roastery for the cup you actually drink. Three farms, one roast profile, and a first run of 240 bags that we will sell once.</p>
+        <div class="hero__actions reveal">
+          <a class="btn btn--primary" href="#reserve">Pre-order the Ember Set</a>
+          <a class="text-link" href="#story">Read the story <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      <div class="hero__foot reveal">
+        <span>First roast / 04 October 2026</span>
+        <span>Roasted in Portland · Shipped the same week</span>
+        <span class="hero__scroll" aria-hidden="true">Scroll to follow the roast →</span>
+      </div>
+    </section>
+
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track" id="marquee-track">
+        <span>Hollow Roast</span><span>The Ember Set</span><span>First roast 04.10.26</span><span>Small batch</span>
+        <span>Hollow Roast</span><span>The Ember Set</span><span>First roast 04.10.26</span><span>Small batch</span>
+      </div>
+    </div>
+
+    <section class="story" id="story" aria-labelledby="story-title">
+      <div class="section-label reveal"><span>01</span><p>Why we roast</p></div>
+      <div class="story__grid">
+        <div class="story__lead reveal">
+          <h2 id="story-title">We started with one question: what if coffee tasted like the place it came from?</h2>
+          <p>Hollow Roast is a two-person roastery in a former print shop on SE Division. We buy small lots, roast them light enough to keep the fruit, and rest them until they taste like themselves.</p>
+        </div>
+        <div class="story__body reveal">
+          <p>The Ember Set is our autumn release: a washed Ethiopian, a honey-processed Colombian, and a natural Brazilian. Three farms we have visited, three profiles we have argued about, one box.</p>
+          <p>No subscriptions to cancel. No tasting notes written to impress a score sheet. Just a roast that works in a flat white and is interesting enough to drink black on a Tuesday.</p>
+          <blockquote>“If the coffee is good, the ceremony is optional.”</blockquote>
+          <p class="story__signature">— Mara &amp; Ilya, founders</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof" aria-label="Hollow Roast in numbers">
+      <div class="proof__item reveal"><span class="proof__value">2019</span><span class="proof__label">First roast on a 3 kg drum</span></div>
+      <div class="proof__item reveal"><span class="proof__value">240</span><span class="proof__label">Bags in the first Ember Set run</span></div>
+      <div class="proof__item reveal"><span class="proof__value">03</span><span class="proof__label">Farms, all visited in person</span></div>
+    </section>
+
+    <section class="release" id="release" aria-labelledby="release-title">
+      <div class="section-label reveal"><span>02</span><p>The release</p></div>
+      <div class="release__head">
+        <h2 id="release-title">From green bean to your counter.</h2>
+        <p>We roast once, pack the same day and ship within the week. The timeline below is the whole operation — no warehouse, no middle step.</p>
+      </div>
+      <ol class="timeline">
+        <li class="timeline__step reveal">
+          <span class="timeline__date">20 Sep</span>
+          <span class="timeline__dot" aria-hidden="true"></span>
+          <div><h3>Our last sample roast</h3><p>Mara profiles the Ethiopian lot for the fourth time. Ilya votes for more rest.</p></div>
+        </li>
+        <li class="timeline__step reveal">
+          <span class="timeline__date">04 Oct</span>
+          <span class="timeline__dot" aria-hidden="true"></span>
+          <div><h3>Pre-orders open</h3><p>240 bags of the Ember Set, first come. We close the list when it is full.</p></div>
+        </li>
+        <li class="timeline__step reveal">
+          <span class="timeline__date">18 Oct</span>
+          <span class="timeline__dot" aria-hidden="true"></span>
+          <div><h3>Roast day</h3><p>All three profiles go on the drum in one long, loud morning.</p></div>
+        </li>
+        <li class="timeline__step reveal">
+          <span class="timeline__date">25 Oct</span>
+          <span class="timeline__dot" aria-hidden="true"></span>
+          <div><h3>Bags leave the shop</h3><p>Packed with the roast date and a card from the farm. Then we clean the drum.</p></div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="reserve" id="reserve" aria-labelledby="reserve-title">
+      <div class="reserve__inner">
+        <p class="eyebrow">Reserve the first roast</p>
+        <h2 id="reserve-title">One release.<br>One email.</h2>
+        <p class="reserve__copy">The Ember Set is <strong>$24</strong> for three 100 g bags. Leave your email and we will send the pre-order link on 04 October — nothing else.</p>
+        <form class="reserve__form" id="reserve-form" novalidate>
+          <label class="visually-hidden" for="reserve-email">Email address</label>
+          <input id="reserve-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+          <button class="btn btn--dark" type="submit">Join the list</button>
+        </form>
+        <p class="reserve__note" id="reserve-note" role="status" aria-live="polite">No spam. One message when the roast opens.</p>
+        <p class="form-error" id="reserve-error" role="alert" hidden></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <div class="site-foot__brand">
+      <span class="wordmark__mark" aria-hidden="true">HR</span>
+      <p>Hollow Roast<br>SE Division, Portland</p>
+    </div>
+    <div class="site-foot__links">
+      <a href="mailto:hello@hollowroast.example">hello@hollowroast.example</a>
+      <a href="#top">Back to top ↑</a>
+    </div>
+    <p class="site-foot__legal">© 2026 Hollow Roast. A fictional brand made for this Stitchcraft sample. <a href="#top">Top</a></p>
+  </footer>
+</body>
+</html>

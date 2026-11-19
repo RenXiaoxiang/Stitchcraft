@@ -1087,3 +1087,37 @@ License  : MIT
     失败，后续修复提交 acd4a85/e23ce4e 已处理。当前 0.10.0 的 1185601 运行
     已成功；本次 0.10.1 推送后再次确认最新 Actions 全绿。
 
+================================================================================
+22. v0.11.0 产品完整性：品牌示例站与配置写入保护
+--------------------------------------------------------------------------------
+22.1 分析结论
+  - 架构方向合理：本地优先、无第三方运行时、主题/技能/设计参考契约化、
+    事务式生成、严格校验、单任务队列；这些是项目的核心资产，应继续保留。
+  - 上一轮最大产品缺口：五主题只有两个有 demo，另外三个在演示模式下是占位页；
+    这会让“本地可演示”的价值打折，也让基准里的 placeholder 数字偏高。
+  - 工程上仍可补：配置写入不是原子的（崩溃可能留下半截 config.json），
+    CI 未检查新加入的 i18n.js 语法；品牌主题缺少可验收的完整页面。
+
+22.2 本轮修改
+  - 新增 themes/brand-launch/sample/ 完整示例站：
+    * HTML/CSS/JS + data-config.js + 本地 GSAP 及归属文件；无外部字体/图片/CDN。
+    * Hollow Roast 品牌发布页：编辑式 hero、跑马灯、品牌故事、数据证明、
+      发布节奏、预订单表单、移动端菜单、reduced-motion 降级。
+    * 适用 brand-launch 主题；demo 模式现在有 3 个完整示例站，仅剩
+      staff-directory / logistics-control 两个占位。
+    * 带 GSAP-LICENSE/GSAP-UPSTREAM，延续归属要求。
+  - 品牌 functional 验收（390px viewport、CTA 可见/可达、无横向溢出）在
+    本地 Obscura 环境通过；mock benchmark 的 brand-launch 已从占位变为
+    真实样例，placeholder 从 3 降为 2。
+  - settings.save_config 改为临时文件 + os.replace 原子写入；失败时旧配置
+    保留、临时文件清理；新增模拟磁盘失败的回归测试。
+  - CI 增加 app/web/i18n.js 语法检查。
+
+22.3 验证
+  - unittest 80 个通过；validate --strict 0/0；themes/designs/libraries/skills
+    verify；smoke test PASS；mock benchmark：5/5 build，brand functional passed，
+    placeholders 2。
+  - 历史已用 git-filter-repo 清除 hackathon/devpost-fill.md、
+    hackathon/project-story.md、hackathon/images/ 的所有提交；旧提交仍可能
+    被 GitHub 缓存，最终通过删除并重建仓库做彻底清除（另见本轮操作）。
+

@@ -98,6 +98,19 @@ class SettingsTests(unittest.TestCase):
         config.merge_patch({"ai": {"clear_api_key": True}})
         self.assertEqual(config.ai.api_key, "")
 
+    def test_save_config_is_atomic_and_keeps_old_file_on_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            config = AppConfig()
+            settings.save_config(config, path)
+            original = path.read_text(encoding="utf-8")
+            self.assertFalse(list(path.parent.glob("config.json.tmp-*")))
+            with mock.patch("stitchcraft.settings.os.replace", side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    settings.save_config(config, path)
+            self.assertEqual(path.read_text(encoding="utf-8"), original)
+            self.assertFalse(list(path.parent.glob("config.json.tmp-*")))
+
     def test_language_roundtrip_and_validation(self) -> None:
         self.assertEqual(set(SUPPORTED_LANGUAGES), {"en", "zh", "de", "ar", "ru"})
         with tempfile.TemporaryDirectory() as tmp:

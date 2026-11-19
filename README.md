@@ -42,7 +42,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Desktop launcher | `Stitchcraft.bat` / `启动 Stitchcraft.bat` starts a local server and opens a chromeless Edge app window. No Electron, no build step. |
 | AI settings | Free and paid providers built in: **Pollinations** (no key at all), **智谱 GLM-4-Flash** (permanently free, China-friendly), **SiliconFlow** free models, **GitHub Models** (free quota with your GitHub account), plus Gemini / Groq / OpenRouter free tiers, local Ollama, or any OpenAI-compatible endpoint with your own key. Connection test included; keys stay on your machine. |
 | Database choice | **Local**: the generated site persists to browser `localStorage`. **Remote**: enter a REST / Supabase-compatible URL, public anon key and table prefix — the generator embeds them into `data-config.js` and the generated site's CRUD layer talks to it directly. |
-| Five themes | `warehouse-ops`, `staff-directory`, `logistics-control`, `personal-space`, `brand-launch` — each with a composition skill and (for two of them) a complete demo site. |
+| Five themes | `warehouse-ops`, `staff-directory`, `logistics-control`, `personal-space`, `brand-launch` — each with a composition skill and (for three of them) a complete demo site. |
 | Nine-stage pipeline | Brief → Structure → Design tokens → Data layer → Hero & layout → Components → Motion → Accessibility → QA & package, streamed into the UI. |
 | Demo mode | No API key? Generate from the packaged sample sites so the whole flow still works (and can be recorded for the demo video). |
 | Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
@@ -522,8 +522,8 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 - **设计参考**：5 份 MIT 的 DESIGN.md（Linear / Notion / Supabase / Airbnb /
   Stripe，来自 VoltAgent/awesome-design-md），每个主题声明一份，生成时按预算
   注入颜色、字体、组件与布局规则。
-- **零 Key 演示**：演示模式内置两个成品站（仓储看板、个人空间），断网也能完整演示；
-  另外三个主题会标注 **AI only**，演示模式只输出占位页。
+- **零 Key 演示**：演示模式内置三个成品站（仓储看板、个人空间、品牌发布页），断网也能完整演示；
+  另外两个主题会标注 **AI only**，演示模式只输出占位页。
 - **安全**：本地接口校验 Host / Origin / Content-Type；预览从 `localhost` 另一
   个源加载并放在 sandbox iframe 里；生成目录非空且不是 Stitchcraft 创建时拒绝清理。
 - **参赛**：Kiroween 2026（Skeleton Crew 赛道），提交材料见 `hackathon/`。

@@ -53,7 +53,7 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue((Path(report["report_dir"]) / "report.md").is_file())
 
     def test_mock_benchmark_flags_placeholder_builds(self) -> None:
-        tasks = benchmark.load_tasks(ROOT, ["brand-launch"])
+        tasks = benchmark.load_tasks(ROOT, ["staff-directory"])
         with tempfile.TemporaryDirectory() as tmp:
             report = benchmark.run_benchmarks(
                 ROOT,
@@ -68,6 +68,23 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue(result["placeholder"])
             self.assertEqual(result["functional"]["status"], "untested")
             self.assertEqual(report["summary"]["placeholders"], 1)
+
+    def test_brand_launch_has_a_real_demo_sample(self) -> None:
+        tasks = benchmark.load_tasks(ROOT, ["brand-launch"])
+        with tempfile.TemporaryDirectory() as tmp:
+            report = benchmark.run_benchmarks(
+                ROOT,
+                AppConfig(),
+                tasks,
+                engine="mock",
+                repeat=1,
+                out_dir=Path(tmp) / "bench",
+                browser=BrowserManager(base_dir=Path(tmp) / "browser"),
+            )
+            result = report["results"][0]
+            self.assertFalse(result["placeholder"])
+            self.assertTrue((ROOT / "themes" / "brand-launch" / "sample" / "index.html").is_file())
+            self.assertEqual(report["summary"]["placeholders"], 0)
 
     def test_functional_check_is_honest_without_a_browser(self) -> None:
         site = ROOT / "themes" / "warehouse-ops" / "sample"

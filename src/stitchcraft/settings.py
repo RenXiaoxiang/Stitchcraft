@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -375,13 +376,23 @@ def load_config(path: Path | None = None) -> AppConfig:
 
 
 def save_config(config: AppConfig, path: Path | None = None) -> Path:
+    """Write config.json atomically so a crash cannot leave a truncated file."""
     target = Path(path) if path is not None else config_path()
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(config.to_dict(), indent=2) + "\n", encoding="utf-8")
-    try:  # best effort on Windows
-        os.chmod(target, 0o600)
-    except OSError:
-        pass
+    temporary = target.with_name(target.name + f".tmp-{os.getpid()}-{uuid.uuid4().hex[:8]}")
+    payload = json.dumps(config.to_dict(), indent=2) + "\n"
+    try:
+        temporary.write_text(payload, encoding="utf-8")
+        try:  # best effort on Windows
+            os.chmod(temporary, 0o600)
+        except OSError:
+            pass
+        os.replace(temporary, target)
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
     return target
 
 
