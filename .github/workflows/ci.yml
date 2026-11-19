@@ -61,7 +61,7 @@ jobs:
 
       - name: Check front-end JavaScript syntax
         run: |
-          for file in app/web/app.js app/web/i18n.js docs/showcase.js; do
+          for file in app/web/app.js app/web/i18n.js app/web/js/config.js app/web/js/jobs.js app/web/js/import-site.js docs/showcase.js; do
             if [ -f "$file" ]; then
               node --check "$file"
             fi

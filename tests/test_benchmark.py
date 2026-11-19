@@ -52,8 +52,8 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue((Path(report["report_dir"]) / "report.json").is_file())
             self.assertTrue((Path(report["report_dir"]) / "report.md").is_file())
 
-    def test_mock_benchmark_flags_placeholder_builds(self) -> None:
-        tasks = benchmark.load_tasks(ROOT, ["staff-directory"])
+    def test_all_five_themes_ship_demo_samples(self) -> None:
+        tasks = benchmark.load_tasks(ROOT)
         with tempfile.TemporaryDirectory() as tmp:
             report = benchmark.run_benchmarks(
                 ROOT,
@@ -64,10 +64,9 @@ class BenchmarkTests(unittest.TestCase):
                 out_dir=Path(tmp) / "bench",
                 browser=BrowserManager(base_dir=Path(tmp) / "browser"),
             )
-            result = report["results"][0]
-            self.assertTrue(result["placeholder"])
-            self.assertEqual(result["functional"]["status"], "untested")
-            self.assertEqual(report["summary"]["placeholders"], 1)
+            self.assertEqual(report["summary"]["build_passed"], 5)
+            self.assertEqual(report["summary"]["placeholders"], 0)
+            self.assertEqual(len({item["theme"] for item in report["results"]}), 5)
 
     def test_brand_launch_has_a_real_demo_sample(self) -> None:
         tasks = benchmark.load_tasks(ROOT, ["brand-launch"])

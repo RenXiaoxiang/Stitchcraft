@@ -989,6 +989,71 @@
   Object.assign(MESSAGES.ar, {"not required": "غير مطلوب"});
   Object.assign(MESSAGES.ru, {"not required": "не требуется"});
 
+  Object.assign(MESSAGES.zh, {
+  "Continue an existing site": "继续加工已有网站",
+  "Import a half-built site folder. AI keeps what works and completes the rest. Text files only, 1 MB max.": "导入半成品网站文件夹。AI 保留可用部分并补全其余内容。仅支持文本文件，最大 1 MB。",
+  "Select a site folder": "选择网站文件夹",
+  "Reading folder…": "正在读取文件夹…",
+  "No folder selected.": "尚未选择文件夹。",
+  "Cancel build": "取消构建",
+  "Cancelling…": "正在取消…",
+  "Finish this site": "完成这个网站",
+  "Mode": "模式",
+  "New site": "新网站",
+  "Build cancelled. The previous project was left untouched.": "构建已取消，上一个项目保持原样。",
+  "Continue mode needs the AI engine. Turn off demo mode and configure a provider.": "继续模式需要 AI 引擎。请关闭演示模式并配置服务商。",
+  "Live stream interrupted — falling back to polling.": "实时进度中断——已切换为轮询。",
+  "Cancellation requested. The build will stop after the current request.": "已请求取消，构建会在当前模型请求结束后停止。"
+});
+  Object.assign(MESSAGES.de, {
+  "Continue an existing site": "Bestehende Website weiterbearbeiten",
+  "Import a half-built site folder. AI keeps what works and completes the rest. Text files only, 1 MB max.": "Importiere einen Ordner mit einer halbfertigen Website. Die KI behält, was funktioniert, und ergänzt den Rest. Nur Textdateien, max. 1 MB.",
+  "Select a site folder": "Website-Ordner auswählen",
+  "Reading folder…": "Ordner wird gelesen…",
+  "No folder selected.": "Kein Ordner ausgewählt.",
+  "Cancel build": "Build abbrechen",
+  "Cancelling…": "Wird abgebrochen…",
+  "Finish this site": "Website fertigstellen",
+  "Mode": "Modus",
+  "New site": "Neue Website",
+  "Build cancelled. The previous project was left untouched.": "Build abgebrochen. Das vorherige Projekt bleibt unverändert.",
+  "Continue mode needs the AI engine. Turn off demo mode and configure a provider.": "Der Fortsetzungsmodus benötigt die KI-Engine. Demo-Modus ausschalten und einen Anbieter konfigurieren.",
+  "Live stream interrupted — falling back to polling.": "Live-Stream unterbrochen — wechsle zur Abfrage.",
+  "Cancellation requested. The build will stop after the current request.": "Abbruch angefordert. Der Build stoppt nach der aktuellen Anfrage."
+});
+  Object.assign(MESSAGES.ar, {
+  "Continue an existing site": "متابعة موقع موجود",
+  "Import a half-built site folder. AI keeps what works and completes the rest. Text files only, 1 MB max.": "استورد مجلد موقع نصف مكتمل. يحتفظ الذكاء الاصطناعي بما يعمل ويكمل الباقي. ملفات نصية فقط، بحد أقصى 1 ميغابايت.",
+  "Select a site folder": "اختر مجلد الموقع",
+  "Reading folder…": "جارٍ قراءة المجلد…",
+  "No folder selected.": "لم يتم اختيار مجلد.",
+  "Cancel build": "إلغاء البناء",
+  "Cancelling…": "جارٍ الإلغاء…",
+  "Finish this site": "أكمل هذا الموقع",
+  "Mode": "الوضع",
+  "New site": "موقع جديد",
+  "Build cancelled. The previous project was left untouched.": "تم إلغاء البناء. بقي المشروع السابق دون تغيير.",
+  "Continue mode needs the AI engine. Turn off demo mode and configure a provider.": "يتطلب وضع المتابعة محرك AI. أوقف الوضع التجريبي واضبط مزوّدًا.",
+  "Live stream interrupted — falling back to polling.": "انقطع البث المباشر — سيتم استخدام الاستعلام الدوري.",
+  "Cancellation requested. The build will stop after the current request.": "تم طلب الإلغاء. سيتوقف البناء بعد الطلب الحالي."
+});
+  Object.assign(MESSAGES.ru, {
+  "Continue an existing site": "Продолжить существующий сайт",
+  "Import a half-built site folder. AI keeps what works and completes the rest. Text files only, 1 MB max.": "Импортируйте папку с недоделанным сайтом. ИИ сохранит рабочее и завершит остальное. Только текстовые файлы, не более 1 МБ.",
+  "Select a site folder": "Выбрать папку сайта",
+  "Reading folder…": "Чтение папки…",
+  "No folder selected.": "Папка не выбрана.",
+  "Cancel build": "Отменить сборку",
+  "Cancelling…": "Отмена…",
+  "Finish this site": "Завершить сайт",
+  "Mode": "Режим",
+  "New site": "Новый сайт",
+  "Build cancelled. The previous project was left untouched.": "Сборка отменена. Предыдущий проект не изменён.",
+  "Continue mode needs the AI engine. Turn off demo mode and configure a provider.": "Режиму продолжения нужен AI-движок. Отключите демо-режим и настройте провайдера.",
+  "Live stream interrupted — falling back to polling.": "Поток прерван — переключаюсь на опрос.",
+  "Cancellation requested. The build will stop after the current request.": "Запрошена отмена. Сборка остановится после текущего запроса."
+});
+
   function langFromNavigator() {
     var value = '';
     try { value = String((navigator.language || navigator.userLanguage || 'en')).toLowerCase(); } catch (_) { value = 'en'; }

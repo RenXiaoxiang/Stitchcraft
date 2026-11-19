@@ -48,6 +48,8 @@ __all__ = [
     "GenerationError",
     "GenerationRequest",
     "GenerationResult",
+    "collect_import_files",
+    "normalize_import_files",
     "STAGES",
     "generate_site",
     "stage_names",
@@ -66,6 +68,7 @@ class GenerationRequest:
     engine: str = "mock"
     database: dict = field(default_factory=dict)
     skills: list[str] | None = None
+    import_files: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -170,6 +173,88 @@ def _safe_relpath(raw: object) -> Path:
     if candidate.suffix.lower() not in ALLOWED_SUFFIXES:
         raise GenerationError(f"Generated file type is not allowed: {raw!r}")
     return candidate
+
+
+def normalize_import_files(files: object) -> list[dict]:
+    """Validate text files from an imported half-built site."""
+    if files is None:
+        return []
+    if not isinstance(files, list):
+        raise GenerationError("import_files must be a list of {path, content} objects.")
+    if len(files) > 80:
+        raise GenerationError("Import at most 80 files at a time.")
+    normalized: list[dict] = []
+    seen: set[str] = set()
+    total = 0
+    for item in files:
+        if not isinstance(item, dict):
+            raise GenerationError("Every imported file must be an object.")
+        relative = _safe_relpath(item.get("path"))
+        path = relative.as_posix()
+        if path in seen:
+            raise GenerationError(f"Imported file is duplicated: {path}")
+        seen.add(path)
+        content = item.get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise GenerationError(f"Imported file is empty: {path}")
+        encoded = content.encode("utf-8")
+        if len(encoded) > MAX_FILE_BYTES:
+            raise GenerationError(f"Imported file is too large: {path}")
+        total += len(encoded)
+        if total > MAX_TOTAL_BYTES:
+            raise GenerationError("The imported site exceeds the size limit.")
+        normalized.append({"path": path, "content": content})
+    if normalized and not any(item["path"] == "index.html" for item in normalized):
+        raise GenerationError("A half-built site needs an index.html to continue from.")
+    return normalized
+
+
+def collect_import_files(directory: Path) -> list[dict]:
+    """Read a local half-built site folder into a validated import payload."""
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise GenerationError(f"Not a directory: {directory}")
+    files: list[dict] = []
+    for path in sorted(directory.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(directory)
+        if any(part in {".git", "node_modules", "__pycache__", ".stitch"} for part in relative.parts):
+            continue
+        if path.suffix.lower() not in ALLOWED_SUFFIXES:
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        files.append({"path": relative.as_posix(), "content": content})
+    return normalize_import_files(files)
+
+
+def _import_context(files: list[dict], max_chars: int = 12000) -> str:
+    """Build a compact manifest + excerpt of the imported site for the model."""
+    lines = [
+        f"The user supplied {len(files)} existing file(s). Complete the site instead of starting over.",
+        "Keep the existing visual language, copy and working interactions unless the brief asks you to change them.",
+        "Return the complete contents of every file you change; preserve files you do not change.",
+        "",
+        "Files:",
+    ]
+    for item in files:
+        lines.append("- " + item["path"])
+    lines.append("")
+    budget = max_chars
+    for item in files:
+        excerpt = item["content"]
+        if len(excerpt) > 2200:
+            excerpt = excerpt[:2200].rstrip() + "\n... [excerpt truncated]"
+        block = "## " + item["path"] + "\n```\n" + excerpt + "\n```"
+        if len(block) > budget:
+            lines.append("## " + item["path"] + "\n(excerpt omitted to fit the context budget)")
+            break
+        lines.append(block)
+        budget -= len(block)
+    return "\n".join(lines)
 
 
 def _write_file_plan(out_dir: Path, plan: list[dict]) -> list[str]:
@@ -510,6 +595,7 @@ def _build_messages(
     plan: dict | None = None,
     block_context: str = "",
     design_context: str = "",
+    import_context: str = "",
 ) -> list[dict]:
     data_model = load_data_model(root, theme)
     has_gsap = (Path(root) / "skills" / "vendor" / "gsap-lib" / "gsap.min.js").is_file()
@@ -584,6 +670,8 @@ HARD RULES
         )
     if design_context:
         user_parts.append("# Design reference (DESIGN.md; follow its visual system)\n" + design_context)
+    if import_context:
+        user_parts.append("# Existing half-built site to complete\n" + import_context)
     if data_model:
         user_parts.append("# Data model\n```json\n" + json.dumps(data_model, indent=2)[:8000] + "\n```")
     if skill_context:
@@ -638,6 +726,14 @@ def _generate_into(
     library_context = library_pack.build_prompt_context(theme_libraries)
 
     _prepare_staging_dir(out_dir)
+    import_files = normalize_import_files(request.import_files)
+    if import_files and engine != "ai":
+        raise GenerationError("Continue mode needs the AI engine. Choose an AI provider instead of demo mode.")
+    if import_files:
+        _write_file_plan(out_dir, import_files)
+        warnings.append(f"Continuing from {len(import_files)} imported file(s).")
+    import_context = ""
+    has_import = bool(import_files)
 
     def active(index: int, message: str) -> None:
         _emit(on_progress, index, "active", message)
@@ -710,6 +806,8 @@ def _generate_into(
     provider_preset = PRESETS.get(config.ai.provider, {})
     compact_mode = bool(provider_preset.get("compact", False)) or provider_preset.get("kind") == "free-keyless"
     compact_max_tokens = 4096
+    if import_files:
+        import_context = _import_context(import_files, max_chars=3000 if compact_mode else 12000)
     skill_context = build_skill_context(root, resolved, budget_chars=12000 if compact_mode else 26000)
     block_context = _theme_block_context(root, theme, budget_chars=4000 if compact_mode else 10000)
     design_context = ""
@@ -757,8 +855,11 @@ def _generate_into(
     # keyless providers get a deterministic, contract-shaped plan so a single
     # rate-limited request is still enough.
     plan = _theme_plan(theme, title, prompt)
-    if compact_mode:
-        active(1, f"Planning {theme.name} from its blocks (compact single-pass provider)")
+    if compact_mode or has_import:
+        if has_import:
+            active(1, "Reading the imported site and keeping its structure")
+        else:
+            active(1, f"Planning {theme.name} from its blocks (compact single-pass provider)")
         done(1, "Deterministic plan prepared from the theme")
     else:
         active(1, f"Planning {theme.name} with {config.ai.provider}/{config.ai.model}")
@@ -777,7 +878,7 @@ def _generate_into(
     active(3, f"Preparing the data layer ({mode} mode)")
     done(3)
 
-    active(4, f"Calling {config.ai.provider}/{config.ai.model} to build the site")
+    active(4, f"Calling {config.ai.provider}/{config.ai.model} to " + ("complete the site" if has_import else "build the site"))
     _emit(on_progress, 4, "active", f"Skills injected: {', '.join(resolved) or 'none'}")
     is_keyless = provider_preset.get("kind") == "free-keyless"
     if compact_mode:
@@ -796,6 +897,7 @@ def _generate_into(
             plan=plan,
             block_context=block_context,
             design_context=design_context,
+            import_context=import_context,
         )
         attempts: list[tuple[list[dict], int]] = [
             (
@@ -812,6 +914,7 @@ def _generate_into(
                     plan=plan,
                     block_context=block_context,
                     design_context=design_context,
+                    import_context=import_context,
                 ),
                 compact_max_tokens,
             )
@@ -833,6 +936,7 @@ def _generate_into(
                     plan=plan,
                     block_context=block_context,
                     design_context=design_context,
+                    import_context=import_context,
                 ),
                 0,
             ),
@@ -850,6 +954,7 @@ def _generate_into(
                     plan=plan,
                     block_context=block_context,
                     design_context=design_context,
+                    import_context=import_context,
                 ),
                 compact_max_tokens,
             ),
@@ -899,7 +1004,9 @@ def _generate_into(
     file_plan = payload.get("files")
     if not isinstance(file_plan, list) or not file_plan:
         raise GenerationError("The AI response did not contain any files.")
-    summary = str(payload.get("summary") or "").strip() or f"{theme.name} generated from your brief."
+    summary = str(payload.get("summary") or "").strip() or (
+        f"{theme.name} completed from your imported site." if has_import else f"{theme.name} generated from your brief."
+    )
     done(4, f"AI returned {len(file_plan)} files from the approved plan")
 
     active(5, "Validating the returned section structure")
@@ -912,6 +1019,10 @@ def _generate_into(
         if isinstance(item, dict) and str(item.get("path", "")).strip() == "index.html":
             index_html = str(item.get("content", ""))
             break
+    if not index_html:
+        index_path = out_dir / "index.html"
+        if has_import and index_path.is_file():
+            index_html = index_path.read_text(encoding="utf-8", errors="replace")
     if not index_html:
         raise GenerationError("The AI response is missing index.html.")
     active(7, "Auditing generated markup for accessibility")

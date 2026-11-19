@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#141834">
+  <meta name="description" content="Northstar People — a searchable staff directory with departments, profiles and onboarding checklists.">
+  <title>Northstar People — Staff Directory</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="data-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to directory</a>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Northstar People home">
+      <span class="brand__mark" aria-hidden="true">N</span>
+      <span class="brand__text"><strong>Northstar People</strong><small>Directory &amp; onboarding</small></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#directory">Directory</a>
+      <a href="#onboarding">Onboarding</a>
+      <button class="btn btn--primary btn--sm" id="add-person" type="button">Add employee</button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">People operations · Portland / remote</p>
+        <h1 id="hero-title">Everyone,<br><em>in one place.</em></h1>
+        <p class="hero__lede">Find a teammate, see who is new, and keep every first week moving. The directory is editable and stays on this device in local mode.</p>
+      </div>
+      <div class="hero__search">
+        <label for="search">Search the directory</label>
+        <div class="search-row">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m12.7 12.7 4.1 4.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input id="search" type="search" placeholder="Name, role, department or email" autocomplete="off">
+          <kbd>/</kbd>
+        </div>
+        <p class="search-hint" id="search-hint">Type to filter the whole directory.</p>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Team snapshot">
+      <article><span class="stat__value" id="stat-headcount">—</span><span class="stat__label">People</span></article>
+      <article><span class="stat__value" id="stat-departments">—</span><span class="stat__label">Departments</span></article>
+      <article><span class="stat__value" id="stat-new">—</span><span class="stat__label">New hires</span></article>
+      <article><span class="stat__value" id="stat-tasks">—</span><span class="stat__label">Open onboarding tasks</span></article>
+    </section>
+
+    <section class="directory" id="directory" aria-labelledby="directory-title">
+      <div class="directory__head">
+        <div>
+          <p class="eyebrow">The directory</p>
+          <h2 id="directory-title">Find your people.</h2>
+        </div>
+        <div class="directory__tools">
+          <fieldset class="filter-set">
+            <legend>Department</legend>
+            <div class="chips" id="department-chips"></div>
+          </fieldset>
+          <label class="select-field" for="status-filter">Status
+            <select id="status-filter">
+              <option value="all">Everyone</option>
+              <option value="active">Active</option>
+              <option value="new">New hire</option>
+              <option value="on-leave">On leave</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <p class="result-line" id="result-line" aria-live="polite"></p>
+      <div class="groups" id="groups"></div>
+      <div class="empty" id="empty" hidden>
+        <h3>No one matches that.</h3>
+        <p>Try a different name or clear the filters.</p>
+        <button class="btn btn--ghost" id="clear-filters" type="button">Clear filters</button>
+      </div>
+    </section>
+
+    <section class="onboarding" id="onboarding" aria-labelledby="onboarding-title">
+      <div class="onboarding__copy">
+        <p class="eyebrow">First week, handled</p>
+        <h2 id="onboarding-title">New hires shouldn’t have to ask twice.</h2>
+        <p>Every profile has a short onboarding list. Open a person, check off a task, and the open-task count updates across the page.</p>
+      </div>
+      <div class="onboarding__progress">
+        <span id="progress-ring" class="ring" role="img" aria-label="Onboarding completion"><span id="progress-value">0%</span></span>
+        <p id="progress-copy">No tasks yet.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Northstar People · a Stitchcraft demo sample</span>
+    <span id="mode-badge">Local data · saved in this browser</span>
+  </footer>
+
+  <aside class="drawer" id="drawer" aria-labelledby="drawer-name" aria-hidden="true">
+    <div class="drawer__head">
+      <p class="eyebrow">Employee profile</p>
+      <button class="icon-btn" id="drawer-close" type="button" aria-label="Close profile">✕</button>
+    </div>
+    <div class="drawer__person">
+      <span class="avatar avatar--lg" id="drawer-avatar" aria-hidden="true">—</span>
+      <div><h2 id="drawer-name">—</h2><p id="drawer-role">—</p></div>
+      <span class="pill" id="drawer-status">—</span>
+    </div>
+    <dl class="drawer__meta">
+      <div><dt>Department</dt><dd id="drawer-department">—</dd></div>
+      <div><dt>Location</dt><dd id="drawer-location">—</dd></div>
+      <div><dt>Started</dt><dd id="drawer-started">—</dd></div>
+      <div><dt>Email</dt><dd><a id="drawer-email" href="#">—</a></dd></div>
+    </dl>
+    <div class="drawer__actions">
+      <button class="btn btn--ghost btn--sm" id="drawer-edit" type="button">Edit profile</button>
+    </div>
+    <div class="tasks">
+      <div class="tasks__head"><h3>Onboarding</h3><span id="task-progress">0 / 0</span></div>
+      <div class="task-progress" aria-hidden="true"><span id="task-progress-fill"></span></div>
+      <ul id="task-list"></ul>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <dialog class="modal" id="person-dialog" aria-labelledby="person-dialog-title">
+    <form id="person-form" novalidate>
+      <div class="modal__head">
+        <div><p class="eyebrow">Directory record</p><h2 id="person-dialog-title">Add employee</h2></div>
+        <button class="icon-btn" id="dialog-close" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <div class="form-grid">
+        <label>Full name<input id="field-name" name="name" required autocomplete="off"></label>
+        <label>Role<input id="field-role" name="role" required autocomplete="off"></label>
+        <label>Department<select id="field-department" name="department"></select></label>
+        <label>Status<select id="field-status" name="status"><option value="active">Active</option><option value="new">New hire</option><option value="on-leave">On leave</option></select></label>
+        <label>Email<input id="field-email" name="email" type="email" required autocomplete="off"></label>
+        <label>Location<input id="field-location" name="location" autocomplete="off" placeholder="Portland / Remote"></label>
+        <label>Start date<input id="field-started" name="started_on" type="date"></label>
+      </div>
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="dialog-cancel" type="button">Cancel</button>
+        <button class="btn btn--primary" type="submit">Save employee</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="group-template">
+    <section class="group">
+      <header class="group__head"><h3 class="group__name"></h3><span class="group__count"></span></header>
+      <div class="cards"></div>
+    </section>
+  </template>
+
+  <template id="card-template">
+    <button class="person-card" type="button">
+      <span class="avatar" aria-hidden="true"></span>
+      <span class="person-card__body">
+        <span class="person-card__top"><strong class="person-card__name"></strong><span class="pill person-card__status"></span></span>
+        <span class="person-card__role"></span>
+        <span class="person-card__meta"></span>
+      </span>
+      <span class="person-card__arrow" aria-hidden="true">→</span>
+    </button>
+  </template>
+
+  <template id="task-template">
+    <li class="task">
+      <label><input type="checkbox"><span class="task__text"></span></label>
+      <span class="task__due"></span>
+    </li>
+  </template>
+</body>
+</html>

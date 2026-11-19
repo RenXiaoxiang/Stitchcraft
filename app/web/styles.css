@@ -3284,3 +3284,50 @@ html[lang="zh-CN"] .rail__title,
 html[lang="zh-CN"] .step__name {
   letter-spacing: 0;
 }
+
+/* ------------------------------------------------- 20. Import / cancel */
+.import-card {
+  padding: 14px;
+  border: 1px dashed rgba(255, 138, 61, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(255, 138, 61, 0.035);
+}
+.import-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.import-card__head .field__hint { margin: 5px 0 10px; }
+.import-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(23, 19, 32, 0.65);
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+.import-picker:hover { border-color: rgba(255, 138, 61, 0.5); background: rgba(255, 138, 61, 0.06); }
+.import-picker:focus-within { outline: 2px solid var(--ember); outline-offset: 2px; }
+.import-picker input[type="file"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.import-picker svg { width: 20px; height: 20px; flex: 0 0 auto; color: var(--ember); }
+.import-picker span { display: grid; min-width: 0; gap: 2px; }
+.import-picker strong { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-picker small { color: var(--muted); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-card.is-loaded { border-style: solid; border-color: rgba(89, 217, 164, 0.38); background: rgba(89, 217, 164, 0.045); }
+.import-card.is-loaded .import-picker svg { color: var(--ok); }
+.stage__meta { display: inline-flex; align-items: center; gap: 8px; }
+#pipeline-cancel { color: var(--err); border-color: rgba(255, 107, 122, 0.35); }
+#pipeline-cancel:hover { background: rgba(255, 107, 122, 0.1); }
+#pipeline-cancel:disabled { opacity: 0.6; cursor: progress; }
+
+[dir="rtl"] .import-picker svg { transform: scaleX(-1); }

@@ -19,8 +19,7 @@ never counted as a pass, and placeholder builds are counted separately.
 ## Run it
 
 ```bash
-# Offline: deterministic mock builds (themes with samples copy their sample;
-# themes without samples use the placeholder build).
+# Offline: deterministic mock builds; all five themes ship a packaged sample.
 python -m stitchcraft benchmark --engine mock
 
 # Real model: uses the studio's configured provider (keys stay local).

@@ -42,7 +42,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Desktop launcher | `Stitchcraft.bat` / `启动 Stitchcraft.bat` starts a local server and opens a chromeless Edge app window. No Electron, no build step. |
 | AI settings | Free and paid providers built in: **Pollinations** (no key at all), **智谱 GLM-4-Flash** (permanently free, China-friendly), **SiliconFlow** free models, **GitHub Models** (free quota with your GitHub account), plus Gemini / Groq / OpenRouter free tiers, local Ollama, or any OpenAI-compatible endpoint with your own key. Connection test included; keys stay on your machine. |
 | Database choice | **Local**: the generated site persists to browser `localStorage`. **Remote**: enter a REST / Supabase-compatible URL, public anon key and table prefix — the generator embeds them into `data-config.js` and the generated site's CRUD layer talks to it directly. |
-| Five themes | `warehouse-ops`, `staff-directory`, `logistics-control`, `personal-space`, `brand-launch` — each with a composition skill and (for three of them) a complete demo site. |
+| Five themes | `warehouse-ops`, `staff-directory`, `logistics-control`, `personal-space`, `brand-launch` — each with a composition skill and a complete demo site. |
 | Nine-stage pipeline | Brief → Structure → Design tokens → Data layer → Hero & layout → Components → Motion → Accessibility → QA & package, streamed into the UI. |
 | Demo mode | No API key? Generate from the packaged sample sites so the whole flow still works (and can be recorded for the demo video). |
 | Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
@@ -53,7 +53,10 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
 | Job queue | One build runs at a time; additional requests wait with a visible queue position. Finished history is capped without evicting running or queued jobs. |
 | Five UI languages | 中文 / English / Deutsch / العربية / Русский selector in the launcher; Arabic switches the whole studio to RTL. The choice is saved locally and in the app config. |
-| Acceptance benchmark | Five fixed tasks under `benchmarks/tasks/` measure first-pass success, latency, warnings and retries with `stitch benchmark` (mock or your configured AI). |
+| Acceptance benchmark | Five fixed tasks under `benchmarks/tasks/` measure first-pass success, latency, warnings and retries with `stitch benchmark` (mock or your configured AI); `--strict` is the release gate for required browser operations. |
+| Continue a half-built site | Import a local folder of HTML/CSS/JS and let the configured AI finish or improve it while preserving the files that already work. Available in Step 4 and as `stitch refine`. |
+| Live progress & cancel | Job progress streams over server-sent events (with automatic polling fallback); a queued job can be cancelled immediately and a running job stops after the current model request. |
+| Modular front end | Shared configuration, job streaming/cancel and site-import readers live in `app/web/js/` modules; the shell remains dependency-free with no build step. |
 
 ## Free AI options (no paid key needed)
 
@@ -170,6 +173,36 @@ status and a position, then starts automatically when the active build
 finishes. The job store keeps recent history but never evicts a running or
 queued job.
 
+## Continue a half-built site
+
+Already have a rough site? You do not have to start from a blank brief.
+
+1. Open **Brief** in the studio.
+2. Under **Continue an existing site**, select the site folder.
+3. Describe what is missing or what should improve, choose the theme contract and an AI provider, then press **Finish this site**.
+
+The importer accepts an `index.html` plus text assets (`.html`, `.css`, `.js`, `.json`, `.svg`, `.txt`, `.md`, `.xml`, `.webmanifest`), up to 80 files / 1 MB in the studio. Binary assets such as photos are intentionally skipped; the existing page keeps its relative references but the generator will warn about files it cannot see. The AI receives the imported text, keeps the existing voice and working files, and returns the files it changes. The build still goes through `data-config.js` injection, validation, staging and atomic publish; a failed or cancelled refine leaves the previous project untouched.
+
+The same workflow is available from the terminal:
+
+```bash
+stitch refine --input ./draft-site --theme brand-launch \
+  --prompt "Finish the pricing section and add a pre-order CTA" \
+  --out ./.stitch/refined/home
+```
+
+**Privacy:** imported text is sent to your configured AI endpoint when you continue a site. Do not import files containing secrets; AI keys and database credentials are never read from the imported folder.
+
+## Theme demo coverage
+
+All five themes now ship a complete demo sample, so demo mode can show the full workflow without an API key:
+
+- `warehouse-ops` — inventory command center with filterable rows and CRUD.
+- `staff-directory` — searchable people directory, profiles and onboarding checklists.
+- `logistics-control` — shipment board, incident lanes, carrier scorecards and CSV export.
+- `personal-space` — essays, tags, search and a photo wall.
+- `brand-launch` — editorial product launch with a mobile-safe CTA.
+
 ## Acceptance benchmark
 
 Five fixed tasks live in [`benchmarks/tasks/`](benchmarks/tasks/); each names a
@@ -214,8 +247,8 @@ Metrics: `build_passed`, `functional_passed/failed/untested`,
 | Theme | Category | What it builds | Demo sample |
 | --- | --- | --- | --- |
 | `warehouse-ops` | data | Inventory command center: KPIs, filterable stock table, add/edit/delete, inbound timeline. | ✅ |
-| `staff-directory` | data | Employee directory, departments and onboarding tasks. | AI only |
-| `logistics-control` | data | Shipments, carriers and an incident board. | AI only |
+| `staff-directory` | data | Employee directory, departments and onboarding tasks. | ✅ |
+| `logistics-control` | data | Shipments, carriers and an incident board. | ✅ |
 | `personal-space` | personal | Essays, tag filtering, a photo wall and an about page. | ✅ |
 | `brand-launch` | brand | Editorial product landing page with hero, proof and CTA. | ✅ |
 
@@ -528,8 +561,13 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 - **设计参考**：5 份 MIT 的 DESIGN.md（Linear / Notion / Supabase / Airbnb /
   Stripe，来自 VoltAgent/awesome-design-md），每个主题声明一份，生成时按预算
   注入颜色、字体、组件与布局规则。
-- **零 Key 演示**：演示模式内置三个成品站（仓储看板、个人空间、品牌发布页），断网也能完整演示；
-  另外两个主题会标注 **AI only**，演示模式只输出占位页。
+- **零 Key 演示**：演示模式内置五个成品站（仓储、员工目录、物流控制台、个人空间、品牌发布），断网也能完整演示。
+- **半成品加工**：在 Brief 步骤选择半成品网站文件夹，AI 保留可用内容并补全站点；也可用
+  `stitch refine --input ./draft --theme brand-launch --prompt "..."`。导入文本会发送给你配置的
+  AI 服务商，密钥/数据库凭据不会从导入文件读取。
+- **实时与取消**：任务进度通过 SSE 推送到 UI（失败自动轮询），队列任务可立即取消，运行任务
+  在当前模型请求结束后停止。
+
 - **安全**：本地接口校验 Host / Origin / Content-Type；预览从 `localhost` 另一
   个源加载并放在 sandbox iframe 里；生成目录非空且不是 Stitchcraft 创建时拒绝清理。
 - **参赛**：Kiroween 2026（Skeleton Crew 赛道），提交材料见 `hackathon/`。

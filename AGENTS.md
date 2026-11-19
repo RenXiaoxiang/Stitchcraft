@@ -37,6 +37,7 @@ python -m stitchcraft benchmark --engine mock
 python -m stitchcraft app --smoke-test --no-window
 python -m stitchcraft app                 # real desktop window (Edge)
 python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
+python -m stitchcraft refine --input ./draft-site --theme brand-launch --prompt "..."
 ```
 
 `PYTHONPATH=src python -m stitchcraft ...` works before `pip install -e .`.
@@ -46,7 +47,7 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 | Path | Owns |
 | --- | --- |
 | `src/stitchcraft/` | Loader, validator, renderer, CLI, settings, AI client, storage, themes/skills loaders, generator, server, desktop launcher, optional Obscura browser manager. |
-| `app/web/` | Local studio UI (vanilla JS + vendored GSAP). No frameworks, no CDN. |
+| `app/web/` | Local studio UI (vanilla JS + small modules under `app/web/js/` + vendored GSAP). No frameworks, no build step, no CDN. |
 | `themes/` | Theme packages: `theme.toml`, `SKILL.md`, `data-model.json`, optional `sample/`; shared `_blocks/`. |
 | `skills/` | Vendored official skill packs (unmodified, licensed, `UPSTREAM.md`) + house skills + `registry.toml`. |
 | `designs/` | Vendored DESIGN.md design references (unmodified, licensed, `UPSTREAM.md`) + `registry.toml`; themes select one. |

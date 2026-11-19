@@ -11,6 +11,7 @@ import io
 import json
 import re
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -62,6 +63,10 @@ class RequestError(Exception):
     def __init__(self, status: int, message: str) -> None:
         super().__init__(message)
         self.status = status
+
+
+class JobCancelled(Exception):
+    """Raised by the progress bridge when a running job is cancelled."""
 
 
 CONTENT_TYPES = {
@@ -121,6 +126,7 @@ class Job:
         self.title = title
         self.engine = engine
         self.database_mode = str((request.database or {}).get("mode", "local"))
+        self.import_mode = bool(request.import_files)
         self.status = "queued"
         self.stage = 0
         self.stage_name = generator.stage_names()[0]
@@ -130,6 +136,7 @@ class Job:
         self.project_id: str | None = None
         self.browser: dict | None = None
         self.queue_position: int | None = None
+        self.cancel_requested = False
         self.error: str | None = None
 
     def public_dict(self) -> dict:
@@ -144,10 +151,12 @@ class Job:
             "project_id": self.project_id,
             "browser": self.browser,
             "queue_position": self.queue_position,
+            "cancel_requested": self.cancel_requested,
             "error": self.error,
             "theme_id": self.theme_id,
             "title": self.title,
             "engine": self.engine,
+            "import_mode": self.import_mode,
         }
 
 
@@ -185,7 +194,7 @@ class StudioContext:
         for job_id, job in list(self.jobs.items()):
             if excess <= 0:
                 break
-            if job.status in {"done", "error"}:
+            if job.status in {"done", "error", "cancelled"}:
                 self.jobs.pop(job_id, None)
                 excess -= 1
         self._update_queue_positions_locked()
@@ -216,6 +225,41 @@ class StudioContext:
         if start_now:
             threading.Thread(target=self.run_generation, args=(job,), daemon=True).start()
         return {"accepted": True, "queued": not start_now, "position": position}
+
+    def cancel_job(self, job_id: str) -> dict | None:
+        """Cancel a queued job immediately, or ask a running job to stop at the next stage."""
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if job is None:
+                return None
+            if job.status in {"done", "error", "cancelled"}:
+                return {"ok": False, "status": job.status, "already_finished": True}
+            if job.status == "queued":
+                self.queue = [item for item in self.queue if item.id != job.id]
+                job.status = "cancelled"
+                job.error = "Cancelled before the build started."
+                job.stage_name = "Cancelled"
+                job.queue_position = None
+                job.cancel_requested = True
+                self._log(job, "Build cancelled while waiting in the queue.", "warn")
+                self._update_queue_positions_locked()
+                return {"ok": True, "status": "cancelled", "queued": True}
+            job.cancel_requested = True
+            self._log(job, "Cancellation requested; stopping after the current model request.", "warn")
+            return {"ok": True, "status": "running", "cancelling": True}
+
+    def _cancel_running(self, job: Job) -> None:
+        with self.lock:
+            if job.status in {"done", "error", "cancelled"}:
+                return
+            job.status = "cancelled"
+            job.error = "Cancelled by user."
+            job.stage_name = "Cancelled"
+            job.cancel_requested = True
+            for stage in job.stages:
+                if stage["status"] == "active":
+                    stage["status"] = "pending"
+            self._log(job, "Build cancelled. The previous project was left untouched.", "warn")
 
     def job_finished(self, job: Job) -> None:
         """Release the active slot and start the next queued build."""
@@ -378,8 +422,12 @@ class StudioContext:
             site_dir = Path(project["site_dir"])
 
             def on_progress(index: int, status: str, message: str | None = None, level: str = "info") -> None:
+                if job.cancel_requested:
+                    raise JobCancelled()
                 self.update_job(job, index, status, message, level)
 
+            if job.cancel_requested:
+                raise JobCancelled()
             result = generator.generate_site(
                 self.root,
                 self.config,
@@ -388,6 +436,8 @@ class StudioContext:
                 on_progress=on_progress,
                 force=True,  # the project directory is app-managed
             )
+            if job.cancel_requested:
+                raise JobCancelled()
             self.store.update(
                 project["id"],
                 title=result.title,
@@ -429,6 +479,10 @@ class StudioContext:
                     "success",
                     len(job.stages) - 1,
                 )
+        except JobCancelled:
+            self._cancel_running(job)
+            if project is not None:
+                self.store.delete(project["id"])
         except GenerationError as exc:
             self._fail(job, str(exc))
             if project is not None:
@@ -446,6 +500,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     context: StudioContext  # injected by make_server
     server_version = "StitchcraftStudio/" + __version__
+    protocol_version = "HTTP/1.1"
 
     def log_message(self, format: str, *args: Any) -> None:  # keep the console quiet
         return
@@ -672,6 +727,8 @@ class StudioHandler(BaseHTTPRequestHandler):
                 )
             if resource == "jobs" and len(parts) == 3:
                 return self._job_status(parts[2])
+            if resource == "jobs" and len(parts) == 4 and parts[3] == "events":
+                return self._job_events(parts[2])
             if resource == "preview" and len(parts) >= 3:
                 if self._hostname() != "localhost":
                     raise RequestError(403, "previews are served from http://localhost:<port> only")
@@ -700,6 +757,11 @@ class StudioHandler(BaseHTTPRequestHandler):
                 return self._test_db(body)
             if resource == "generate":
                 return self._generate(body)
+            if resource == "jobs" and len(parts) == 4 and parts[3] == "cancel":
+                result = context.cancel_job(parts[2])
+                if result is None:
+                    return self._send_json(404, {"ok": False, "error": "job not found"})
+                return self._send_json(200, {"ok": True, **result})
             if resource == "browser":
                 if len(parts) == 3 and parts[2] == "install":
                     result = context.start_browser_install()
@@ -727,6 +789,34 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self._send_json(404, {"ok": False, "error": "job not found"})
         with self.context.lock:
             return self._send_json(200, job.public_dict())
+
+    def _job_events(self, job_id: str) -> None:
+        """Server-sent events for one job; the client falls back to polling."""
+        job = self.context.jobs.get(job_id)
+        if job is None:
+            return self._send_json(404, {"ok": False, "error": "job not found"})
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-store")
+        self.send_header("Connection", "close")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        last = ""
+        deadline = time.time() + 300
+        try:
+            while time.time() < deadline:
+                with self.context.lock:
+                    payload = job.public_dict()
+                data = json.dumps(payload, ensure_ascii=False)
+                if data != last:
+                    self.wfile.write(("data: " + data + "\n\n").encode("utf-8"))
+                    self.wfile.flush()
+                    last = data
+                if payload.get("status") in {"done", "error", "cancelled"}:
+                    break
+                time.sleep(0.25)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return
 
     # -- browser helpers -----------------------------------------------------
     def _browser_report(self, project_id: str) -> None:
@@ -831,6 +921,17 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self._send_json(400, {"ok": False, "error": f"unknown theme: {theme_id}"})
         if len(prompt) < 8:
             return self._send_json(400, {"ok": False, "error": "describe the site in at least a few words."})
+        import_files: list[dict] = []
+        if body.get("import_files"):
+            if engine != "ai":
+                return self._send_json(
+                    400,
+                    {"ok": False, "error": "Continue mode needs an AI provider. Turn off demo mode and configure a model."},
+                )
+            try:
+                import_files = generator.normalize_import_files(body.get("import_files"))
+            except GenerationError as exc:
+                return self._send_json(400, {"ok": False, "error": str(exc)})
         if engine == "ai":
             ai_settings = self.context.config.ai
             if not ai_settings.base_url:
@@ -852,6 +953,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             title=title or theme.name,
             engine=engine,
             database=database,
+            import_files=import_files,
         )
         job = Job(request, theme_id=theme_id, title=request.title, engine=engine)
         queued = self.context.enqueue_generation(job)

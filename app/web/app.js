@@ -13,47 +13,17 @@
   'use strict';
 
   const I18N = window.StitchcraftI18n || null;
+  const JOBS = window.StitchcraftJobs || null;
+  const SITE_IMPORT = window.StitchcraftImport || null;
 
   /* ---------- 1. Constants ------------------------------------------------- */
-  const STAGES = [
-    { key: 'brief', label: 'Brief' }, { key: 'structure', label: 'Structure' }, { key: 'design', label: 'Design tokens' },
-    { key: 'data', label: 'Data layer' }, { key: 'layout', label: 'Hero & layout' }, { key: 'components', label: 'Components' },
-    { key: 'motion', label: 'Motion' }, { key: 'a11y', label: 'Accessibility' }, { key: 'qa', label: 'QA & package' } ];
-  const PRESETS = {
-    pollinations: { base_url: 'https://text.pollinations.ai/openai', model: 'openai', label: 'Pollinations (free)', requires_key: false, kind: 'free-keyless', note: 'Free community endpoint, no API key needed. Free tier allows about one request per 30s and short output — good for a first try.', key_url: '' },
-    ollama: { base_url: 'http://127.0.0.1:11434/v1', model: 'llama3.1', label: 'Ollama (local)', requires_key: false, kind: 'local', note: 'Runs on this machine. Install Ollama, run `ollama serve`, then pull a model.', key_url: 'https://ollama.com/download' },
-    zhipu: { base_url: 'https://open.bigmodel.cn/api/paas/v4/', model: 'glm-4-flash', label: '智谱 GLM-4-Flash (free)', requires_key: true, kind: 'free-key', note: '国内可直连；glm-4-flash 永久免费，注册后创建免费 Key。', key_url: 'https://open.bigmodel.cn/' },
-    siliconflow: { base_url: 'https://api.siliconflow.cn/v1', model: 'THUDM/GLM-Z1-9B-0414', label: 'SiliconFlow 免费模型', requires_key: true, kind: 'free-key', note: '国内可直连；部分小模型 0 元，注册免费 Key，模型名以控制台为准。', key_url: 'https://cloud.siliconflow.cn/' },
-    groq: { base_url: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile', label: 'Groq (free tier)', requires_key: true, kind: 'free-key', note: 'Free tier with a free API key from console.groq.com.', key_url: 'https://console.groq.com/keys' },
-    gemini: { base_url: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-flash', label: 'Google Gemini (free tier)', requires_key: true, kind: 'free-key', note: 'Free tier with a Google AI Studio key.', key_url: 'https://aistudio.google.com/apikey' },
-    openrouter: { base_url: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free', label: 'OpenRouter (free models)', requires_key: true, kind: 'free-pool', note: 'Free models end with ":free" — type the exact id in the Model field.', key_url: 'https://openrouter.ai/keys' },
-    github: { base_url: 'https://models.github.ai/inference', model: 'openai/gpt-4o-mini', label: 'GitHub Models (free)', requires_key: true, kind: 'free-key', note: 'Free quota with your GitHub account: create a PAT with the "models: read" scope.', key_url: 'https://github.com/settings/tokens' },
-    openai: { base_url: 'https://api.openai.com/v1', model: 'gpt-4o-mini', label: 'OpenAI (paid)', requires_key: true, kind: 'paid', note: 'Requires a paid OpenAI API key.', key_url: 'https://platform.openai.com/api-keys' },
-    deepseek: { base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat', label: 'DeepSeek (paid)', requires_key: true, kind: 'paid', note: 'DeepSeek\'s official API is paid; use a free provider for zero-cost runs.', key_url: 'https://platform.deepseek.com/' },
-    custom: { base_url: '', model: '', label: 'Custom', requires_key: false, kind: 'custom', note: 'Any OpenAI-compatible endpoint. Leave the key blank for local or keyless servers.', key_url: '' } };
+  const UI_CONFIG = window.StitchcraftConfig || {};
+  const { STAGES, PRESETS, FALLBACK_THEMES, STORAGE, POLL_MS, MAX_POLL_FAILS, STEP_COUNT, DONE, CANCELLED, FAIL, STAGE_STATUS, LOG_LEVEL } = UI_CONFIG;
   const providerPreset = (id) => PRESETS[id] || PRESETS.custom;
-  /* Mirrors themes/registry.toml so the catalogue still renders offline. */
-  const FALLBACK_THEMES = [
-    { id: 'warehouse-ops', name: 'Warehouse Operations', category: 'data', accent: '#ff8a3d', has_sample: true, tags: ['inventory', 'dashboard', 'crud', 'operations'], summary: 'An inventory command center: live stock, inbound shipments, low-stock alerts and one-click item updates.' },
-    { id: 'personal-space', name: 'Personal Space', category: 'personal', accent: '#c9a86a', has_sample: true, tags: ['personal', 'writing', 'gallery'], summary: 'A quiet home for essays, field notes and photographs, made for writers and makers with a literary pulse.' },
-    { id: 'staff-directory', name: 'Staff Directory', category: 'data', accent: '#b6f24a', has_sample: false, tags: ['people', 'directory', 'crud'], summary: 'A people-first directory: searchable employee cards, department groupings and onboarding checklists.' },
-    { id: 'logistics-control', name: 'Logistics Control', category: 'data', accent: '#38d6e0', has_sample: false, tags: ['logistics', 'tracking', 'incidents'], summary: 'A midnight-blue operations console for shipment tracking, carrier performance and incident response.' },
-    { id: 'brand-launch', name: 'Brand Launch', category: 'brand', accent: '#ff4d1f', has_sample: false, tags: ['brand', 'landing', 'editorial'], summary: 'A high-contrast editorial landing page: manifesto-led storytelling, launch timeline and one conversion band.' } ];
-  const STORAGE = { theme: 'stitchcraft.theme', title: 'stitchcraft.title' };
-  const POLL_MS = 800, MAX_POLL_FAILS = 4, STEP_COUNT = 5;
-  const DONE = ['done', 'complete', 'completed', 'success', 'succeeded', 'finished', 'ok'];
-  const FAIL = ['error', 'failed', 'failure', 'cancelled', 'canceled', 'timeout'];
-  const STAGE_STATUS = {
-    active: 'active', running: 'active', in_progress: 'active', 'in-progress': 'active', current: 'active', started: 'active', working: 'active',
-    done: 'done', complete: 'done', completed: 'done', ok: 'done', success: 'done', succeeded: 'done', passed: 'done', skipped: 'done',
-    error: 'error', failed: 'error', failure: 'error', cancelled: 'error', canceled: 'error', timeout: 'error' };
-  const LOG_LEVEL = {
-    warn: 'warn', warning: 'warn', error: 'error', err: 'error', fail: 'error', failed: 'error', critical: 'error', fatal: 'error',
-    success: 'success', done: 'success', ok: 'success', complete: 'success', completed: 'success', passed: 'success',
-    debug: 'debug', trace: 'debug', active: 'active', progress: 'active', running: 'active', start: 'active', started: 'active' };
   const state = {
     online: false, themesOffline: false, settings: null, status: null, themes: [], skills: [], projects: [], selectedThemeId: '',
     currentStep: 1, tab: 'preview', generating: false, jobId: null, jobToken: 0, pollTimer: null, pollFails: 0, progress: 0,
+    jobStream: null, importFiles: [], importSkipped: [], importRoot: '', importBytes: 0,
     paintedProgress: 0, stages: [], stageEls: [], latestLogs: [], logCursor: 0, preview: null, runningTitle: '', booting: false,
     confirmResolve: null, modalLastFocus: null };
   const BROWSER_POLL_MS = 900;
@@ -467,10 +437,17 @@
     setText('summary-theme', theme ? theme.name : 'Not selected');
     setText('summary-engine', demo ? 'Demo mode' : 'AI · ' + preset.label + ' / ' + (model || 'default model'));
     setText('summary-db', dbMode() === 'remote' ? 'Remote · ' + ((($('db-kind') || {}).value) === 'rest' ? 'Generic REST' : 'Supabase') : 'Local storage');
+    setText('summary-mode', state.importFiles.length ? 'Continue · ' + state.importFiles.length + ' files' : 'New site');
     setText('summary-title', title || 'Auto-generated'); }
   function updateGenerateNote() {
     if (state.generating) return;
     const note = $('generate-note'); if (!note) return;
+    if (state.importFiles.length) {
+      note.textContent = ($('demo-mode') || {}).checked
+        ? 'Continue mode needs the AI engine. Turn off demo mode and configure a provider.'
+        : 'Continuing from ' + state.importFiles.length + ' imported file(s). Existing copy and layout are kept unless the brief says otherwise.';
+      return;
+    }
     note.textContent = ($('demo-mode') || {}).checked
       ? (I18N ? I18N.translate('Demo mode copies a packaged sample and makes no model calls — usually a few seconds.') : 'Demo mode copies a packaged sample and makes no model calls — usually a few seconds.')
       : (I18N ? I18N.translate('Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.') : 'Usually 20–60 seconds in AI mode. Every stage reports into the Pipeline tab.'); }
@@ -478,6 +455,48 @@
     const prompt = $('prompt'), count = $('prompt-count'); if (!prompt || !count) return;
     count.textContent = String(prompt.value.length);
     if (prompt.value.trim()) setHidden('prompt-error', true); }
+  function updateImportUI() {
+    const card = $('import-card'), label = $('import-label'), status = $('import-status'), clearButton = $('import-clear');
+    const count = state.importFiles.length;
+    if (card) card.classList.toggle('is-loaded', count > 0);
+    if (label) label.textContent = count ? (state.importRoot || 'Site folder') : 'Select a site folder';
+    if (status) {
+      status.textContent = count
+        ? count + ' file(s) · ' + Math.max(1, Math.round(state.importBytes / 1024)) + ' KB' + (state.importSkipped.length ? ' · ' + state.importSkipped.length + ' skipped' : '')
+        : 'No folder selected.';
+    }
+    if (clearButton) clearButton.hidden = count === 0;
+    const button = $('generate-btn'), buttonLabel = button && button.querySelector('.btn__label');
+    if (buttonLabel && !state.generating) buttonLabel.textContent = count ? 'Finish this site' : 'Generate website';
+    updateSummary(); updateGenerateNote();
+  }
+  function clearImport() {
+    state.importFiles = []; state.importSkipped = []; state.importRoot = ''; state.importBytes = 0;
+    const input = $('import-input'); if (input) input.value = '';
+    setHidden('import-error', true); updateImportUI();
+  }
+  async function importFolder(event) {
+    const input = event.target, files = input && input.files ? input.files : null;
+    if (!files || !files.length) return;
+    setHidden('import-error', true);
+    const label = $('import-label'); if (label) label.textContent = 'Reading folder…';
+    if (!SITE_IMPORT) { setHidden('import-error', false); setText('import-error', 'The import module did not load. Reload the studio and retry.'); return; }
+    try {
+      const result = await SITE_IMPORT.readFolder(input);
+      state.importFiles = result.files; state.importSkipped = result.skipped || [];
+      state.importRoot = result.root || ''; state.importBytes = result.bytes || 0;
+      updateImportUI();
+      if (($('demo-mode') || {}).checked) toast('Continue mode needs the AI engine — turn off demo mode.', 'info', 5000);
+    } catch (error) {
+      clearImport();
+      setHidden('import-error', false); setText('import-error', error.message || 'Could not read that folder.');
+    }
+  }
+  function bindImport() {
+    on($('import-input'), 'change', importFolder);
+    on($('import-clear'), 'click', clearImport);
+  }
+
   function bindBrief() {
     const prompt = $('prompt'), title = $('site-title'), savedTitle = readStorage(STORAGE.title);
     if (title && savedTitle) title.value = savedTitle;
@@ -859,7 +878,12 @@
   function setGenerateBusy(busy) {
     const button = $('generate-btn'); if (!button) return;
     button.disabled = Boolean(busy); button.setAttribute('aria-busy', String(Boolean(busy))); button.classList.toggle('is-busy', Boolean(busy));
-    const label = button.querySelector('.btn__label'); if (label) label.textContent = busy ? 'Stitching…' : 'Generate website'; }
+    const label = button.querySelector('.btn__label');
+    if (label) label.textContent = busy ? 'Stitching…' : (state.importFiles.length ? 'Finish this site' : 'Generate website');
+    setHidden('pipeline-cancel', !busy);
+    const cancelButton = $('pipeline-cancel');
+    if (cancelButton && busy && !state.jobId) cancelButton.disabled = true;
+    if (!busy) cancelButton && (cancelButton.disabled = false); }
   function canUseAI() {
     const provider = ($('provider') || {}).value || 'pollinations';
     if (providerPreset(provider).requires_key === false) return true;
@@ -884,7 +908,8 @@
   function normalizeJob(raw) {
     const job = raw && typeof raw === 'object' ? (raw.job && typeof raw.job === 'object' ? raw.job : raw) : {};
     const status = String(job.status || job.state || 'running').toLowerCase();
-    const failed = FAIL.indexOf(status) >= 0, done = DONE.indexOf(status) >= 0 && !failed;
+    const cancelled = CANCELLED.indexOf(status) >= 0;
+    const failed = FAIL.indexOf(status) >= 0, done = DONE.indexOf(status) >= 0 && !failed && !cancelled;
     const stages = normalizeStages(job);
     if (done) stages.forEach((stage) => { stage.status = 'done'; });
     let error = '';
@@ -895,32 +920,43 @@
       else if (typeof job.detail === 'string') error = job.detail; }
     const projectId = job.project_id || (job.project && job.project.id) || (job.result && job.result.project_id) || (job.result && job.result.project && job.result.project.id) || '';
     return {
-      status: status, done: done, failed: failed, terminal: done || failed, stages: stages, progress: deriveProgress(job, stages, done),
+      status: status, done: done, failed: failed, cancelled: cancelled, terminal: done || failed || cancelled,
+      cancelRequested: Boolean(job.cancel_requested), importMode: Boolean(job.import_mode), stages: stages, progress: deriveProgress(job, stages, done),
       logs: normalizeLogs(job.logs || job.log || job.events), projectId: projectId ? String(projectId) : '', error: error,
       browser: job.browser && typeof job.browser === 'object' ? job.browser : null,
       queuePosition: Number(job.queue_position) || 0,
       title: String(job.title || (job.project && job.project.title) || ''), engine: String(job.engine || ''), stageName: String(job.stage_name || '') }; }
   const startPolling = (token) => { window.clearTimeout(state.pollTimer); state.pollTimer = window.setTimeout(() => pollJob(token), POLL_MS); };
+  function closeJobStream() {
+    if (state.jobStream) { try { state.jobStream.close(); } catch (_) { /* already closed */ } state.jobStream = null; }
+  }
+  function applyJobUpdate(raw, token) {
+    if (token !== state.jobToken || !state.jobId) return true;
+    const job = normalizeJob(raw);
+    renderStages(job.stages); setProgress(job.progress); renderLogs(job.logs);
+    if (job.cancelled) { finishJob(job); return true; }
+    if (job.status === 'queued') {
+      setStageBadge('running', 'Queued');
+      setText('pipeline-stage-name', 'Queued');
+      setPipelineStatus('running', job.queuePosition ? 'Queued — position ' + job.queuePosition + ' in line.' : 'Queued — waiting for the current build to finish.');
+      return false;
+    }
+    const active = job.stages.find((stage) => stage.status === 'active');
+    if (job.stageName || active) setText('pipeline-stage-name', job.stageName || (active ? active.label : 'Stitching…'));
+    if (!job.terminal) {
+      const activeIndex = job.stages.findIndex((stage) => stage.status === 'active');
+      setPipelineStatus('running', job.cancelRequested ? 'Cancelling after the current model request…'
+        : activeIndex >= 0 ? 'Stage ' + (activeIndex + 1) + ' of 9 · ' + job.stages[activeIndex].label : 'Stitching the site…');
+      return false;
+    }
+    finishJob(job); return true;
+  }
   async function pollJob(token) {
     if (token !== state.jobToken || !state.jobId) return;
     try {
       const raw = await api('/api/jobs/' + encodeURIComponent(state.jobId)); if (token !== state.jobToken) return;
       state.pollFails = 0;
-      const job = normalizeJob(raw);
-      renderStages(job.stages); setProgress(job.progress); renderLogs(job.logs);
-      if (job.status === 'queued') {
-        setStageBadge('running', 'Queued');
-        setText('pipeline-stage-name', 'Queued');
-        setPipelineStatus('running', job.queuePosition ? 'Queued — position ' + job.queuePosition + ' in line.' : 'Queued — waiting for the current build to finish.');
-        startPolling(token); return;
-      }
-      const active = job.stages.find((stage) => stage.status === 'active');
-      if (job.stageName || active) setText('pipeline-stage-name', job.stageName || (active ? active.label : 'Stitching…'));
-      if (!job.terminal) {
-        const activeIndex = job.stages.findIndex((stage) => stage.status === 'active');
-        setPipelineStatus('running', activeIndex >= 0 ? 'Stage ' + (activeIndex + 1) + ' of 9 · ' + job.stages[activeIndex].label : 'Stitching the site…');
-        startPolling(token); return; }
-      finishJob(job);
+      if (!applyJobUpdate(raw, token)) startPolling(token);
     } catch (error) {
       if (token !== state.jobToken) return;
       state.pollFails += 1;
@@ -928,8 +964,58 @@
         finishJob({ status: 'error', failed: true, done: false, terminal: true, stages: state.stages, progress: state.progress, logs: [], projectId: '', error: 'Lost the connection to the backend (' + error.message + ').', title: '', engine: '', stageName: '' });
         return; }
       setPipelineStatus('running', 'Connection hiccup — retrying (' + state.pollFails + '/' + MAX_POLL_FAILS + ')…'); startPolling(token); } }
+  function followJob(token) {
+    if (!state.jobId) return;
+    if (JOBS && JOBS.follow) {
+      const stream = JOBS.follow(state.jobId, {
+        update: (raw) => { if (token === state.jobToken) applyJobUpdate(raw, token); },
+        error: () => {
+          if (token !== state.jobToken) return;
+          state.jobStream = null;
+          state.pollFails = 0;
+          setPipelineStatus('running', 'Live stream interrupted — falling back to polling.');
+          startPolling(token);
+        },
+      });
+      if (stream) { state.jobStream = stream; return; }
+    }
+    startPolling(token);
+  }
+  async function cancelGeneration() {
+    if (!state.generating || !state.jobId) return;
+    const button = $('pipeline-cancel');
+    if (button) { button.disabled = true; button.textContent = 'Cancelling…'; }
+    try {
+      const result = JOBS && JOBS.cancel ? await JOBS.cancel(state.jobId)
+        : await api('/api/jobs/' + encodeURIComponent(state.jobId) + '/cancel', { method: 'POST', body: {} });
+      if (result && result.already_finished) {
+        toast('The build already finished.', 'info');
+        const raw = await api('/api/jobs/' + encodeURIComponent(state.jobId));
+        applyJobUpdate(raw, state.jobToken);
+      } else if (result && result.status === 'cancelled') {
+        const raw = await api('/api/jobs/' + encodeURIComponent(state.jobId));
+        applyJobUpdate(raw, state.jobToken);
+      } else {
+        toast('Cancellation requested. The build will stop after the current request.', 'info');
+        setPipelineStatus('running', 'Cancelling after the current model request…');
+      }
+    } catch (error) {
+      toast('Could not cancel the build: ' + error.message, 'error');
+      if (button) { button.disabled = false; button.textContent = 'Cancel build'; }
+    }
+  }
   function finishJob(job) {
-    state.generating = false; state.jobToken += 1; window.clearTimeout(state.pollTimer); setGenerateBusy(false);
+    state.generating = false; state.jobToken += 1; window.clearTimeout(state.pollTimer); closeJobStream(); setGenerateBusy(false);
+    setHidden('pipeline-cancel', true);
+    if (job.cancelled) {
+      renderStages(job.stages); setProgress(job.progress);
+      setPipelineStatus('error', 'Build cancelled. The previous project was left untouched.');
+      setStageBadge('error', 'Cancelled');
+      showPipelineError(job.error || 'Build cancelled. The previous project was left untouched.');
+      setText('pipeline-foot', 'Adjust the brief or settings, then start a new build.');
+      toast('Build cancelled. The previous project was left untouched.', 'info', 5000);
+      switchTab('pipeline'); return;
+    }
     if (job.failed) {
       renderStages(job.stages); setProgress(job.progress);
       const failing = job.stages.find((stage) => stage.status === 'error');
@@ -960,19 +1046,30 @@
     const prompt = $('prompt'), brief = prompt ? prompt.value.trim() : '';
     if (!brief) { showPromptError('Write a short brief before generating.'); goToStep(4); if (prompt) prompt.focus(); return; }
     const engine = ($('demo-mode') || {}).checked ? 'mock' : 'ai';
+    if (state.importFiles.length && engine === 'mock') {
+      showGenerateError('Continue mode needs the AI engine. Turn off demo mode and configure an AI provider.');
+      goToStep(1);
+      toast('Continue mode needs an AI provider — demo mode cannot complete an imported site.', 'error', 5500);
+      return;
+    }
     if (engine === 'ai' && !canUseAI()) {
       showGenerateError('This provider needs an API key — choose a free provider in Setup, add your key, or switch on demo mode.');
       goToStep(1); if ($('api-key')) $('api-key').focus(); toast('Choose a free provider or add a key to generate with AI.', 'error'); return; }
     setHidden('generate-error', true); setHidden('theme-error', true); setHidden('prompt-error', true);
     const titleInput = $('site-title');
-    const payload = { theme_id: theme.id, title: titleInput ? titleInput.value.trim() : '', prompt: brief, engine: engine, database: databasePayload() };
-    state.generating = true; state.jobToken += 1; const token = state.jobToken;
+    const payload = {
+      theme_id: theme.id, title: titleInput ? titleInput.value.trim() : '', prompt: brief, engine: engine,
+      database: databasePayload(), import_files: state.importFiles.length ? state.importFiles : undefined,
+    };
+    state.generating = true; state.jobToken += 1; const token = state.jobToken; state.jobId = null;
     setGenerateBusy(true); resetPipelineUI(theme); switchTab('pipeline');
     try {
       const response = await api('/api/generate', { method: 'POST', body: payload });
       const jobId = response && (response.job_id || response.id);
       if (!jobId) throw new Error('The server did not return a job id.');
-      state.jobId = String(jobId); announce('Generation started.'); startPolling(token);
+      state.jobId = String(jobId);
+      const cancelButton = $('pipeline-cancel'); if (cancelButton) { cancelButton.disabled = false; cancelButton.textContent = 'Cancel build'; }
+      announce('Generation started.'); followJob(token);
       if (response && response.queued) toast('A build is already running — this one is queued.', 'info');
     } catch (error) {
       state.generating = false; setGenerateBusy(false);
@@ -982,6 +1079,7 @@
       toast('Could not start generation: ' + error.message, 'error', 6000); } }
   function bindGeneration() {
     on($('generate-btn'), 'click', generate); on($('pipeline-retry'), 'click', generate);
+    on($('pipeline-cancel'), 'click', cancelGeneration);
     on($('pipeline-see-logs'), 'click', () => switchTab('logs'));
     on($('success-view'), 'click', () => switchTab('preview'));
     on($('logs-clear'), 'click', clearLogsPanel);
@@ -1138,7 +1236,7 @@
   function init() {
     PLACEHOLDERS.api = (($('api-key') || {}).placeholder) || 'sk-…';
     PLACEHOLDERS.db = (($('db-key') || {}).placeholder) || 'public anon key';
-    makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindGeneration();
+    makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindImport(); bindGeneration();
     bindHistory(); bindPreview(); bindLanguage(); bindConnection(); bindGlobalKeys(); bindBrowser();
     paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); syncProviderUI(); setPreviewLoading(false);
     bootstrap({ silent: true }); loadLibrariesNote(); loadBrowser();

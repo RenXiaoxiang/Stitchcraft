@@ -10,4 +10,4 @@ skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft
 libraries = ["chartjs", "sortablejs"]
 design_reference = "supabase"
 data_model = "data-model.json"
-sample = ""
+sample = "sample"

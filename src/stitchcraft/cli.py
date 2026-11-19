@@ -115,6 +115,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="allow cleaning a non-empty output directory that Stitchcraft did not create",
     )
 
+    refine = sub.add_parser("refine", help="continue and complete a half-built site with AI")
+    refine.add_argument("--input", type=Path, required=True, help="folder containing the existing site")
+    refine.add_argument("--theme", default="warehouse-ops", help="theme contract to complete against")
+    refine.add_argument("--prompt", required=True, help="what is missing or should be improved")
+    refine.add_argument("--title", default="", help="optional site title")
+    refine.add_argument("--out", type=Path, default=None, help="output directory")
+    refine.add_argument("--force", action="store_true", help="allow replacing a foreign output directory")
+
     benchmark = sub.add_parser("benchmark", help="run the fixed acceptance tasks and report quality")
     benchmark.add_argument("--engine", choices=["mock", "ai"], default="mock", help="mock demo or configured AI engine")
     benchmark.add_argument("--task", action="append", default=None, help="run only this task id (repeatable)")
@@ -156,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         "designs": cmd_designs,
         "browser": cmd_browser,
         "generate": cmd_generate,
+        "refine": cmd_refine,
         "benchmark": cmd_benchmark,
     }
     return handlers[args.command](repo, args)
@@ -621,6 +630,50 @@ def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
         )
     release_ok = summary["build_failed"] == 0 and (not args.strict or summary["release_ready"])
     return EXIT_OK if release_ok else EXIT_FINDINGS
+
+
+def cmd_refine(repo: Repo, args: argparse.Namespace) -> int:
+    from . import settings as settings_module
+    from .generator import GenerationError, GenerationRequest, collect_import_files, generate_site
+    from .themes import get_theme
+
+    theme = get_theme(repo.root, args.theme)
+    if theme is None:
+        print(f"stitch: unknown theme '{args.theme}'", file=sys.stderr)
+        return EXIT_ERROR
+    try:
+        import_files = collect_import_files(args.input)
+    except GenerationError as exc:
+        print(f"stitch refine: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    config = settings_module.load_config()
+    out_dir = Path(args.out) if args.out else repo.root / ".stitch" / "refined" / (Path(args.input).name or "site")
+    request = GenerationRequest(
+        theme_id=theme.id,
+        prompt=args.prompt,
+        title=args.title or theme.name,
+        engine="ai",
+        import_files=import_files,
+    )
+
+    def progress(index: int, status: str, message: str | None = None, level: str = "info") -> None:
+        if status in {"active", "done"} and message:
+            print(f"  [{index + 1}/9] {message}")
+
+    print(f"Continuing {len(import_files)} file(s) from {args.input} with {config.ai.provider}/{config.ai.model}")
+    try:
+        result = generate_site(
+            repo.root, config, request, out_dir, on_progress=progress, force=args.force
+        )
+    except GenerationError as exc:
+        print(f"stitch refine: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    print()
+    print(f"Refined site: {out_dir}")
+    print(f"  {len(result.files)} file(s) · {result.duration_ms} ms")
+    for name in result.files:
+        print(f"  - {name}")
+    return EXIT_OK
 
 
 def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:

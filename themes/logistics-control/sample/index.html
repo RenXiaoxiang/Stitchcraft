@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#071522">
+  <meta name="description" content="Harborline Control — a shipment tracking, carrier and incident console.">
+  <title>Harborline Control — Logistics console</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="data-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#board">Skip to the board</a>
+
+  <header class="control-bar">
+    <a class="brand" href="#top" aria-label="Harborline Control home">
+      <span class="brand__mark" aria-hidden="true">H</span>
+      <span class="brand__text"><strong>Harborline Control</strong><small>Network operations</small></span>
+    </a>
+    <div class="control-bar__right">
+      <span class="live"><span class="live__dot" aria-hidden="true"></span>Live feed</span>
+      <time id="utc-clock" datetime="">--:-- UTC</time>
+      <span class="alert-count" id="alert-count">0 alerts</span>
+      <span class="mode" id="mode-badge">Local data</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <p class="kicker">Network status / <span id="network-state">Stable</span></p>
+        <h1 id="hero-title">Every shipment.<br><em>One screen.</em></h1>
+        <p>Track the network, catch the exceptions, and close the loop before a delay becomes a story. This console is seeded with editable local data.</p>
+      </div>
+      <div class="hero__actions">
+        <button class="btn btn--primary" id="new-incident" type="button">Open incident</button>
+        <button class="btn btn--ghost" id="export-csv" type="button">Export snapshot</button>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Network snapshot">
+      <article><span class="stat__value" id="stat-transit">—</span><span class="stat__label">In transit</span></article>
+      <article><span class="stat__value" id="stat-ontime">—</span><span class="stat__label">On-time network</span></article>
+      <article><span class="stat__value" id="stat-incidents">—</span><span class="stat__label">Open incidents</span></article>
+      <article><span class="stat__value" id="stat-carriers">—</span><span class="stat__label">Active carriers</span></article>
+    </section>
+
+    <section class="board" id="board" aria-labelledby="board-title">
+      <div class="board__head">
+        <div><p class="kicker">Shipment board</p><h2 id="board-title">The network right now.</h2></div>
+        <div class="board__filters">
+          <label class="search-field" for="shipment-search">
+            <span>Search</span>
+            <input id="shipment-search" type="search" placeholder="Reference, route, carrier" autocomplete="off">
+          </label>
+          <label class="select-field" for="status-filter">Status
+            <select id="status-filter">
+              <option value="all">All shipments</option>
+              <option value="booked">Booked</option>
+              <option value="in-transit">In transit</option>
+              <option value="customs">Customs</option>
+              <option value="delayed">Delayed</option>
+              <option value="delivered">Delivered</option>
+            </select>
+          </label>
+          <label class="select-field" for="mode-filter">Mode
+            <select id="mode-filter"><option value="all">All modes</option><option value="air">Air</option><option value="ocean">Ocean</option><option value="road">Road</option></select>
+          </label>
+        </div>
+      </div>
+      <p class="result-line" id="result-line" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table class="shipments">
+          <caption class="visually-hidden">Shipments with route, carrier, ETA, weight and status</caption>
+          <thead><tr><th scope="col">Reference</th><th scope="col">Route</th><th scope="col">Carrier</th><th scope="col">ETA</th><th scope="col">Weight</th><th scope="col">Status</th></tr></thead>
+          <tbody id="shipment-body"></tbody>
+        </table>
+        <div class="empty" id="shipment-empty" hidden>No shipments match those filters.</div>
+      </div>
+    </section>
+
+    <div class="lower-grid">
+      <section class="timeline-panel" aria-labelledby="timeline-title">
+        <div class="panel-head"><p class="kicker">Next hand-offs</p><h2 id="timeline-title">Today’s timeline</h2></div>
+        <ol class="timeline" id="timeline-list"></ol>
+      </section>
+
+      <section class="incidents-panel" aria-labelledby="incidents-title">
+        <div class="panel-head"><p class="kicker">Exceptions</p><h2 id="incidents-title">Incident board</h2></div>
+        <div class="lanes" id="incident-lanes"></div>
+      </section>
+    </div>
+
+    <section class="carriers" aria-labelledby="carriers-title">
+      <div class="panel-head"><p class="kicker">Partner performance</p><h2 id="carriers-title">Carrier scorecards</h2></div>
+      <div class="carrier-grid" id="carrier-grid"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Harborline Control · a Stitchcraft demo sample</span>
+    <span id="foot-status">Seeded network · local mode · updated just now</span>
+  </footer>
+
+  <dialog class="modal" id="incident-dialog" aria-labelledby="incident-dialog-title">
+    <form id="incident-form" novalidate>
+      <div class="modal__head">
+        <div><p class="kicker">Exception intake</p><h2 id="incident-dialog-title">Open an incident</h2></div>
+        <button class="icon-btn" id="incident-close" type="button" aria-label="Close incident form">✕</button>
+      </div>
+      <label>Shipment<select id="incident-shipment" required></select></label>
+      <div class="form-row">
+        <label>Severity<select id="incident-severity"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+        <label>Opened by<input id="incident-owner" autocomplete="off" placeholder="Your name"></label>
+      </div>
+      <label>What happened?<textarea id="incident-summary" rows="4" maxlength="240" required placeholder="e.g. Customs hold at Rotterdam; documents requested."></textarea></label>
+      <p class="form-error" id="incident-error" role="alert" hidden></p>
+      <div class="modal__actions"><button class="btn btn--ghost" id="incident-cancel" type="button">Cancel</button><button class="btn btn--primary" type="submit">Open incident</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="shipment-template">
+    <tr>
+      <td data-label="Reference"><span class="mono shipment-ref"></span></td>
+      <td data-label="Route"><span class="route"></span></td>
+      <td data-label="Carrier"></td>
+      <td data-label="ETA"><span class="mono eta"></span></td>
+      <td data-label="Weight" class="num"><span class="mono weight"></span></td>
+      <td data-label="Status"><span class="status-pill"></span></td>
+    </tr>
+  </template>
+
+  <template id="lane-template">
+    <div class="lane">
+      <header class="lane__head"><h3 class="lane__name"></h3><span class="lane__count"></span></header>
+      <div class="lane__cards"></div>
+    </div>
+  </template>
+
+  <template id="incident-template">
+    <article class="incident-card">
+      <div class="incident-card__top"><span class="severity"></span><span class="incident-card__time"></span></div>
+      <h4 class="incident-card__summary"></h4>
+      <p class="incident-card__shipment"></p>
+      <button class="btn btn--ghost btn--sm resolve" type="button">Mark resolved</button>
+    </article>
+  </template>
+</body>
+</html>

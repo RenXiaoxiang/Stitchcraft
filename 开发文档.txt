@@ -1161,3 +1161,59 @@ License  : MIT
     默认轻量模式退出码 0。
   - 有浏览器 strict：required functional 2/2，退出码 0。
 
+================================================================================
+24. v1.1.0 最终扩展：5/5 示例、实时任务、模块化与半成品加工
+--------------------------------------------------------------------------------
+24.1 5/5 demo 覆盖
+  - 新增 staff-directory 示例站：Northstar People，15 名员工、5 个部门、
+    搜索/部门/状态筛选、员工抽屉、入职清单勾选、增改员工表单、localStorage。
+  - 新增 logistics-control 示例站：Harborline Control，12 票货运、4 家承运商、
+    搜索/状态/方式筛选、今日交接时间线、事故看板与解决、承运商评分、CSV 导出。
+  - 五个主题全部有完整 sample：warehouse-ops、staff-directory、logistics-control、
+    personal-space、brand-launch；demo 模式占位页从 2 个降为 0。
+  - benchmark mock 结果：build 5/5，placeholders 0，warehouse/brand functional 通过。
+
+24.2 任务取消
+  - Job 增加 cancel_requested；POST /api/jobs/<id>/cancel。
+  - 排队任务立即取消并移出队列；运行任务在当前模型请求结束后于下一个阶段
+    协作停止；staging 被清理，旧项目不受影响。
+  - 取消是终态，不占历史记录；队列自动推进。
+  - UI 增加 Cancel build 按钮（在 job id 返回前禁用），SSE/polling 都显示
+    Cancelled 状态；i18n 五语言覆盖主要文案。
+
+24.3 实时进度 SSE
+  - GET /api/jobs/<id>/events 输出 text/event-stream；客户端 app/web/js/jobs.js
+    通过 fetch + ReadableStream 读取，失败时自动回退到轮询（4.5s watchdog）。
+  - 服务端协议版本改为 HTTP/1.1；SSE 客户端使用 AbortController 关闭。
+  - 这样既保留了 SSE 的低延迟，也不会因嵌入浏览器不支持 EventSource 而卡住。
+
+24.4 前端模块化
+  - 抽出 app/web/js/config.js（阶段、provider 预设、离线主题、状态词表）。
+  - 抽出 app/web/js/jobs.js（SSE/取消）和 app/web/js/import-site.js
+    （半成品文件夹读取）；app.js 只保留编排职责。
+  - CI 对所有前端模块执行 node --check；页面仍无构建步骤、无 CDN。
+
+24.5 半成品网站加工
+  - UI：Brief 步骤新增 Continue an existing site；选择本地文件夹，显示文件数/大小，
+    可清除；生成按钮变为 Finish this site。仅支持文本资产（HTML/CSS/JS/JSON/
+    SVG/TXT/MD/XML/manifest），UI 上限 80 文件 / 1 MB；不读取二进制资产。
+  - CLI：stitch refine --input DIR --theme ... --prompt ... [--out]。
+  - 后端：POST /api/generate 接受 import_files；normalize_import_files 做路径、
+    后缀、大小、重复与 index.html 校验；mock 引擎拒绝，必须配置 AI。
+  - 生成器：先把导入文件写入 staging，构建 import_context（manifest + 节选），
+    跳过模型规划调用，要求 AI 保留可用内容并返回改动文件；最终仍经过
+    data-config 注入、库/GSAP 归属复制、引用检查、staging + 原子发布。
+  - 取消/失败都会清理新 project，旧站保留；导入文本会发送给配置的 AI 端点，
+    文档明确隐私边界。
+
+24.6 最终验证
+  - unittest 95 个通过；validate --strict 0/0；themes/designs/libraries/skills
+    verify；smoke test PASS。
+  - mock benchmark：5/5 build，0 placeholders，required functional 2/2（本地
+    Obscura）；--strict 无浏览器时 0/2 incomplete + 退出码 1，默认轻量退出 0。
+  - 全量 UI 生成、SSE 流、半成品前端读取均用真实浏览器/本机 harness 验证；
+    CI 覆盖配置/jobs/import 模块语法检查。
+  - 归属与隐私：所有 GSAP/Fabric/设计参考/技能包/库保持 license + upstream；
+    当前 tracked tree 无真实密钥/私钥/个人路径；历史中的 Devpost 私有文件与
+    提交媒体已从历史移除并重建 GitHub 仓库，旧 SHA 不可访问。
+

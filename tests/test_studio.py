@@ -562,8 +562,113 @@ class AIGenerationTests(unittest.TestCase):
             )
         self.assertTrue(any("missing local file" in warning for warning in result.warnings), result.warnings)
 
+    def test_continue_mode_completes_imported_site_and_preserves_untouched_files(self) -> None:
+        imported = [
+            {"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Half built</title><link rel="stylesheet" href="styles.css"></head><body><h1>Half built</h1><footer>Old footer</footer></body></html>'},
+            {"path": "styles.css", "content": "body{color:#234}"},
+            {"path": "notes.txt", "content": "keep this imported note"},
+        ]
+        files = {
+            "files": [{"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Finished</title><link rel="stylesheet" href="styles.css"></head><body><h1>Finished</h1><footer>New footer</footer><script src="data-config.js"></script></body></html>'}],
+            "summary": "Completed the imported landing page.",
+        }
+        calls: list[list[dict]] = []
+
+        def fake_chat(_config, messages, json_mode=True):
+            calls.append(messages)
+            return json.dumps(files)
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("stitchcraft.ai_client.chat", side_effect=fake_chat):
+            out = Path(tmp) / "site"
+            result = generate_site(
+                ROOT,
+                self._config("pollinations"),
+                GenerationRequest(
+                    theme_id="brand-launch",
+                    prompt="Finish the pricing section and keep the existing footer tone.",
+                    engine="ai",
+                    database={"mode": "local", "remote": {}},
+                    import_files=imported,
+                ),
+                out,
+            )
+            self.assertEqual(len(calls), 1)
+            prompt_text = "\n".join(str(message.get("content", "")) for message in calls[0])
+            self.assertIn("Existing half-built site", prompt_text)
+            self.assertIn("## styles.css", prompt_text)
+            self.assertIn("Finished", (out / "index.html").read_text(encoding="utf-8"))
+            self.assertEqual((out / "styles.css").read_text(encoding="utf-8"), "body{color:#234}")
+            self.assertTrue((out / "notes.txt").is_file())
+            self.assertIn("styles.css", result.files)
+            self.assertEqual(result.model_calls, 1)
+
+    def test_continue_mode_rejects_mock_engine(self) -> None:
+        request = GenerationRequest(
+            theme_id="brand-launch",
+            prompt="Finish this half-built page.",
+            engine="mock",
+            import_files=[{"path": "index.html", "content": "<!doctype html><html><body>draft</body></html>"}],
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(GenerationError):
+                generate_site(ROOT, AppConfig(), request, Path(tmp) / "site")
+
+
+class ImportValidationTests(unittest.TestCase):
+    def test_rejects_traversal_and_missing_index(self) -> None:
+        with self.assertRaises(GenerationError):
+            generator.normalize_import_files([{"path": "../outside.html", "content": "x"}])
+        with self.assertRaises(GenerationError):
+            generator.normalize_import_files([{"path": "styles.css", "content": "body{}"}])
+
+    def test_collects_text_files_and_skips_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "index.html").write_text("<!doctype html><html><body>draft</body></html>", encoding="utf-8")
+            (root / "styles.css").write_text("body{color:#111}", encoding="utf-8")
+            (root / "photo.png").write_bytes(b"\x89PNG\r\n")
+            (root / "notes.txt").write_text("keep", encoding="utf-8")
+            files = generator.collect_import_files(root)
+        self.assertEqual({item["path"] for item in files}, {"index.html", "styles.css", "notes.txt"})
+
 
 class JobQueueTests(unittest.TestCase):
+    def _job(self, title: str = "job") -> Job:
+        request = GenerationRequest(
+            theme_id="warehouse-ops",
+            prompt="A warehouse dashboard with inventory and inbound shipments.",
+            engine="mock",
+            database={"mode": "local", "remote": {}},
+        )
+        return Job(request, theme_id="warehouse-ops", title=title, engine="mock")
+
+    def test_cancel_queued_job_removes_it_without_touching_the_active_slot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"STITCHCRAFT_HOME": tmp}):
+            context = StudioContext(ROOT, config=AppConfig(), store=ProjectStore(Path(tmp) / "data"))
+            context.active_jobs = 1
+            queued = self._job("queued")
+            result = context.enqueue_generation(queued)
+            self.assertTrue(result["queued"])
+            cancelled = context.cancel_job(queued.id)
+            self.assertEqual(cancelled["status"], "cancelled")
+            self.assertEqual(queued.status, "cancelled")
+            self.assertEqual(context.queue_status()["queued"], 0)
+            self.assertEqual(context.queue_status()["active"], 1)
+
+    def test_cancel_running_job_requests_cooperative_stop(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"STITCHCRAFT_HOME": tmp}):
+            context = StudioContext(ROOT, config=AppConfig(), store=ProjectStore(Path(tmp) / "data"))
+            running = self._job("running")
+            running.status = "running"
+            context.jobs[running.id] = running
+            context.active_jobs = 1
+            result = context.cancel_job(running.id)
+            self.assertTrue(result["cancelling"])
+            self.assertTrue(running.cancel_requested)
+            self.assertEqual(running.status, "running")
+            context._cancel_running(running)
+            self.assertEqual(running.status, "cancelled")
+
     def test_second_job_waits_for_the_active_build(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"STITCHCRAFT_HOME": tmp}):
             context = StudioContext(ROOT, config=AppConfig(), store=ProjectStore(Path(tmp) / "data"))
@@ -815,6 +920,103 @@ class ServerApiTests(unittest.TestCase):
         app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")
         self.assertIn("bindLanguage", app_js)
         self.assertIn("StitchcraftI18n", app_js)
+
+    def test_frontend_continuation_contract(self) -> None:
+        html = (ROOT / "app" / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="import-input"', html)
+        self.assertIn('id="pipeline-cancel"', html)
+        self.assertIn("js/jobs.js", html)
+        self.assertIn("js/import-site.js", html)
+        jobs_js = (ROOT / "app" / "web" / "js" / "jobs.js").read_text(encoding="utf-8")
+        self.assertIn("ReadableStream", jobs_js)
+        self.assertIn("/events", jobs_js)
+        import_js = (ROOT / "app" / "web" / "js" / "import-site.js").read_text(encoding="utf-8")
+        self.assertIn("readFolder", import_js)
+        app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("StitchcraftJobs", app_js)
+        self.assertIn("StitchcraftImport", app_js)
+        self.assertIn("StitchcraftConfig", app_js)
+        self.assertIn("js/config.js", html)
+        config_js = (ROOT / "app" / "web" / "js" / "config.js").read_text(encoding="utf-8")
+        self.assertIn("StitchcraftConfig", config_js)
+        self.assertIn("STAGES", config_js)
+
+    def test_job_events_streams_a_terminal_snapshot(self) -> None:
+        job = Job(
+            GenerationRequest(theme_id="warehouse-ops", prompt="A warehouse dashboard.", engine="mock", database={"mode": "local", "remote": {}}),
+            theme_id="warehouse-ops",
+            title="event job",
+            engine="mock",
+        )
+        job.status = "done"
+        self.context.jobs[job.id] = job
+        try:
+            with urllib.request.urlopen(self.base + f"/api/jobs/{job.id}/events", timeout=10) as response:
+                self.assertIn("text/event-stream", response.headers.get("Content-Type", ""))
+                body = response.read().decode("utf-8", "replace")
+            self.assertIn("data:", body)
+            self.assertIn('"done"', body)
+        finally:
+            self.context.jobs.pop(job.id, None)
+
+    def test_cancel_endpoint_rejects_unknown_job(self) -> None:
+        status, _headers, body = _raw_request(
+            self.base + "/api/jobs/not-a-job/cancel",
+            "POST",
+            json.dumps({}).encode("utf-8"),
+            {"Content-Type": "application/json", "Origin": self.base},
+        )
+        self.assertEqual(status, 404)
+        self.assertFalse(json.loads(body)["ok"])
+
+    def test_generate_imported_site_with_ai(self) -> None:
+        imported = [{
+            "path": "index.html",
+            "content": '<!doctype html><html lang="en"><head><title>Draft</title><link rel="stylesheet" href="styles.css"></head><body><h1>Draft</h1></body></html>',
+        }, {"path": "styles.css", "content": "body{color:#123}"}]
+        model = {
+            "files": [{"path": "index.html", "content": '<!doctype html><html lang="en"><head><title>Finished</title><link rel="stylesheet" href="styles.css"></head><body><h1>Finished</h1><script src="data-config.js"></script></body></html>'}],
+            "summary": "Finished imported site.",
+        }
+        with mock.patch("stitchcraft.ai_client.chat", return_value=json.dumps(model)):
+            status, payload = _get_json(
+                self.base + "/api/generate",
+                "POST",
+                {
+                    "theme_id": "brand-launch",
+                    "title": "Imported draft",
+                    "prompt": "Finish the page and keep the existing styles.",
+                    "engine": "ai",
+                    "database": {"mode": "local", "remote": {}},
+                    "import_files": imported,
+                },
+            )
+            self.assertEqual(status, 202, payload)
+            job_id = payload["job_id"]
+            job = {}
+            for _ in range(300):
+                status, job = _get_json(self.base + f"/api/jobs/{job_id}")
+                if job.get("status") in {"done", "error", "cancelled"}:
+                    break
+                time.sleep(0.05)
+        self.assertEqual(job.get("status"), "done", job.get("error"))
+        self.assertTrue(job.get("import_mode"))
+        self.assertTrue(job.get("project_id"))
+
+    def test_import_requires_ai_engine(self) -> None:
+        status, _headers, body = _raw_request(
+            self.base + "/api/generate",
+            "POST",
+            json.dumps({
+                "theme_id": "brand-launch",
+                "prompt": "Finish this draft.",
+                "engine": "mock",
+                "import_files": [{"path": "index.html", "content": "<!doctype html><html><body>draft</body></html>"}],
+            }).encode("utf-8"),
+            {"Content-Type": "application/json", "Origin": self.base},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("AI", json.loads(body)["error"])
 
     def test_generate_mock_preview_and_export(self) -> None:
         status, payload = _get_json(
