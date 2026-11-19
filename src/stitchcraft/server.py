@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import __version__, ai_client, browser, generator, libraries, settings, skills, storage, themes
+from . import __version__, ai_client, browser, designs, generator, libraries, settings, skills, storage, themes
 from .generator import GenerationError, GenerationRequest
 from .settings import AppConfig
 from .storage import ProjectStore
@@ -647,6 +647,11 @@ class StudioHandler(BaseHTTPRequestHandler):
                             for library in libraries.load_libraries(context.root)
                         ]
                     },
+                )
+            if resource == "designs":
+                return self._send_json(
+                    200,
+                    {"designs": [design.public_dict() for design in designs.load_designs(context.root)]},
                 )
             if resource == "browser":
                 if len(parts) == 2:

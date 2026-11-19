@@ -8,5 +8,6 @@ accent = "#c9a86a"
 blocks = ["hero", "article-list", "photo-masonry", "timeline"]
 skills = ["modern-web-guidance", "gsap-core", "gsap-scrolltrigger", "stitchcraft-whiteboard"]
 libraries = ["fabric", "swiper", "roughjs"]
+design_reference = "airbnb"
 data_model = ""
 sample = "sample"

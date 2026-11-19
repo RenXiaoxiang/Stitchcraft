@@ -78,6 +78,10 @@ def build_parser() -> argparse.ArgumentParser:
     library_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
     library_parser.add_argument("library_id", nargs="?", help="library id for `libraries show`")
 
+    design_parser = sub.add_parser("designs", help="list, inspect or verify DESIGN.md design references")
+    design_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
+    design_parser.add_argument("design_id", nargs="?", help="design id for `designs show`")
+
     browser_parser = sub.add_parser("browser", help="install and drive the optional Obscura AI browser")
     browser_parser.add_argument(
         "action",
@@ -144,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         "themes": cmd_themes,
         "skills": cmd_skills,
         "libraries": cmd_libraries,
+        "designs": cmd_designs,
         "browser": cmd_browser,
         "generate": cmd_generate,
         "benchmark": cmd_benchmark,
@@ -422,6 +427,36 @@ def cmd_libraries(repo: Repo, args: argparse.Namespace) -> int:
         return EXIT_OK
     for library in load_libraries(repo.root):
         print(f"{library.id:<12} {library.version:<9} {library.license:<8} {library.category:<10} {library.name}")
+    return EXIT_OK
+
+
+def cmd_designs(repo: Repo, args: argparse.Namespace) -> int:
+    from .designs import get_design, load_designs, verify_designs
+
+    if args.action == "verify":
+        findings = verify_designs(repo.root)
+        for finding in findings:
+            print(f"ERROR   designs: {finding}")
+        print(f"stitch designs verify: {'ok' if not findings else str(len(findings)) + ' problem(s)'}")
+        return EXIT_FINDINGS if findings else EXIT_OK
+    if args.action == "show":
+        if not args.design_id:
+            print("stitch: `designs show` needs a design id", file=sys.stderr)
+            return EXIT_ERROR
+        design = get_design(repo.root, args.design_id)
+        if design is None:
+            print(f"stitch: unknown design '{args.design_id}'", file=sys.stderr)
+            print("available: " + ", ".join(item.id for item in load_designs(repo.root)), file=sys.stderr)
+            return EXIT_ERROR
+        print(f"{design.id} - {design.name} ({design.license})")
+        print(f"  brand:    {design.brand or '-'}")
+        print(f"  source:   {design.source}")
+        print(f"  upstream: {design.upstream}")
+        print(f"  summary:  {design.summary}")
+        print(f"  file:     {design.design_path}")
+        return EXIT_OK
+    for design in load_designs(repo.root):
+        print(f"{design.id:<12} {design.name:<12} {design.license:<6} {design.summary[:72]}")
     return EXIT_OK
 
 

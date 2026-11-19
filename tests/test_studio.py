@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from stitchcraft import settings  # noqa: E402
 from stitchcraft import browser  # noqa: E402
+from stitchcraft import designs  # noqa: E402
 from stitchcraft import generator  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
 from stitchcraft.libraries import verify_libraries  # noqa: E402
@@ -33,8 +34,7 @@ from stitchcraft.server import Job, StudioContext  # noqa: E402
 from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
 from stitchcraft.skills import build_skill_context, select_for_theme, verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
-from stitchcraft.themes import verify_themes  # noqa: E402
-from stitchcraft.themes import get_theme  # noqa: E402
+from stitchcraft.themes import get_theme, load_themes, verify_themes  # noqa: E402
 
 
 def _get_json(url: str, method: str = "GET", payload: dict | None = None):
@@ -108,6 +108,21 @@ class RegistryTests(unittest.TestCase):
 
     def test_library_registry_is_healthy(self) -> None:
         self.assertEqual(verify_libraries(ROOT), [])
+
+    def test_design_registry_is_healthy(self) -> None:
+        self.assertEqual(designs.verify_designs(ROOT), [])
+
+    def test_theme_design_references_resolve(self) -> None:
+        for theme in load_themes(ROOT):
+            if theme.design_reference:
+                self.assertIsNotNone(designs.get_design(ROOT, theme.design_reference), theme.id)
+
+    def test_design_context_is_usable(self) -> None:
+        context = designs.build_prompt_context(ROOT, "linear", max_chars=2000)
+        self.assertIn("DESIGN.md reference: Linear", context)
+        self.assertIn("MIT", context)
+        with self.assertRaises(designs.DesignError):
+            designs.build_prompt_context(ROOT, "does-not-exist")
 
     def test_landing_page_design_is_vendored(self) -> None:
         pack = ROOT / "skills" / "vendor" / "ai-design-skills"
@@ -469,6 +484,7 @@ class AIGenerationTests(unittest.TestCase):
         build_prompt = calls[1][1]["content"]
         self.assertIn("Approved site plan", build_prompt)
         self.assertIn("Theme reference blocks", build_prompt)
+        self.assertIn("DESIGN.md reference: Linear", build_prompt)
         self.assertIn("index.html", result.files)
         self.assertEqual(result.model_calls, 2)
         self.assertEqual(result.retries, 0)
@@ -583,6 +599,10 @@ class ServerApiTests(unittest.TestCase):
         status, payload = _get_json(self.base + "/api/libraries")
         self.assertEqual(status, 200)
         self.assertGreaterEqual(len(payload["libraries"]), 6)
+        status, payload = _get_json(self.base + "/api/designs")
+        self.assertEqual(status, 200)
+        self.assertGreaterEqual(len(payload["designs"]), 5)
+        self.assertIn("linear", [item["id"] for item in payload["designs"]])
         status, payload = _get_json(self.base + "/api/ai/local")
         self.assertEqual(status, 200)
         self.assertIn("ok", payload)

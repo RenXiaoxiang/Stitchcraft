@@ -23,7 +23,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import ai_client, libraries as library_pack
+from . import ai_client, designs as design_pack, libraries as library_pack
 from .settings import AppConfig, PRESETS, provider_requires_key
 from .skills import build_skill_context, get_skill, load_registry
 from .themes import Theme, get_theme, load_data_model, sample_dir, theme_skill_text
@@ -503,6 +503,7 @@ def _build_messages(
     compact: bool = False,
     plan: dict | None = None,
     block_context: str = "",
+    design_context: str = "",
 ) -> list[dict]:
     data_model = load_data_model(root, theme)
     has_gsap = (Path(root) / "skills" / "vendor" / "gsap-lib" / "gsap.min.js").is_file()
@@ -575,6 +576,8 @@ HARD RULES
         user_parts.append(
             "# Theme reference blocks (adapt these patterns, do not copy them wholesale)\n" + block_context
         )
+    if design_context:
+        user_parts.append("# Design reference (DESIGN.md; follow its visual system)\n" + design_context)
     if data_model:
         user_parts.append("# Data model\n```json\n" + json.dumps(data_model, indent=2)[:8000] + "\n```")
     if skill_context:
@@ -703,6 +706,17 @@ def _generate_into(
     compact_max_tokens = 4096
     skill_context = build_skill_context(root, resolved, budget_chars=12000 if compact_mode else 26000)
     block_context = _theme_block_context(root, theme, budget_chars=4000 if compact_mode else 10000)
+    design_context = ""
+    design_reference = getattr(theme, "design_reference", "")
+    if design_reference:
+        try:
+            design_context = design_pack.build_prompt_context(
+                root,
+                design_reference,
+                max_chars=3000 if compact_mode else 8000,
+            )
+        except design_pack.DesignError as exc:
+            warnings.append(f"Design reference '{design_reference}' skipped: {exc}")
     if provider_requires_key(config.ai.provider) and not config.ai.api_key:
         raise GenerationError(
             "This provider needs an API key. Add one in Settings → AI API, pick a free provider "
@@ -775,6 +789,7 @@ def _generate_into(
             compact=True,
             plan=plan,
             block_context=block_context,
+            design_context=design_context,
         )
         attempts: list[tuple[list[dict], int]] = [
             (
@@ -790,6 +805,7 @@ def _generate_into(
                     compact=True,
                     plan=plan,
                     block_context=block_context,
+                    design_context=design_context,
                 ),
                 compact_max_tokens,
             )
@@ -810,6 +826,7 @@ def _generate_into(
                     library_context,
                     plan=plan,
                     block_context=block_context,
+                    design_context=design_context,
                 ),
                 0,
             ),
@@ -826,6 +843,7 @@ def _generate_into(
                     compact=True,
                     plan=plan,
                     block_context=block_context,
+                    design_context=design_context,
                 ),
                 compact_max_tokens,
             ),

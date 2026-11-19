@@ -55,6 +55,7 @@ def validate_repo(repo: Repo) -> list[Issue]:
     issues.extend(validate_contracts(repo))
     issues.extend(validate_skills(repo))
     issues.extend(validate_libraries(repo))
+    issues.extend(validate_designs(repo))
     issues.extend(validate_themes(repo))
     issues.extend(validate_governance(repo))
     return issues
@@ -370,6 +371,30 @@ def validate_libraries(repo: Repo) -> list[Issue]:
                         theme.path,
                     )
                 )
+    return issues
+
+
+def validate_designs(repo: Repo) -> list[Issue]:
+    """The DESIGN.md reference registry and theme references must agree."""
+    from .designs import load_designs, verify_designs
+    from .themes import load_themes
+
+    issues = [
+        Issue("error", "designs.registry", finding, "designs/")
+        for finding in verify_designs(repo.root)
+    ]
+    known = {design.id for design in load_designs(repo.root)}
+    for theme in load_themes(repo.root):
+        design_reference = getattr(theme, "design_reference", "")
+        if design_reference and design_reference not in known:
+            issues.append(
+                Issue(
+                    "error",
+                    "themes.design.unknown",
+                    f"theme '{theme.id}' references unknown design reference '{design_reference}'",
+                    theme.path,
+                )
+            )
     return issues
 
 

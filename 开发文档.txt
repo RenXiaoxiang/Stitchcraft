@@ -995,3 +995,32 @@ License  : MIT
   - 安装了 Obscura 的本地环境：warehouse-inventory functional passed
     （add/search/persist/delete/low-stock 全部通过）；brand 因占位页 untested。
 
+================================================================================
+19. v0.9.0 DESIGN.md 设计参考层（awesome-design-md）
+--------------------------------------------------------------------------------
+19.1 来源与许可
+  - 上游：VoltAgent/awesome-design-md（MIT，128k+ stars，Google Stitch 的 DESIGN.md
+    格式）；固定 commit fcc70284932276d085f01ef9f83edde90b1258cb。
+  - 只 vendor 5 份 DESIGN.md：linear / notion / supabase / airbnb / stripe，
+    未修改；LICENSE、UPSTREAM.md（逐文件 SHA-256）、README 与 ATTRIBUTION 齐全。
+  - 不复制预览图、品牌 logo 或其他 79 份；DESIGN.md 是社区分析，不是品牌官方规范，
+    商标仅用于识别，无隶属/背书。
+
+19.2 运行时
+  - themes/*/theme.toml 新增 design_reference：warehouse-ops=linear、
+    staff-directory=notion、logistics-control=supabase、personal-space=airbnb、
+    brand-launch=stripe。
+  - src/stitchcraft/designs.py：加载 registry、读取 DESIGN.md、verify、按字符预算
+    生成 prompt 片段；generator AI build 提示词注入
+    “# Design reference (DESIGN.md; follow its visual system)”；compact 3k / 全尺寸 8k。
+  - CLI：stitch designs list|show|verify；GET /api/designs；/api/themes 返回
+    design_reference；Studio 主题卡展示 design: <id> 标签。
+  - validate --strict 增加 designs.registry 与 themes.design.unknown 检查；CI 增加
+    stitch designs verify。
+  - .gitattributes 将 designs/vendor/** 标记为 -text，保持 vendored 字节不变。
+
+19.3 测试与验证
+  - unittest 73 个通过（新增 design registry/context/API/theme reference 测试）；
+    validate --strict 0/0；designs/themes/libraries/skills verify；smoke test PASS；
+    mock 基准仍通过（design 不参与 mock 内容生成）。
+

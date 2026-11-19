@@ -48,6 +48,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Preview & export | Live iframe preview, open in a new tab, export the generated site as a ZIP. |
 | Project history | SQLite-backed local history; reopen or delete any generation. |
 | Skills runtime | 21 registry entries over four vendored packs plus three house skills; prompt budgets keep generations focused. |
+| DESIGN.md references | Five vendored design-system references (Linear, Notion, Supabase, Airbnb, Stripe) from the MIT VoltAgent/awesome-design-md collection; each theme declares one and the generator injects an excerpt into the build prompt. |
 | Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
 | Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
 | Job queue | One build runs at a time; additional requests wait with a visible queue position. Finished history is capped without evicting running or queued jobs. |
@@ -235,6 +236,39 @@ budgets; `src/stitchcraft/skills.py` loads and injects them. Attribution is in
 [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md); vendored files are never edited
 by hand.
 
+## DESIGN.md design references
+
+Themes can point at a vendored **DESIGN.md** design-system document
+(`design_reference = "<id>"` in `theme.toml`). DESIGN.md is a plain-text format
+popularised by Google Stitch: palette, typography, components, layout,
+elevation, do/don't rules and responsive behaviour that an AI can follow.
+
+Five references are vendored from the MIT
+[VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
+collection (pinned commit, unmodified files, license and per-file hashes
+recorded):
+
+| Reference | Theme | Visual language |
+| --- | --- | --- |
+| `linear` | `warehouse-ops` | Near-black technical canvas, lavender accent, dense data panels. |
+| `notion` | `staff-directory` | Warm minimal productivity, quiet type and roomy surfaces. |
+| `supabase` | `logistics-control` | Dark developer dashboard with a green accent. |
+| `airbnb` | `personal-space` | Warm editorial travel, rounded cards, coral accent. |
+| `stripe` | `brand-launch` | High-trust conversion design with crisp hierarchy. |
+
+```bash
+stitch designs list
+stitch designs show linear
+stitch designs verify
+```
+
+The generator injects a truncated DESIGN.md excerpt into the build prompt; the
+generated site is still an original composition (no brand logos, images or
+proprietary copy). The local studio serves `GET /api/designs`, and theme cards
+show their `design: <id>` reference. License/provenance:
+[designs/ATTRIBUTION.md](designs/ATTRIBUTION.md) and
+[designs/vendor/awesome-design-md/UPSTREAM.md](designs/vendor/awesome-design-md/UPSTREAM.md).
+
 ## Aggregated open-source tools
 
 Some sites need a canvas, a chart, a carousel or a dashboard grid, and asking the
@@ -380,6 +414,7 @@ whole repository coherent; the hooks call it whenever a seam changes.
 │   └── data/                                Obscura Apache-2.0 license + notice snapshots
 ├── themes/                                  theme packages + _blocks + registry
 ├── skills/                                  vendored skill packs + registry + attribution
+├── designs/                                 vendored DESIGN.md references + registry
 ├── vendor/                                  six MIT browser libraries + registry + attribution
 ├── modules/ contracts/ pipeline/            the original nine-module stitch spine
 ├── .kiro/                                   steering, specs and hooks
@@ -400,6 +435,7 @@ python -m unittest discover -s tests -v                      # unit + API tests
 PYTHONPATH=src python -m stitchcraft validate --strict       # repository invariants
 python -m stitchcraft app --smoke-test --no-window           # headless end-to-end studio test
 python -m stitchcraft benchmark --engine mock               # fixed acceptance tasks
+python -m stitchcraft designs verify                        # DESIGN.md references
 python -m stitchcraft browser status                         # optional AI browser (Obscura)
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify
@@ -457,6 +493,9 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 - **内置技能**：Chrome 官方 Modern Web Guidance、landing-page design、GSAP 官方
   skills、web-animation skills，生成时自动注入提示词；主题的 `_blocks/` 参考区块
   也会一起交给模型。
+- **设计参考**：5 份 MIT 的 DESIGN.md（Linear / Notion / Supabase / Airbnb /
+  Stripe，来自 VoltAgent/awesome-design-md），每个主题声明一份，生成时按预算
+  注入颜色、字体、组件与布局规则。
 - **零 Key 演示**：演示模式内置两个成品站（仓储看板、个人空间），断网也能完整演示；
   另外三个主题会标注 **AI only**，演示模式只输出占位页。
 - **安全**：本地接口校验 Host / Origin / Content-Type；预览从 `localhost` 另一
@@ -472,7 +511,7 @@ AI API，就能生成一个完整、可预览、可导出的网站。
 Kiro and Kiroween are trademarks of Amazon Web Services. GSAP and GreenSock are
 trademarks of GreenSock, Inc. Chrome and Google are trademarks of Google LLC.
 Other names, including the six vendored JavaScript libraries, are the property
-of their respective owners. Third-party skills and libraries are used under
+of their respective owners. Third-party skills, design references and libraries are used under
 their upstream licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for the canonical index, [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md) for the
 skill packs and [vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md) for the vendored

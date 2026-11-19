@@ -41,6 +41,9 @@ jobs:
       - name: Verify vendored browser libraries
         run: python -m stitchcraft libraries verify
 
+      - name: Verify DESIGN.md design references
+        run: python -m stitchcraft designs verify
+
       - name: Optional AI browser status
         run: python -m stitchcraft browser status
 

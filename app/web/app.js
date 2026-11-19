@@ -230,7 +230,8 @@
     return {
       id: id, name: String(raw.name || id), category: String(raw.category || 'general'), summary: String(raw.summary || ''),
       accent: /^#[0-9a-f]{3,8}$/i.test(String(raw.accent || '')) ? String(raw.accent) : '#ff8a3d',
-      tags: Array.isArray(raw.tags) ? raw.tags.map(String).filter(Boolean) : [], has_sample: Boolean(raw.has_sample) }; }
+      tags: Array.isArray(raw.tags) ? raw.tags.map(String).filter(Boolean) : [], has_sample: Boolean(raw.has_sample),
+      design_reference: String(raw.design_reference || '') }; }
   const currentTheme = () => state.themes.find((theme) => theme.id === state.selectedThemeId) || null;
   const themeName = (id) => { const theme = state.themes.find((item) => item.id === id); return theme ? theme.name : String(id || 'Unknown theme'); };
   const showThemeError = (message) => { const node = $('theme-error'); if (node) { node.textContent = message; node.hidden = false; } };
@@ -251,7 +252,12 @@
       top.appendChild(badge);
       card.appendChild(top);
       if (theme.summary) card.appendChild(el('p', 'theme-card__summary', theme.summary));
-      if (theme.tags.length) { const tags = el('div', 'theme-card__tags'); theme.tags.slice(0, 4).forEach((tag) => tags.appendChild(el('span', 'theme-card__tag', tag))); card.appendChild(tags); }
+      if (theme.tags.length || theme.design_reference) {
+        const tags = el('div', 'theme-card__tags');
+        theme.tags.slice(0, 4).forEach((tag) => tags.appendChild(el('span', 'theme-card__tag', tag)));
+        if (theme.design_reference) tags.appendChild(el('span', 'theme-card__tag', 'design: ' + theme.design_reference));
+        card.appendChild(tags);
+      }
       card.appendChild(el('span', 'theme-card__check', '✓'));
       card.addEventListener('click', () => selectTheme(theme.id));
       grid.appendChild(card); });

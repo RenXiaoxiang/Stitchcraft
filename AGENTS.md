@@ -12,8 +12,9 @@ hooks. Read this before changing anything.
    `.kiro/specs/security-hardening/` — requirements, design and tasks for the
    pipeline, the desktop studio and the local-API threat model.
 4. `pipeline/pipeline.toml` + `contracts/README.md` — the originals seam rules.
-5. `skills/ATTRIBUTION.md`, `vendor/ATTRIBUTION.md` and `themes/registry.toml` —
-   third-party and theme data. `THIRD_PARTY_NOTICES.md` is the canonical index.
+5. `skills/ATTRIBUTION.md`, `designs/ATTRIBUTION.md`, `vendor/ATTRIBUTION.md` and
+   `themes/registry.toml` — third-party, design-reference and theme data.
+   `THIRD_PARTY_NOTICES.md` is the canonical index.
 
 ## The one rule
 
@@ -30,6 +31,7 @@ python -m stitchcraft validate --strict
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify
 python -m stitchcraft libraries verify
+python -m stitchcraft designs verify
 python -m stitchcraft browser status
 python -m stitchcraft benchmark --engine mock
 python -m stitchcraft app --smoke-test --no-window
@@ -47,6 +49,7 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 | `app/web/` | Local studio UI (vanilla JS + vendored GSAP). No frameworks, no CDN. |
 | `themes/` | Theme packages: `theme.toml`, `SKILL.md`, `data-model.json`, optional `sample/`; shared `_blocks/`. |
 | `skills/` | Vendored official skill packs (unmodified, licensed, `UPSTREAM.md`) + house skills + `registry.toml`. |
+| `designs/` | Vendored DESIGN.md design references (unmodified, licensed, `UPSTREAM.md`) + `registry.toml`; themes select one. |
 | `vendor/` | Six MIT browser libraries (unmodified dist + `LICENSE` + `UPSTREAM.md` + `README.md` per folder) + `registry.toml` + `ATTRIBUTION.md`. |
 | `pipeline/` `contracts/` `modules/` | The original nine-module stitch spine and its JSON Schema seams. |
 | `.kiro/` | Steering, specs and hooks (Kiro governance layer). |
@@ -106,6 +109,21 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 - **`stitch libraries verify` must stay green.** It checks folders, versions,
   licenses and the registry together; a red result blocks a release.
 
+## Design references (`designs/`)
+
+- **Vendored DESIGN.md files are unmodified MIT material.** Keep the pack root's
+  `LICENSE` and `UPSTREAM.md`, the per-file hashes and the design registry in
+  sync; never edit a vendored DESIGN.md file.
+- **Themes select a reference by id.** `design_reference = "<id>"` in
+  `theme.toml`; unknown ids are a validation error in `validate --strict`.
+- **The prompt gets an excerpt, not the whole document.** The generator injects
+  a truncated DESIGN.md reference; generated sites are original compositions
+  and never copy brand logos, images or proprietary copy.
+- **Update `THIRD_PARTY_NOTICES.md` and `designs/ATTRIBUTION.md`** when adding or
+  upgrading a reference; brand names are identification only, with no implied
+  affiliation.
+- **`stitch designs verify` must stay green.**
+
 ## Optional AI browser runtime (`browser.py`)
 
 - **The runtime is downloaded, never committed.** Obscura is a ~70 MB
@@ -133,6 +151,7 @@ A change is done when all of these are true:
 python -m unittest discover -s tests -v
 python -m stitchcraft validate --strict
 python -m stitchcraft libraries verify
+python -m stitchcraft designs verify
 python -m stitchcraft app --smoke-test --no-window
 ```
 

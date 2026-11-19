@@ -42,6 +42,7 @@ class Theme:
     sample: str
     path: str
     root: Path
+    design_reference: str = ""
 
     @property
     def folder(self) -> Path:
@@ -81,6 +82,7 @@ class Theme:
             "skills": list(self.skills),
             "libraries": list(self.libraries),
             "has_sample": self.has_sample,
+            "design_reference": self.design_reference,
             "path": self.path,
         }
 
@@ -111,6 +113,7 @@ def _parse_theme(root: Path, path: str, entry: dict) -> Theme | None:
         sample=str(merged.get("sample", "")),
         path=path,
         root=root,
+        design_reference=str(merged.get("design_reference", "")),
     )
 
 

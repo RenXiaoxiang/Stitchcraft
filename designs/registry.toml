@@ -1,0 +1,63 @@
+# Stitchcraft design-reference registry.
+#
+# DESIGN.md files are the Google Stitch-style design-system documents that tell
+# an agent what a UI should look like: palette, type scale, components, layout,
+# elevation, do/don't rules and responsive behaviour. The generator injects the
+# selected reference into the build prompt; themes choose one with
+# `design_reference = "<id>"` in theme.toml.
+#
+# Vendored files are unmodified MIT material under designs/vendor/<pack>/.
+
+[meta]
+version = "0.1.0"
+description = "Curated DESIGN.md references from VoltAgent/awesome-design-md (MIT), one per theme family."
+
+[[designs]]
+id = "linear"
+name = "Linear"
+brand = "Linear"
+source = "VoltAgent/awesome-design-md"
+license = "MIT"
+path = "designs/vendor/awesome-design-md/linear"
+summary = "Near-black, technical product canvas with lavender-blue accent, charcoal panels and dense typography."
+upstream = "design-md/linear.app/DESIGN.md"
+
+[[designs]]
+id = "notion"
+name = "Notion"
+brand = "Notion"
+source = "VoltAgent/awesome-design-md"
+license = "MIT"
+path = "designs/vendor/awesome-design-md/notion"
+summary = "Warm minimal productivity UI: generous whitespace, quiet typography and friendly document surfaces."
+upstream = "design-md/notion/DESIGN.md"
+
+[[designs]]
+id = "supabase"
+name = "Supabase"
+brand = "Supabase"
+source = "VoltAgent/awesome-design-md"
+license = "MIT"
+path = "designs/vendor/awesome-design-md/supabase"
+summary = "Developer-dashboard design with a dark canvas, green accent and dense data panels."
+upstream = "design-md/supabase/DESIGN.md"
+
+[[designs]]
+id = "airbnb"
+name = "Airbnb"
+brand = "Airbnb"
+source = "VoltAgent/awesome-design-md"
+license = "MIT"
+path = "designs/vendor/awesome-design-md/airbnb"
+summary = "Warm editorial travel UI with generous imagery, rounded cards and a friendly coral accent."
+upstream = "design-md/airbnb/DESIGN.md"
+
+[[designs]]
+id = "stripe"
+name = "Stripe"
+brand = "Stripe"
+source = "VoltAgent/awesome-design-md"
+license = "MIT"
+path = "designs/vendor/awesome-design-md/stripe"
+summary = "High-trust conversion design: refined gradient accents, crisp type hierarchy and confident CTAs."
+upstream = "design-md/stripe/DESIGN.md"

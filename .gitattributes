@@ -15,6 +15,7 @@
 # Vendored third-party files are byte-for-byte upstream copies: never let Git
 # normalize their line endings or encodings.
 skills/vendor/** -text
+designs/vendor/** -text
 vendor/** -text
 app/web/vendor/** -text
 themes/**/sample/vendor/** -text

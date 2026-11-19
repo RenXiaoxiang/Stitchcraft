@@ -3,7 +3,7 @@
 Stitchcraft is an offline-first tool: it vendors the browser libraries and the
 agent skill packs it needs instead of fetching them at runtime. It can also
 download one optional browser runtime (Obscura) on the user's request; that
-runtime is not redistributed in this repository and is covered in section 3.
+runtime is not redistributed in this repository and is covered in section 4.
 This file is the **canonical notice index** for every third-party component
 redistributed with Stitchcraft. All third-party files are redistributed
 **unmodified**, their licenses are preserved in-tree, and provenance (pinned
@@ -121,7 +121,23 @@ License, Version 2.0.
 - License: the GSAP standard license (not an OSI license); terms at <https://gsap.com/licensing/>. No separate license text is bundled with this browser build; the source URL and license are recorded in [`skills/vendor/gsap-lib/UPSTREAM.md`](skills/vendor/gsap-lib/UPSTREAM.md).
 - Distributed file: [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js)
 
-## 3. Optional runtime download — Obscura (Apache-2.0)
+## 3. Design references — DESIGN.md documents (MIT)
+
+Five DESIGN.md design-system documents are vendored from the MIT-licensed
+VoltAgent/awesome-design-md collection and injected into the build prompt when a
+theme declares `design_reference`. They are analyses of public interfaces, not
+official brand guidelines, and no logos, images or brand assets are copied.
+
+- Upstream: https://github.com/VoltAgent/awesome-design-md (commit `fcc70284932276d085f01ef9f83edde90b1258cb`)
+- License: MIT — [`designs/vendor/awesome-design-md/LICENSE`](designs/vendor/awesome-design-md/LICENSE)
+- Copyright: Copyright (c) 2026 VoltAgent
+- Provenance and per-file SHA-256: [`designs/vendor/awesome-design-md/UPSTREAM.md`](designs/vendor/awesome-design-md/UPSTREAM.md)
+- Attribution: [`designs/ATTRIBUTION.md`](designs/ATTRIBUTION.md)
+- Vendored files: `linear/DESIGN.md`, `notion/DESIGN.md`, `supabase/DESIGN.md`,
+  `airbnb/DESIGN.md`, `stripe/DESIGN.md` (the other 79 designs, previews and
+  images are not copied)
+
+## 4. Optional runtime download — Obscura (Apache-2.0)
 
 Stitchcraft does **not** redistribute this binary. When the user chooses
 **Install AI browser**, `src/stitchcraft/browser.py` downloads the pinned
@@ -145,7 +161,7 @@ digest, extracts it locally, and writes the license and notice beside it.
   AI browser check. The user can set `STITCHCRAFT_BROWSER_MIRROR` to fetch the
   same pinned asset through a mirror; the SHA-256 verification is unchanged.
 
-## 4. Optional developer tooling (not distributed)
+## 5. Optional developer tooling (not distributed)
 
 These tools are documented as optional integrations. They are **not** bundled,
 downloaded or required by the Stitchcraft runtime.
@@ -158,7 +174,7 @@ downloaded or required by the Stitchcraft runtime.
   [`.kiro/steering/lean-engineering.md`](.kiro/steering/lean-engineering.md);
   that file is Stitchcraft's own summary and does not redistribute upstream text.
 
-## 5. Trademark notes
+## 6. Trademark notes
 
 - **GSAP** and **GreenSock** are trademarks of GreenSock, Inc. The official
   skills are used under MIT; the GSAP browser build is used under the GSAP
@@ -175,6 +191,9 @@ downloaded or required by the Stitchcraft runtime.
   authors (https://github.com/h4ckf0r0day/obscura), used here under that license.
 - **AI Design Skills** is an Elaya project (https://github.com/elayadesign/ai-design-skills),
   used under the MIT license; only the landing-page-design skill is redistributed.
+- **Linear, Notion, Supabase, Airbnb and Stripe** are trademarks of their respective
+  owners. The DESIGN.md references are community analyses, not official brand
+  guidelines; their use implies no affiliation or endorsement.
 - **Playwright** and **Playwright MCP** are projects of Microsoft Corporation;
   Playwright MCP is referenced as optional developer tooling under Apache-2.0.
 - **Ponytail** is a project by DietrichGebert under the MIT license; it inspired
@@ -186,7 +205,7 @@ downloaded or required by the Stitchcraft runtime.
   trademarks of their respective owners and are used for identification only.
   No third-party name or logo here implies endorsement of Stitchcraft.
 
-## 6. Redistribution policy
+## 7. Redistribution policy
 
 - No upstream file's contents are modified: vendored code, skill text and
   license files are byte-for-byte upstream. Provenance and notice files

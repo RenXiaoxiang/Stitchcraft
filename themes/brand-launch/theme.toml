@@ -8,5 +8,6 @@ accent = "#ff4d1f"
 blocks = ["hero", "stat-grid", "timeline", "cta-band"]
 skills = ["modern-web-guidance", "landing-page-design", "gsap-core", "gsap-scrolltrigger"]
 libraries = ["swiper", "roughjs"]
+design_reference = "stripe"
 data_model = ""
 sample = ""
