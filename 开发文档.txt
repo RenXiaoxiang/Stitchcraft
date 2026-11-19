@@ -1118,6 +1118,8 @@ License  : MIT
     verify；smoke test PASS；mock benchmark：5/5 build，brand functional passed，
     placeholders 2。
   - 历史已用 git-filter-repo 清除 hackathon/devpost-fill.md、
-    hackathon/project-story.md、hackathon/images/ 的所有提交；旧提交仍可能
-    被 GitHub 缓存，最终通过删除并重建仓库做彻底清除（另见本轮操作）。
+    hackathon/project-story.md、hackathon/images/ 的所有提交；随后删除并重建
+    GitHub 仓库完成彻底清除。旧 commit SHA 现在返回 422；重建后已恢复
+    description、topics、Pages（main /docs）和 Actions，旧仓库的 0 star/0 issue
+    无用户数据损失。本地 pre-rewrite bundle 已删除。
 
