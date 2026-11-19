@@ -1,0 +1,9 @@
+{
+  "id": "warehouse-inventory",
+  "title": "Warehouse inventory and inbound",
+  "theme": "warehouse-ops",
+  "prompt": "Build a warehouse operations dashboard for a coffee roastery: KPI tiles, a searchable inventory table with add/edit/delete, inbound shipments, and a low-stock warning.",
+  "required_files": ["index.html", "styles.css", "app.js"],
+  "min_files": 3,
+  "description": "Core data-table theme with CRUD, KPIs and a secondary inbound view."
+}

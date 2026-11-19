@@ -1,0 +1,9 @@
+{
+  "id": "brand-launch",
+  "title": "Coffee brand launch page",
+  "theme": "brand-launch",
+  "prompt": "Build a product launch page for a specialty coffee brand: a strong hero, three proof points, a launch timeline, and one clear pre-order call to action with a mobile-safe layout.",
+  "required_files": ["index.html", "styles.css", "app.js"],
+  "min_files": 3,
+  "description": "Conversion-first marketing page; exercises the landing-page-design skill."
+}

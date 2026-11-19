@@ -53,6 +53,9 @@ jobs:
       - name: Headless studio smoke test (mock generation)
         run: python -m stitchcraft app --smoke-test --no-window
 
+      - name: Acceptance benchmark (mock)
+        run: python -m stitchcraft benchmark --engine mock
+
       - name: Check front-end JavaScript syntax
         run: |
           if [ -f app/web/app.js ]; then

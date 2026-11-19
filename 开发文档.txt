@@ -932,3 +932,30 @@ License  : MIT
     真实复现脚本确认：localhost GET/POST settings -> 403，失败生成后旧站保留，
     非法规划被拒绝。
 
+================================================================================
+17. v0.7.0 任务队列与验收基准
+--------------------------------------------------------------------------------
+17.1 生成任务队列
+  - 服务端同一时间只运行一个生成任务（MAX_ACTIVE_JOBS=1）；后续请求进入 FIFO
+    队列，返回 202 + queued + position，状态为 "queued"。
+  - 当前任务结束后由 job_finished 自动启动下一个；job_queue 记录 active/queued/
+    limit/queued_limit，/api/status 暴露 jobs 状态。
+  - 历史记录上限 50 条，但只淘汰 done/error 的旧任务；running/queued 永不被移除。
+  - 队列上限 20，超出返回 429；UI 显示 “Queued — position N” 并继续轮询。
+  - 回归：两个任务依次入队，第二个 queued/position=1，第一个完成后自动开始并完成。
+
+17.2 固定验收基准
+  - benchmarks/tasks/*.json 固定 5 个任务：warehouse-inventory、personal-space、
+    brand-launch、staff-directory、logistics-control；每个任务声明 theme、prompt、
+    required_files、min_files。
+  - src/stitchcraft/benchmark.py：加载/校验任务，逐个调用 generate_site（事务式
+    发布），采集 pass/耗时/文件数/warnings/repairs；生成 report.json + report.md。
+  - CLI：stitch benchmark --engine mock|ai [--task ID] [--repeat N] [--out DIR]
+  - 指标：pass_rate、first_pass_rate、average_duration_ms、repairs；mock 用于回归，
+    ai 用于真实模型第一次成功率观察。
+  - 回归：任务定义校验、未知任务拒绝、mock 基准通过并写出报告。
+
+17.3 验证
+  - unittest 66 个通过；validate --strict 0/0；libraries/skills/themes verify；
+    smoke test PASS；benchmark mock warehouse-inventory PASS。
+

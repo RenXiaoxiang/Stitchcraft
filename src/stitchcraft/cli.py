@@ -111,6 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="allow cleaning a non-empty output directory that Stitchcraft did not create",
     )
 
+    benchmark = sub.add_parser("benchmark", help="run the fixed acceptance tasks and report quality")
+    benchmark.add_argument("--engine", choices=["mock", "ai"], default="mock", help="mock demo or configured AI engine")
+    benchmark.add_argument("--task", action="append", default=None, help="run only this task id (repeatable)")
+    benchmark.add_argument("--repeat", type=int, default=1, help="attempts per task (default 1)")
+    benchmark.add_argument("--out", type=Path, default=None, help="output directory (default: <repo>/.stitch/benchmarks/<run>)")
+
     run = sub.add_parser("run", help="prepare the stitch for an agent")
     run.add_argument("--dry-run", action="store_true", help="write one PROMPT.md per stage; no model calls")
     run.add_argument("--out", type=Path, help="output directory (default: <repo>/.stitch)")
@@ -140,6 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         "libraries": cmd_libraries,
         "browser": cmd_browser,
         "generate": cmd_generate,
+        "benchmark": cmd_benchmark,
     }
     return handlers[args.command](repo, args)
 
@@ -513,6 +520,48 @@ def cmd_browser(repo: Repo, args: argparse.Namespace) -> int:
         print(f"stitch browser: {exc}", file=sys.stderr)
         return EXIT_ERROR
     return EXIT_ERROR
+
+
+def cmd_benchmark(repo: Repo, args: argparse.Namespace) -> int:
+    from . import settings as settings_module
+    from .benchmark import BenchmarkError, load_tasks, run_benchmarks
+
+    try:
+        tasks = load_tasks(repo.root, args.task)
+    except BenchmarkError as exc:
+        print(f"stitch benchmark: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    out_dir = None
+    if args.out is not None:
+        out_dir = args.out if args.out.is_absolute() else repo.root / args.out
+    config = settings_module.load_config()
+    report = run_benchmarks(
+        repo.root,
+        config,
+        tasks,
+        engine=args.engine,
+        repeat=max(1, int(args.repeat or 1)),
+        out_dir=out_dir,
+    )
+    summary = report["summary"]
+    print(f"Acceptance benchmark ({report['engine']}) — {summary['total']} attempt(s), {len(report['tasks'])} task(s)")
+    print()
+    for item in report["results"]:
+        marker = "PASS" if item["ok"] else "FAIL"
+        detail = f"{item['files']} files, {len(item['warnings'])} warning(s)"
+        if item.get("missing_files"):
+            detail += ", missing: " + ", ".join(item["missing_files"])
+        if item.get("error"):
+            detail += ", error: " + str(item["error"])[:120]
+        print(f"  [{marker}] {item['task']:<22} {item['duration_ms']:>6} ms  {detail}")
+    print()
+    print(
+        f"summary: {summary['passed']}/{summary['total']} passed · "
+        f"first-pass {summary['first_pass_rate'] * 100:.0f}% · "
+        f"average {summary['average_duration_ms']} ms · repairs {summary['repairs']}"
+    )
+    print(f"  report: {_display(Path(report['report_dir']), repo.root)}")
+    return EXIT_OK if summary["failed"] == 0 else EXIT_FINDINGS
 
 
 def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:

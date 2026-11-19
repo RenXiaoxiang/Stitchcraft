@@ -31,6 +31,7 @@ python -m stitchcraft themes verify
 python -m stitchcraft skills verify
 python -m stitchcraft libraries verify
 python -m stitchcraft browser status
+python -m stitchcraft benchmark --engine mock
 python -m stitchcraft app --smoke-test --no-window
 python -m stitchcraft app                 # real desktop window (Edge)
 python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
@@ -49,6 +50,7 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 | `vendor/` | Six MIT browser libraries (unmodified dist + `LICENSE` + `UPSTREAM.md` + `README.md` per folder) + `registry.toml` + `ATTRIBUTION.md`. |
 | `pipeline/` `contracts/` `modules/` | The original nine-module stitch spine and its JSON Schema seams. |
 | `.kiro/` | Steering, specs and hooks (Kiro governance layer). |
+| `benchmarks/` | Fixed acceptance tasks and the quality-reporting probe. |
 | `hackathon/` `docs/` | Kiroween submission kit and GitHub Pages showcase. |
 | `tests/` | Repo-health tests, studio tests and API smoke tests. |
 

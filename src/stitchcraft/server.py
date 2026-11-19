@@ -27,6 +27,8 @@ from .storage import ProjectStore
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
 MAX_JOBS = 50
+MAX_ACTIVE_JOBS = 1
+MAX_QUEUED_JOBS = 20
 ALLOWED_HOSTNAMES = {"127.0.0.1", "localhost", "::1"}
 PREVIEW_PATH_PREFIXES = ("/api/preview", "/api/demo")
 
@@ -127,6 +129,7 @@ class Job:
         self.logs: list[dict] = []
         self.project_id: str | None = None
         self.browser: dict | None = None
+        self.queue_position: int | None = None
         self.error: str | None = None
 
     def public_dict(self) -> dict:
@@ -140,6 +143,7 @@ class Job:
             "logs": list(self.logs),
             "project_id": self.project_id,
             "browser": self.browser,
+            "queue_position": self.queue_position,
             "error": self.error,
             "theme_id": self.theme_id,
             "title": self.title,
@@ -164,7 +168,82 @@ class StudioContext:
         self.browser_install: dict | None = None
         self.port: int | None = None
         self.jobs: dict[str, Job] = {}
+        self.queue: list[Job] = []
+        self.active_jobs = 0
         self.lock = threading.Lock()
+
+    # -- queue helpers -------------------------------------------------------
+    def _update_queue_positions_locked(self) -> None:
+        for index, job in enumerate(self.queue, start=1):
+            job.queue_position = index
+
+    def _evict_jobs_locked(self) -> None:
+        """Drop only finished jobs; running and queued jobs keep their history."""
+        excess = len(self.jobs) - MAX_JOBS
+        if excess <= 0:
+            return
+        for job_id, job in list(self.jobs.items()):
+            if excess <= 0:
+                break
+            if job.status in {"done", "error"}:
+                self.jobs.pop(job_id, None)
+                excess -= 1
+        self._update_queue_positions_locked()
+
+    def enqueue_generation(self, job: Job) -> dict:
+        """Start one worker or queue the job behind the active build."""
+        with self.lock:
+            self.jobs[job.id] = job
+            self._evict_jobs_locked()
+            if self.active_jobs < MAX_ACTIVE_JOBS:
+                self.active_jobs += 1
+                job.status = "running"
+                job.stage_name = job.stages[0]["name"]
+                start_now = True
+            else:
+                if len(self.queue) >= MAX_QUEUED_JOBS:
+                    self.jobs.pop(job.id, None)
+                    return {"accepted": False, "error": "too many queued builds; wait for the current one to finish."}
+                job.status = "queued"
+                job.stage_name = "Queued"
+                job.progress = 0
+                self.queue.append(job)
+                self._update_queue_positions_locked()
+                start_now = False
+                position = job.queue_position
+            if start_now:
+                position = None
+        if start_now:
+            threading.Thread(target=self.run_generation, args=(job,), daemon=True).start()
+        return {"accepted": True, "queued": not start_now, "position": position}
+
+    def job_finished(self, job: Job) -> None:
+        """Release the active slot and start the next queued build."""
+        next_job: Job | None = None
+        with self.lock:
+            self.active_jobs = max(0, self.active_jobs - 1)
+            while self.queue:
+                candidate = self.queue.pop(0)
+                if candidate.id in self.jobs and candidate.status == "queued":
+                    next_job = candidate
+                    break
+            self._update_queue_positions_locked()
+            if next_job is not None:
+                next_job.queue_position = None
+                next_job.status = "running"
+                next_job.stage_name = next_job.stages[0]["name"]
+                self.active_jobs += 1
+        if next_job is not None:
+            threading.Thread(target=self.run_generation, args=(next_job,), daemon=True).start()
+
+    def queue_status(self) -> dict:
+        with self.lock:
+            return {
+                "active": self.active_jobs,
+                "queued": len(self.queue),
+                "limit": MAX_ACTIVE_JOBS,
+                "queued_limit": MAX_QUEUED_JOBS,
+            }
 
     # -- browser helpers -----------------------------------------------------
     def browser_status(self) -> dict:
@@ -358,6 +437,8 @@ class StudioContext:
             self._fail(job, f"Unexpected error: {exc}")
             if project is not None:
                 self.store.delete(project["id"])
+        finally:
+            self.job_finished(job)
 
 
 class StudioHandler(BaseHTTPRequestHandler):
@@ -527,6 +608,7 @@ class StudioHandler(BaseHTTPRequestHandler):
                         "edge": edge_available(),
                         "root": str(context.root),
                         "preview_base": f"http://localhost:{self.server.server_address[1]}",
+                        "jobs": context.queue_status(),
                     },
                 )
             if resource == "settings":
@@ -767,13 +849,18 @@ class StudioHandler(BaseHTTPRequestHandler):
             database=database,
         )
         job = Job(request, theme_id=theme_id, title=request.title, engine=engine)
-        with self.context.lock:
-            self.context.jobs[job.id] = job
-            if len(self.context.jobs) > MAX_JOBS:
-                for stale_id in list(self.context.jobs)[: len(self.context.jobs) - MAX_JOBS]:
-                    self.context.jobs.pop(stale_id, None)
-        threading.Thread(target=self.context.run_generation, args=(job,), daemon=True).start()
-        return self._send_json(202, {"ok": True, "job_id": job.id})
+        queued = self.context.enqueue_generation(job)
+        if not queued.get("accepted"):
+            return self._send_json(429, {"ok": False, "error": queued.get("error", "generation queue is full")})
+        return self._send_json(
+            202,
+            {
+                "ok": True,
+                "job_id": job.id,
+                "queued": bool(queued.get("queued")),
+                "position": queued.get("position"),
+            },
+        )
 
     def _export(self, project_id: str) -> None:
         site_dir = self.context.store.site_dir(project_id)

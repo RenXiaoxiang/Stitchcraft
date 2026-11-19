@@ -1,0 +1,9 @@
+{
+  "id": "personal-space",
+  "title": "Personal notes and photo wall",
+  "theme": "personal-space",
+  "prompt": "Build a quiet personal space: short essays with tags and search, a photo wall, an about section, and a calm editorial layout that works on mobile.",
+  "required_files": ["index.html", "styles.css", "app.js"],
+  "min_files": 3,
+  "description": "Editorial content theme with filtering, search and a media wall."
+}

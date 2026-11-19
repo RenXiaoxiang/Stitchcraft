@@ -1,0 +1,9 @@
+{
+  "id": "logistics-control",
+  "title": "Logistics shipments and incidents",
+  "theme": "logistics-control",
+  "prompt": "Build a logistics control room: shipment tracking with carrier and status filters, a delivery timeline, and an incident board that can log and resolve an issue.",
+  "required_files": ["index.html", "styles.css", "app.js"],
+  "min_files": 3,
+  "description": "Operational dashboard with filters, activity feeds and an incident workflow."
+}

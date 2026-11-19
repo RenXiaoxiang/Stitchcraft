@@ -882,6 +882,7 @@
       status: status, done: done, failed: failed, terminal: done || failed, stages: stages, progress: deriveProgress(job, stages, done),
       logs: normalizeLogs(job.logs || job.log || job.events), projectId: projectId ? String(projectId) : '', error: error,
       browser: job.browser && typeof job.browser === 'object' ? job.browser : null,
+      queuePosition: Number(job.queue_position) || 0,
       title: String(job.title || (job.project && job.project.title) || ''), engine: String(job.engine || ''), stageName: String(job.stage_name || '') }; }
   const startPolling = (token) => { window.clearTimeout(state.pollTimer); state.pollTimer = window.setTimeout(() => pollJob(token), POLL_MS); };
   async function pollJob(token) {
@@ -891,6 +892,12 @@
       state.pollFails = 0;
       const job = normalizeJob(raw);
       renderStages(job.stages); setProgress(job.progress); renderLogs(job.logs);
+      if (job.status === 'queued') {
+        setStageBadge('running', 'Queued');
+        setText('pipeline-stage-name', 'Queued');
+        setPipelineStatus('running', job.queuePosition ? 'Queued — position ' + job.queuePosition + ' in line.' : 'Queued — waiting for the current build to finish.');
+        startPolling(token); return;
+      }
       const active = job.stages.find((stage) => stage.status === 'active');
       if (job.stageName || active) setText('pipeline-stage-name', job.stageName || (active ? active.label : 'Stitching…'));
       if (!job.terminal) {
@@ -950,6 +957,7 @@
       const jobId = response && (response.job_id || response.id);
       if (!jobId) throw new Error('The server did not return a job id.');
       state.jobId = String(jobId); announce('Generation started.'); startPolling(token);
+      if (response && response.queued) toast('A build is already running — this one is queued.', 'info');
     } catch (error) {
       state.generating = false; setGenerateBusy(false);
       setPipelineStatus('error', 'Could not start the stitch.'); setStageBadge('error', 'Failed');

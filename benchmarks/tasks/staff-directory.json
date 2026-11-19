@@ -1,0 +1,9 @@
+{
+  "id": "staff-directory",
+  "title": "Staff directory and onboarding",
+  "theme": "staff-directory",
+  "prompt": "Build an internal staff directory: searchable people cards with departments, a simple onboarding checklist, and an empty state for a new team.",
+  "required_files": ["index.html", "styles.css", "app.js"],
+  "min_files": 3,
+  "description": "People-centric CRUD theme with search, filters and an onboarding flow."
+}

@@ -50,6 +50,8 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Skills runtime | 21 registry entries over four vendored packs plus three house skills; prompt budgets keep generations focused. |
 | Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
 | Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
+| Job queue | One build runs at a time; additional requests wait with a visible queue position. Finished history is capped without evicting running or queued jobs. |
+| Acceptance benchmark | Five fixed tasks under `benchmarks/tasks/` measure first-pass success, latency, warnings and retries with `stitch benchmark` (mock or your configured AI). |
 
 ## Free AI options (no paid key needed)
 
@@ -160,6 +162,27 @@ by `index.html` but never generated, builds into a private staging directory,
 and only replaces the previous site after the whole build succeeds. It then
 injects `data-config.js`, copies the vendored GSAP build and libraries the site
 uses, and streams stage progress + logs to the UI.
+
+Builds run **one at a time** in the studio; a second request gets a queued
+status and a position, then starts automatically when the active build
+finishes. The job store keeps recent history but never evicts a running or
+queued job.
+
+## Acceptance benchmark
+
+Five fixed tasks live in [`benchmarks/tasks/`](benchmarks/tasks/); each names a
+theme, a brief and the files a usable build must contain. The benchmark records
+pass/fail, latency, file count, warnings and retry/repair notes:
+
+```bash
+python -m stitchcraft benchmark --engine mock      # offline, deterministic
+python -m stitchcraft benchmark --engine ai --repeat 2
+```
+
+Reports land in `.stitch/benchmarks/<run>/report.json` + `report.md`, with the
+generated sites beside them for review. A pass only means the build completed
+and required files exist; copy, layout and interactions still need human review.
+See [`benchmarks/README.md`](benchmarks/README.md).
 
 ## Themes
 
@@ -344,6 +367,7 @@ whole repository coherent; the hooks call it whenever a seam changes.
 ├── modules/ contracts/ pipeline/            the original nine-module stitch spine
 ├── .kiro/                                   steering, specs and hooks
 ├── hackathon/                               Kiroween 2026 submission kit
+├── benchmarks/                              fixed acceptance tasks + reporting
 ├── docs/                                    architecture/authoring/roadmap + Pages showcase
 │   ├── demo/whiteboard/                     offline Fabric.js whiteboard demo
 │   └── integrations/                        optional Playwright MCP setup
@@ -358,6 +382,7 @@ whole repository coherent; the hooks call it whenever a seam changes.
 python -m unittest discover -s tests -v                      # unit + API tests
 PYTHONPATH=src python -m stitchcraft validate --strict       # repository invariants
 python -m stitchcraft app --smoke-test --no-window           # headless end-to-end studio test
+python -m stitchcraft benchmark --engine mock               # fixed acceptance tasks
 python -m stitchcraft browser status                         # optional AI browser (Obscura)
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify

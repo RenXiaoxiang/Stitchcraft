@@ -29,6 +29,7 @@ from stitchcraft import generator  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
 from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
+from stitchcraft.server import Job, StudioContext  # noqa: E402
 from stitchcraft.settings import AppConfig, provider_catalog, provider_requires_key  # noqa: E402
 from stitchcraft.skills import build_skill_context, select_for_theme, verify_registry  # noqa: E402
 from stitchcraft.storage import ProjectStore  # noqa: E402
@@ -489,6 +490,50 @@ class AIGenerationTests(unittest.TestCase):
                 Path(tmp) / "site",
             )
         self.assertTrue(any("missing local file" in warning for warning in result.warnings), result.warnings)
+
+
+class JobQueueTests(unittest.TestCase):
+    def test_second_job_waits_for_the_active_build(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"STITCHCRAFT_HOME": tmp}):
+            context = StudioContext(ROOT, config=AppConfig(), store=ProjectStore(Path(tmp) / "data"))
+            started = threading.Event()
+            release = threading.Event()
+
+            def fake_run(job) -> None:
+                started.set()
+                release.wait(5)
+                with context.lock:
+                    job.status = "done"
+                    job.progress = 100
+                context.job_finished(job)
+
+            context.run_generation = fake_run
+
+            def make_job(title: str) -> Job:
+                request = GenerationRequest(
+                    theme_id="warehouse-ops",
+                    prompt="A warehouse dashboard with inventory and inbound shipments.",
+                    engine="mock",
+                    database={"mode": "local", "remote": {}},
+                )
+                return Job(request, theme_id="warehouse-ops", title=title, engine="mock")
+
+            first, second = make_job("first"), make_job("second")
+            first_result = context.enqueue_generation(first)
+            self.assertTrue(first_result["accepted"])
+            self.assertTrue(started.wait(2), "the first job did not start")
+            second_result = context.enqueue_generation(second)
+            self.assertTrue(second_result["queued"])
+            self.assertEqual(second_result["position"], 1)
+            self.assertEqual(second.status, "queued")
+            release.set()
+            deadline = time.time() + 5
+            while time.time() < deadline and second.status != "done":
+                time.sleep(0.02)
+            self.assertEqual(first.status, "done")
+            self.assertEqual(second.status, "done")
+            self.assertEqual(context.queue_status()["active"], 0)
+            self.assertEqual(context.queue_status()["queued"], 0)
 
 
 class ServerApiTests(unittest.TestCase):
