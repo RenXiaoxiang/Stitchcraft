@@ -2,7 +2,7 @@
 
 > A solo AI site builder that stitches separate specialised skills into one pipeline — each module does one job, Kiro specs and hooks hold the seams together.
 >
-> Current release: **v1.1.0** — [release notes and delivery audit](RELEASE_NOTES.md).
+> Current release: **v1.1.1** — [release notes and delivery audit](RELEASE_NOTES.md).
 
 [![ci](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-ff8a3d.svg)](LICENSE)
@@ -396,10 +396,12 @@ is copied into their own `vendor/` folder.
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) is the canonical index for all
 third-party material in Stitchcraft — this vendor layer, the bundled skills, the
 GoogleChrome/modern-web-guidance pack (Apache-2.0, Google LLC attribution), the
-GSAP packs and their standard license, plus every license text. The
-human-readable companion for the six libraries is
-[vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md). Adding, upgrading or removing a
-third-party file starts and ends in those two files.
+five DESIGN.md references, the GSAP packs and their standard license, plus every
+license text. The human-readable companions are
+[vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md),
+[skills/ATTRIBUTION.md](skills/ATTRIBUTION.md) and
+[designs/ATTRIBUTION.md](designs/ATTRIBUTION.md). Adding, upgrading or removing
+a third-party file starts and ends in those files and the canonical notice.
 
 ## Built-in AI browser (Obscura)
 
@@ -537,7 +539,7 @@ AI agents alike.
   after it succeeds; a failed AI call keeps the previous site intact. The
   generator still refuses to replace a non-empty output directory it did not
   create; pass `--force` only when you mean it.
-- No telemetry. No network calls except the AI endpoint you configure.
+- No telemetry or background network calls. The studio contacts only the AI endpoint you configure (and, when you explicitly install it, the optional Obscura browser download); generated sites contact only the data endpoint you configure.
 
 ## Kiroween 2026
 
@@ -587,5 +589,6 @@ Other names, including the six vendored JavaScript libraries, are the property
 of their respective owners. Third-party skills, design references and libraries are used under
 their upstream licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for the canonical index, [skills/ATTRIBUTION.md](skills/ATTRIBUTION.md) for the
-skill packs and [vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md) for the vendored
+skill packs, [designs/ATTRIBUTION.md](designs/ATTRIBUTION.md) for DESIGN.md
+references and [vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md) for the vendored
 libraries.

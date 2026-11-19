@@ -1227,3 +1227,25 @@ License  : MIT
 ================================================================================
 （文档结束）
 ================================================================================
+
+24.8 v1.1.1 第三方归属与稳定性审计补丁
+  - 审计范围：六个 vendor 浏览器库、四个 skills/vendor 包、五个 DESIGN.md、
+    GSAP 的七个副本、Obscura license/notice、docs/demo 的 Fabric/GSAP 副本、
+    canonical notice、README 和生成器产物。
+  - 发现并修复：THIRD_PARTY_NOTICES 的 GSAP 副本清单漏列
+    themes/brand-launch/sample/vendor/gsap.min.js；canonical notice/README
+    未链接 designs/ATTRIBUTION.md；"每个 vendored 文件夹都有 LICENSE +
+    UPSTREAM.md" 的表述对 GSAP browser build / Whiteboard Fabric demo 不准确。
+  - 新增测试：每个 GSAP 副本必须出现在 canonical notice；每个 skills/vendor
+    pack 必须有 license/notice + UPSTREAM；vendor 库 dist 的 SHA-256 必须与
+    UPSTREAM.md 一致；所有 GSAP 副本必须字节一致；示例站不得加载外部资源。
+  - 生成器新增 _external_asset_warnings：扫描生成 HTML/CSS 的外部
+    script/link/img/@import/url() 并写入 warning；不误报普通 <a> 链接。
+  - 修复 SSE 客户端在服务端 300 秒流上限/代理断开时停在运行态的问题：
+    stream 提前结束时明确回调 error，由 app.js 回退轮询。
+  - README 修正 "No network calls except the AI endpoint" 的不准确表述。
+  - 最终 unittest 102 个通过；版本提升到 1.1.1，无新增第三方依赖；
+    上游二进制、license、UPSTREAM 未改动，只更新项目 attribution/notice
+    文档、测试和运行时。
+
+================================================================================

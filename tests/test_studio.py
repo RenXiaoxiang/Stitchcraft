@@ -7,6 +7,7 @@ project store.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import socket
@@ -28,7 +29,7 @@ from stitchcraft import browser  # noqa: E402
 from stitchcraft import designs  # noqa: E402
 from stitchcraft import generator  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
-from stitchcraft.libraries import verify_libraries  # noqa: E402
+from stitchcraft.libraries import load_libraries, verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
 from stitchcraft.server import Job, StudioContext  # noqa: E402
 from stitchcraft.settings import AppConfig, SUPPORTED_LANGUAGES, provider_catalog, provider_requires_key  # noqa: E402
@@ -146,13 +147,61 @@ class RegistryTests(unittest.TestCase):
             path for path in ROOT.rglob("gsap.min.js")
             if ".stitch" not in path.parts and ".git" not in path.parts
         ]
-        self.assertGreaterEqual(len(copies), 6)
+        self.assertGreaterEqual(len(copies), 7)
         for path in copies:
             self.assertTrue((path.parent / "GSAP-LICENSE.txt").is_file(), path)
             self.assertTrue((path.parent / "GSAP-UPSTREAM.md").is_file(), path)
         fabric_demo = ROOT / "docs" / "demo" / "whiteboard" / "vendor"
         self.assertTrue((fabric_demo / "fabric.LICENSE.txt").is_file())
         self.assertTrue((fabric_demo / "UPSTREAM.md").is_file())
+
+    def test_every_gsap_copy_is_listed_in_canonical_notice(self) -> None:
+        notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+        copies = [
+            path.relative_to(ROOT).as_posix()
+            for path in ROOT.rglob("gsap.min.js")
+            if ".stitch" not in path.parts and ".git" not in path.parts
+        ]
+        self.assertGreaterEqual(len(copies), 7)
+        for relative in copies:
+            self.assertIn(relative, notice, f"canonical notice is missing GSAP copy {relative}")
+
+    def test_third_party_notice_links_all_component_indexes(self) -> None:
+        notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+        for relative in (
+            "vendor/ATTRIBUTION.md",
+            "skills/ATTRIBUTION.md",
+            "designs/ATTRIBUTION.md",
+            "themes/brand-launch/sample/vendor/gsap.min.js",
+        ):
+            self.assertIn(relative, notice)
+
+    def test_every_vendored_skill_pack_keeps_its_license(self) -> None:
+        packs = [path for path in (ROOT / "skills" / "vendor").iterdir() if path.is_dir()]
+        self.assertGreaterEqual(len(packs), 4)
+        for pack in packs:
+            self.assertTrue((pack / "UPSTREAM.md").is_file(), pack)
+            if pack.name == "gsap-lib":
+                self.assertTrue((pack / "GSAP-LICENSE.txt").is_file(), pack)
+            else:
+                self.assertTrue((pack / "LICENSE").is_file(), pack)
+
+    def test_vendored_library_hashes_match_upstream_records(self) -> None:
+        libraries = load_libraries(ROOT)
+        self.assertGreaterEqual(len(libraries), 6)
+        for library in libraries:
+            record = (library.folder / "UPSTREAM.md").read_text(encoding="utf-8")
+            digest = hashlib.sha256(library.dist_path.read_bytes()).hexdigest()
+            self.assertIn(digest, record, library.id)
+
+    def test_all_gsap_copies_are_byte_identical(self) -> None:
+        copies = [
+            path for path in ROOT.rglob("gsap.min.js")
+            if ".stitch" not in path.parts and ".git" not in path.parts
+        ]
+        self.assertGreaterEqual(len(copies), 7)
+        digests = {hashlib.sha256(path.read_bytes()).hexdigest() for path in copies}
+        self.assertEqual(len(digests), 1)
 
     def test_gitignore_blocks_local_secrets(self) -> None:
         text = (ROOT / ".gitignore").read_text(encoding="utf-8")
@@ -352,6 +401,35 @@ class GenerationTests(unittest.TestCase):
             self.assertTrue((out / "vendor" / "fabric" / "LICENSE").is_file())
             self.assertTrue((out / "vendor" / "fabric" / "UPSTREAM.md").is_file())
             self.assertIn("vendor/fabric/fabric.min.js", result.files)
+
+
+class QualityWarningTests(unittest.TestCase):
+    def test_external_runtime_assets_are_flagged_but_anchors_are_not(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "index.html").write_text(
+                '<!doctype html><html><head>'
+                '<link rel="stylesheet" href="https://fonts.example/site.css">'
+                '</head><body>'
+                '<a href="https://example.com/learn-more">Read more</a>'
+                '<script src="https://cdn.example/app.js"></script>'
+                '<img src="//cdn.example/photo.png" alt="photo">'
+                '</body></html>',
+                encoding="utf-8",
+            )
+            (out / "styles.css").write_text('@import url("https://cdn.example/font.css");', encoding="utf-8")
+            warnings = generator._external_asset_warnings(out)
+        joined = "\n".join(warnings)
+        self.assertIn("https://cdn.example/app.js", joined)
+        self.assertIn("https://fonts.example/site.css", joined)
+        self.assertIn("https://cdn.example/font.css", joined)
+        self.assertNotIn("https://example.com/learn-more", joined)
+
+    def test_packaged_samples_are_offline(self) -> None:
+        for theme in load_themes(ROOT):
+            if theme.sample_path is None:
+                continue
+            self.assertEqual(generator._external_asset_warnings(theme.sample_path), [], theme.id)
 
 
 class OutputSafetyTests(unittest.TestCase):
@@ -930,6 +1008,7 @@ class ServerApiTests(unittest.TestCase):
         jobs_js = (ROOT / "app" / "web" / "js" / "jobs.js").read_text(encoding="utf-8")
         self.assertIn("ReadableStream", jobs_js)
         self.assertIn("/events", jobs_js)
+        self.assertIn("ended before the job finished", jobs_js)
         import_js = (ROOT / "app" / "web" / "js" / "import-site.js").read_text(encoding="utf-8")
         self.assertIn("readFolder", import_js)
         app_js = (ROOT / "app" / "web" / "app.js").read_text(encoding="utf-8")

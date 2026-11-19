@@ -582,6 +582,51 @@ def _reference_warnings(out_dir: Path) -> list[str]:
     return warnings
 
 
+def _external_asset_warnings(out_dir: Path) -> list[str]:
+    """Warn when a generated page still loads an external runtime asset.
+
+    The generation prompt requires offline output; this is a deterministic
+    backstop for model output that ignores the rule. Anchors and the configured
+    remote database endpoint are not resources and are not flagged.
+    """
+    out_dir = Path(out_dir)
+    findings: list[str] = []
+    seen: set[str] = set()
+    html_asset = re.compile(
+        r"""<(script|img|iframe|source|video|audio)\b[^>]*\bsrc\s*=\s*["']((?:https?:)?//[^"']+)["']""",
+        re.IGNORECASE,
+    )
+    css_asset = re.compile(
+        r"""(?:@import\s+(?:url\()?\s*|url\(\s*)["']?((?:https?:)?//[^)\"'\s]+)""",
+        re.IGNORECASE,
+    )
+    for path in sorted(out_dir.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in {".html", ".css"}:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        found: list[str] = []
+        if path.suffix.lower() == ".html":
+            found.extend(match.group(2) for match in html_asset.finditer(text))
+            for match in re.finditer(
+                r"""<link\b[^>]*\bhref\s*=\s*["']((?:https?:)?//[^"']+)["'][^>]*>""",
+                text,
+                re.IGNORECASE,
+            ):
+                tag = match.group(0).lower()
+                if "stylesheet" in tag or "preload" in tag or "icon" in tag or "manifest" in tag:
+                    found.append(match.group(1))
+        found.extend(match.group(1) for match in css_asset.finditer(text))
+        for url in found:
+            if url in seen:
+                continue
+            seen.add(url)
+            findings.append(f"{path.name} loads an external asset (offline rule): {url}")
+    return findings
+
+
 def _build_messages(
     root: Path,
     theme: Theme,
@@ -773,6 +818,7 @@ def _generate_into(
         _ensure_data_config_link(out_dir, warnings)
         _copy_gsap_if_needed(root, out_dir)
         warnings.extend(_reference_warnings(out_dir))
+        warnings.extend(_external_asset_warnings(out_dir))
         done(6, "Demo modules mounted")
         active(7, "Checking accessible defaults")
         html = ""
@@ -1040,6 +1086,7 @@ def _generate_into(
     elif theme_libraries:
         warnings.append("The theme offers bundled libraries but the generated site did not reference any.")
     warnings.extend(_reference_warnings(out_dir))
+    warnings.extend(_external_asset_warnings(out_dir))
     files = _list_files(out_dir)
     done(8, f"Packaged {len(files)} files ({len(written)} from the AI)")
 

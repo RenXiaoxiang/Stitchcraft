@@ -7,7 +7,7 @@ The machine-readable index is [`registry.toml`](registry.toml).
 | Library | Version | License | Copyright | Upstream | Files |
 | --- | --- | --- | --- | --- | --- |
 | Fabric.js (`fabric`) | 5.2.4 | MIT | Copyright (c) 2008-2015 Printio (Juriy Zaytsev, Maxim Chernyak) | https://github.com/fabricjs/fabric.js | `vendor/fabric/fabric.min.js` |
-| Chart.js (`chart.js`) | 4.4.7 | MIT | Copyright (c) 2014-2024 Chart.js Contributors | https://github.com/chartjs/Chart.js | `vendor/chartjs/chart.umd.min.js` |
+| Chart.js (`chartjs`; npm package `chart.js`) | 4.4.7 | MIT | Copyright (c) 2014-2024 Chart.js Contributors | https://github.com/chartjs/Chart.js | `vendor/chartjs/chart.umd.min.js` |
 | SortableJS (`sortablejs`) | 1.15.6 | MIT | Copyright (c) 2019 All contributors to Sortable | https://github.com/SortableJS/Sortable | `vendor/sortablejs/Sortable.min.js` |
 | Rough.js (`roughjs`) | 4.6.6 | MIT | Copyright (c) 2019 Preet Shihn | https://github.com/pshihn/rough | `vendor/roughjs/rough.min.js` |
 | Swiper (`swiper`) | 11.2.6 | MIT | Copyright (c) 2019 Vladimir Kharlampidi | https://github.com/nolimits4web/swiper | `vendor/swiper/swiper-bundle.min.js`, `vendor/swiper/swiper-bundle.min.css` |
@@ -28,8 +28,8 @@ The dist files are byte-for-byte as downloaded from the pinned jsDelivr URLs
 recorded in each `UPSTREAM.md`; they were never edited after download. Chart.js
 and Rough.js are served at their pinned URLs as jsDelivr's generated `.min`
 aliases of the packages' bundled UMD builds — the vendored bytes are exactly
-what those pinned URLs return. No file under `vendor/` is minified, patched or
-otherwise transformed by Stitchcraft.
+what those pinned URLs return. No file under `vendor/` is patched or otherwise
+transformed by Stitchcraft; individual upstream builds may already be minified.
 
 ## Canonical notice
 

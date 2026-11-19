@@ -73,7 +73,15 @@
           if (chunk.done) break;
           buffer = consume(buffer + decoder.decode(chunk.value, { stream: true }));
         }
-        if (!closed && !received) throw new Error('The progress stream ended before sending a frame.');
+        // A server/proxy can close an SSE stream before the job is terminal
+        // (for example, the 300s server deadline). Do not leave the UI stuck:
+        // hand control back to app.js polling.
+        if (!closed) {
+          finish();
+          if (callbacks.error) callbacks.error(new Error(received
+            ? 'The live progress stream ended before the job finished.'
+            : 'The live progress stream ended before sending a frame.'));
+        }
       } catch (error) {
         if (closed || (error && error.name === 'AbortError')) return;
         finish();

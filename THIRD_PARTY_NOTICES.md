@@ -12,7 +12,8 @@ version, source URL, copy/vendoring date) is recorded in the matching
 
 Component-level detail: [`vendor/ATTRIBUTION.md`](vendor/ATTRIBUTION.md),
 [`vendor/registry.toml`](vendor/registry.toml),
-[`skills/ATTRIBUTION.md`](skills/ATTRIBUTION.md).
+[`skills/ATTRIBUTION.md`](skills/ATTRIBUTION.md) and
+[`designs/ATTRIBUTION.md`](designs/ATTRIBUTION.md).
 
 ## 1. Browser libraries (`vendor/`)
 
@@ -120,7 +121,7 @@ License, Version 2.0.
 - Copyright: Copyright GreenSock, Inc.
 - Upstream: https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js — <https://gsap.com/licensing/>
 - License: the GSAP standard license (not an OSI license); terms at <https://gsap.com/licensing/>. No separate full license text is bundled with this browser build; a copyright/license notice and source record travel with every copy (`GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md`).
-- Distributed copies (byte-identical): [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js), [`app/web/vendor/gsap.min.js`](app/web/vendor/gsap.min.js), [`themes/personal-space/sample/vendor/gsap.min.js`](themes/personal-space/sample/vendor/gsap.min.js), [`themes/warehouse-ops/sample/vendor/gsap.min.js`](themes/warehouse-ops/sample/vendor/gsap.min.js), [`docs/demo/personal-space/vendor/gsap.min.js`](docs/demo/personal-space/vendor/gsap.min.js) and [`docs/demo/warehouse/vendor/gsap.min.js`](docs/demo/warehouse/vendor/gsap.min.js).
+- Distributed copies (byte-identical): [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js), [`app/web/vendor/gsap.min.js`](app/web/vendor/gsap.min.js), [`themes/personal-space/sample/vendor/gsap.min.js`](themes/personal-space/sample/vendor/gsap.min.js), [`themes/warehouse-ops/sample/vendor/gsap.min.js`](themes/warehouse-ops/sample/vendor/gsap.min.js), [`themes/brand-launch/sample/vendor/gsap.min.js`](themes/brand-launch/sample/vendor/gsap.min.js), [`docs/demo/personal-space/vendor/gsap.min.js`](docs/demo/personal-space/vendor/gsap.min.js) and [`docs/demo/warehouse/vendor/gsap.min.js`](docs/demo/warehouse/vendor/gsap.min.js).
 - Generated sites: when a generated site references GSAP, the generator copies `GSAP-LICENSE.txt` and `GSAP-UPSTREAM.md` into its `vendor/` directory alongside the build.
 
 ## 3. Design references — DESIGN.md documents (MIT)
@@ -213,8 +214,14 @@ downloaded or required by the Stitchcraft runtime.
   license files are byte-for-byte upstream. Provenance and notice files
   (`UPSTREAM.md`, `README.md`, `NOTICE`, `ATTRIBUTION.md`, `registry.toml`)
   are added beside them, never inside them.
-- Every license is preserved in-tree at the paths listed above, and every
-  vendored folder retains its `LICENSE` + `UPSTREAM.md`.
+- Every upstream license/notice is preserved in-tree at the paths listed
+  above. Browser-library folders retain `LICENSE` + `UPSTREAM.md`; the GSAP
+  browser build uses `GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md` because upstream
+  does not ship a full license text; the Whiteboard demo copy uses
+  `fabric.LICENSE.txt` + `UPSTREAM.md`. `skills/vendor/` packs retain their
+  upstream `LICENSE`/`NOTICE` and `UPSTREAM.md`; the GSAP browser-build asset
+  is the only pack without a separate full license text, and it is covered by
+  the GSAP standard-license notice above.
 - Dist files are never edited after download; sizes and SHA-256 hashes are
   recorded in the per-folder `UPSTREAM.md` files (and sizes in
   `vendor/registry.toml`).

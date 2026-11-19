@@ -1,11 +1,37 @@
-# Stitchcraft v1.1.0 — 发布说明与交付审计
+# Stitchcraft v1.1.1 — 发布说明与交付审计
 
-> 版本：**1.1.0** · 核心发布提交：[`5893aa3`](https://github.com/RenXiaoxiang/Stitchcraft/commit/5893aa3)
-> Tag：[`v1.1.0`](https://github.com/RenXiaoxiang/Stitchcraft/tree/v1.1.0)
+> 版本：**1.1.1** · 核心功能提交：[`5893aa3`](https://github.com/RenXiaoxiang/Stitchcraft/commit/5893aa3)
+> Tag：[`v1.1.1`](https://github.com/RenXiaoxiang/Stitchcraft/tree/v1.1.1)
 > 仓库：[RenXiaoxiang/Stitchcraft](https://github.com/RenXiaoxiang/Stitchcraft)
 > 线上展示页：<https://renxiaoxiang.github.io/Stitchcraft/>
 
-这份说明记录 v1.1.0 的功能范围、验证证据、第三方归属、隐私边界和已知限制。它是最终交付的一部分，不是营销页；没有真实 AI Key 时不会声称跑通了 AI benchmark，也没有把人工检查写成自动化通过。
+这份说明记录 v1.1.x 的功能范围、验证证据、第三方归属、隐私边界和已知限制；v1.1.1 是发布后的归属审计与稳定性补丁。它是最终交付的一部分，不是营销页；没有真实 AI Key 时不会声称跑通了 AI benchmark，也没有把人工检查写成自动化通过。
+
+---
+
+## 0. v1.1.1 审计补丁（2026-11-19）
+
+发布后重新逐项检查第三方组件、notice、license、upstream、生成物和运行时，发现并修复了以下问题：
+
+- **归属遗漏**：`THIRD_PARTY_NOTICES.md` 的 GSAP 分发副本清单漏掉了
+  `themes/brand-launch/sample/vendor/gsap.min.js`。该副本本身有
+  `GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md`，但 canonical notice 不完整；已补入并增加自动检查。
+- **索引缺失**：canonical notice 与 README 未链接 `designs/ATTRIBUTION.md`；已补齐。
+- **表述不准确**：原 notice 声称“every vendored folder retains LICENSE + UPSTREAM.md”，但
+  GSAP 浏览器构建使用 `GSAP-LICENSE.txt`（上游不提供完整 license 文本），Whiteboard demo 使用
+  `fabric.LICENSE.txt`。已改为精确表述。
+- **新增归属/完整性测试**：每个 GSAP 副本都必须在 canonical notice 中出现；每个
+  `skills/vendor/` pack 必须有 license/notice + UPSTREAM；vendor 库 SHA-256 必须与
+  UPSTREAM.md 一致；所有 GSAP 副本必须字节一致。测试从 95 增至 **102**。
+- **生成物离线检查**：新增 `_external_asset_warnings`，对生成的 HTML/CSS 中外部
+  script/link/img/@import/url() 资源给出 warning；示例站离线检查纳入测试。
+- **SSE 稳定性**：服务端 300 秒流上限或代理断开时，客户端现在会明确回退轮询，而不是停在
+  “进行中”状态。
+- **文档准确性**：README 的“无网络请求”改为准确描述：仅 AI 端点、用户显式安装的
+  Obscura 下载、以及用户配置的数据端点。
+
+版本号从 1.1.0 提升到 **1.1.1**；没有新增第三方依赖。上游二进制、license 和
+UPSTREAM 文件均未修改，只更新了项目自己的 attribution/notice 文档、测试和运行时。
 
 ---
 
@@ -93,7 +119,7 @@ stitch refine --input ./draft-site --theme brand-launch \
 以下结果来自本地最终验证，不是推测：
 
 ```text
-unittest             95 passed
+unittest             102 passed
 validate --strict    0 errors / 0 warnings
 themes verify        ok
 skills verify        ok
@@ -112,20 +138,21 @@ benchmark (mock)     5/5 build · 0 placeholders · functional required 2/2 · s
 
 CI 与 Pages：
 
-- CI：<https://github.com/RenXiaoxiang/Stitchcraft/actions/runs/44538381042> — success
-- Pages：<https://github.com/RenXiaoxiang/Stitchcraft/actions/runs/44538381004> — success
+- v1.1.0 核心提交 CI：<https://github.com/RenXiaoxiang/Stitchcraft/actions/runs/44538381042> — success
+- v1.1.0 Pages：<https://github.com/RenXiaoxiang/Stitchcraft/actions/runs/44538381004> — success
+- v1.1.1 审计补丁的 CI/Pages 以仓库 Actions 最新提交为准
 - 线上：<https://renxiaoxiang.github.io/Stitchcraft/> — HTTP 200
 
 ---
 
 ## 3. 第三方归属审计
 
-本轮没有新增第三方依赖；`vendor/`、`skills/vendor/`、`designs/vendor/` 均未修改。
+本轮没有新增第三方依赖；上游二进制、license 和 UPSTREAM 文件均未修改，只更新了项目自己的 attribution/notice 文档、测试和运行时。
 
 - 六个浏览器库：Fabric.js、Chart.js、SortableJS、Rough.js、Swiper、GridStack — 每个目录保留 `LICENSE`、`UPSTREAM.md`、`README.md`，`stitch libraries verify` 通过。
 - 四个技能包：保留原 `LICENSE` 和 `UPSTREAM.md`，`stitch skills verify` 通过。
 - 五个 DESIGN.md 设计参考：保留 MIT 原文与 attribution，`stitch designs verify` 通过。
-- GSAP：Studio、仓库示例、design demo 中的每一份副本都随附 `GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md`；测试会扫描所有副本。
+- GSAP：Studio、仓库示例、design demo 中的每一份副本都随附 `GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md`；canonical notice 现在逐一列出全部七个副本，测试会扫描副本、notice 条目和字节一致性。
 - Obscura：Apache-2.0 runtime 按需下载，不提交二进制；license/NOTICE 文件与 `THIRD_PARTY_NOTICES.md` 保持索引。
 - 新示例站没有第三方代码、没有外部 CDN、没有真实品牌素材。
 
