@@ -1,6 +1,8 @@
 # Stitchcraft
 
 > A solo AI site builder that stitches separate specialised skills into one pipeline — each module does one job, Kiro specs and hooks hold the seams together.
+>
+> Current release: **v1.1.0** — [release notes and delivery audit](RELEASE_NOTES.md).
 
 [![ci](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/RenXiaoxiang/Stitchcraft/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-ff8a3d.svg)](LICENSE)
@@ -13,8 +15,9 @@ lives, and watch a nine-stage pipeline assemble the site from theme modules and
 bundled expert skills.
 
 It is built for [Kiroween 2026](https://kiroween.devpost.com/) (Kiro's Halloween
-hackathon) in the **Skeleton Crew** category: one skeleton, two very different
-apps — a warehouse operations dashboard and a personal space.
+hackathon) in the **Skeleton Crew** category: one skeleton, five complete theme
+apps — warehouse operations, staff directory, logistics control, personal space
+and brand launch.
 
 ![Stitchcraft Studio](docs/assets/app.png)
 
