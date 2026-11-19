@@ -67,6 +67,25 @@ License  : MIT
   展示页、三张截图与两个示例站均返回 200）。
 
 
+0.4 当前状态（v0.4 内置 AI 浏览器，2026-11-19）
+--------------------------------------------------------------------------------
+  - 新增可选的本地 AI 浏览器：Obscura 0.2.7（Apache-2.0，Rust，自带渲染引擎）。
+    不随仓库分发；用户点击安装后下载到应用数据目录，按固定 SHA-256 校验后解压，
+    支持 Windows x86_64、Linux x86_64/aarch64、macOS Intel/Apple silicon。
+  - 新增 src/stitchcraft/browser.py：平台映射、下载/校验/安全解压、install/status/
+    remove/check、serve/MCP 命令构造；检查会输出截图 + DOM 审计（title/lang/h1/
+    文本长度/链接/图片 alt/页内锚点/警告）。
+  - CLI：stitch browser status|install|remove|check|serve|mcp；stitch doctor 显示状态。
+  - Studio：Setup 增加 AI browser 卡片（安装/移除/自动检查开关/进度）；新增
+    AI browser 标签页展示最新截图与审计；生成完成后自动检查（可关闭），失败不影响生成。
+  - 服务端：GET /api/browser、POST /api/browser/install、POST /api/browser/check、
+    GET /api/browser/check/<id>、GET /api/browser/screenshot/<id>、DELETE /api/browser。
+  - 许可：安装目录写入 LICENSE/NOTICE；THIRD_PARTY_NOTICES.md 增加“运行时下载”条目；
+    Apache-2.0 文本快照位于 src/stitchcraft/data/；支持 STITCHCRAFT_BROWSER_MIRROR
+    镜像加速（SHA-256 校验不变）。
+  - 测试：tests/test_browser.py（平台/摘要/安装/穿越/检查/settings）+ Studio API
+    /api/browser；CI 与 smoke test 在未安装浏览器时仍通过（检查自动跳过）。
+
 1. 项目定义
 --------------------------------------------------------------------------------
 1.1 一句话
@@ -783,3 +802,42 @@ License  : MIT
 ================================================================================
 文档结束。修改本文件时请同步更新 README.md 与 hackathon/checklist.md 的相关条目。
 ================================================================================
+
+================================================================================
+14. v0.4 内置 AI 浏览器（Obscura）
+--------------------------------------------------------------------------------
+14.1 目标
+  客户机器不一定有现代 Chrome/Edge。Stitchcraft 需要一个“AI 自己用”的浏览器：
+  能渲染生成站点、截图、抽取 DOM 供 AI 验收，同时不要求用户安装浏览器，也不把
+  70MB 二进制塞进 Git 仓库。
+
+14.2 方案
+  运行时可选项：Obscura 0.2.7（https://github.com/h4ckf0r0day/obscura，Apache-2.0），
+  Rust + V8，自带渲染/截图/PDF/CDP/MCP，约 70MB 二进制、约 30MB 内存。
+  - 仓库只保存：版本号、平台资产表、SHA-256 摘要、许可证/Notice 文本快照。
+  - 用户安装时下载到 %LOCALAPPDATA%\Stitchcraft\browser\obscura-0.2.7\，
+    校验 SHA-256 后安全解压（拒绝绝对路径/../链接）。
+  - 支持 STITCHCRAFT_BROWSER_MIRROR=https://gh-proxy.com 之类的镜像前缀，
+    应对 GitHub 下载慢或被墙；摘要校验仍然强制。
+
+14.3 使用
+  stitch browser status / install / remove
+  stitch browser check --url http://127.0.0.1:8765/api/preview/<id>/ --out .stitch/browser
+  stitch browser serve --port 9222      # CDP：Playwright/Puppeteer/代理
+  stitch browser mcp                    # MCP：给 Kiro 等客户端提供浏览器工具
+  Studio：Setup -> AI browser 安装；生成后自动检查；AI browser 标签页看截图与审计。
+
+14.4 审计内容
+  title、lang、h1 数量、渲染文本长度、链接统计（总数/外链/空 href）、图片 alt 覆盖率、
+  页内锚点缺失、关键警告；截图 PNG + report.json。报告通过
+  GET /api/browser/check/<project_id> 与 /api/browser/screenshot/<project_id> 提供。
+
+14.5 许可证与合规
+  Apache-2.0。安装目录写入 LICENSE + NOTICE；项目根目录 THIRD_PARTY_NOTICES.md
+  新增“可选运行时下载”章节；licenses 快照在 src/stitchcraft/data/obscura-*.txt。
+  运行时不进仓库、不随安装包分发，SHA-256 与版本固定，镜像下载同样校验。
+
+14.6 失败策略
+  未安装、下载失败、检查失败都不得让生成任务失败：任务日志记录跳过原因，UI 显示
+  状态；生成、预览、导出、导出 ZIP 保持可用。
+

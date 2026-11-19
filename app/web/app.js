@@ -54,6 +54,7 @@
     currentStep: 1, tab: 'preview', generating: false, jobId: null, jobToken: 0, pollTimer: null, pollFails: 0, progress: 0,
     paintedProgress: 0, stages: [], stageEls: [], latestLogs: [], logCursor: 0, preview: null, runningTitle: '', booting: false,
     confirmResolve: null, modalLastFocus: null };
+  const BROWSER_POLL_MS = 900;
 
   /* ---------- 2. DOM helpers (textContent only) ---------------------------- */
   const $ = (id) => document.getElementById(id);
@@ -170,7 +171,7 @@
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }
 
   /* ---------- 7. Tabs ------------------------------------------------------- */
-  const TABS = [['preview', 'tab-preview', 'panel-preview'], ['pipeline', 'tab-pipeline', 'panel-pipeline'], ['logs', 'tab-logs', 'panel-logs']];
+  const TABS = [['preview', 'tab-preview', 'panel-preview'], ['pipeline', 'tab-pipeline', 'panel-pipeline'], ['browser', 'tab-browser', 'panel-browser'], ['logs', 'tab-logs', 'panel-logs']];
   function switchTab(name) {
     TABS.forEach(([key, tabId, panelId]) => {
       const active = key === name, tab = $(tabId), panel = $(panelId);
@@ -347,6 +348,8 @@
     if ($('db-prefix') && remote.table_prefix != null) $('db-prefix').value = String(remote.table_prefix);
     const demo = $('demo-mode');
     if (demo) demo.checked = typeof ui.demo_mode === 'boolean' ? ui.demo_mode : typeof config.demo_mode === 'boolean' ? config.demo_mode : demo.checked;
+    const browser = config.browser || {};
+    if ($('browser-auto-check')) $('browser-auto-check').checked = browser.auto_check !== false;
     syncProviderUI(); syncDBMode(); updateSummary(); updateGenerateNote(); }
   function aiPayload() {
     const payload = {
@@ -506,6 +509,8 @@
       if (id) { exportLink.hidden = false; exportLink.href = '/api/export/' + encodeURIComponent(id); }
       else { exportLink.hidden = true; exportLink.removeAttribute('href'); } }
     setStageBadge('done', id ? 'Ready' : 'Demo');
+    if (id) { api('/api/browser/check/' + encodeURIComponent(id)).then((report) => renderBrowserReport(report)).catch(() => renderBrowserReport(null)); }
+    else renderBrowserReport(null);
     if (canAnimate() && preview) window.gsap.fromTo(preview, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out', clearProps: 'opacity,transform' }); }
   function resetPreview() {
     state.preview = null;
@@ -523,6 +528,182 @@
       if (!state.online) { toast('Start the Stitchcraft backend to preview demo samples.', 'error'); return; }
       openPreview({ demoTheme: theme.id, title: theme.name + ' · sample' }); switchTab('preview'); announce('Loading the ' + theme.name + ' demo sample.'); });
     setPreviewLoading(false); }
+
+  /* ---------- 13b. AI browser (optional Obscura runtime) ------------------- */
+  function browserBadge(stateName, text) {
+    const badge = $('browser-state');
+    if (badge) { badge.dataset.state = stateName; badge.textContent = text; } }
+  function browserPanelBadge(stateName, text) {
+    const badge = $('browser-panel-badge');
+    if (badge) { badge.dataset.state = stateName; badge.textContent = text; } }
+  function applyBrowser(data) {
+    const b = data && typeof data === 'object' ? data : {};
+    state.browser = b;
+    const installed = Boolean(b.installed), install = b.install || {};
+    const busy = ['starting', 'downloading', 'extracting'].indexOf(String(install.state || '')) >= 0;
+    const failed = install.state === 'error';
+    browserBadge(installed ? 'done' : failed ? 'error' : busy ? 'running' : 'idle',
+      installed ? 'Installed' : failed ? 'Install failed' : busy ? (install.percent || 0) + '%' : 'Not installed');
+    const desc = $('browser-desc');
+    if (desc) desc.textContent = installed
+      ? 'Obscura ' + String(b.version || '') + ' is installed locally (' + String(b.license || 'Apache-2.0') + '). Site checks run without Chrome or Edge.'
+      : 'Obscura ' + String(b.version || '') + ' (' + String(b.license || 'Apache-2.0') + ', about ' +
+        Math.round((Number(b.download_bytes) || 0) / 1024 / 1024) + ' MB) is downloaded on demand and verified with SHA-256.';
+    const installBtn = $('browser-install');
+    if (installBtn) { installBtn.hidden = installed; installBtn.disabled = busy || b.supported === false; installBtn.textContent = busy ? 'Downloading…' : 'Install AI browser'; }
+    const removeBtn = $('browser-remove');
+    if (removeBtn) removeBtn.hidden = !installed;
+    const panelInstall = $('browser-panel-install');
+    if (panelInstall) { panelInstall.hidden = installed; panelInstall.disabled = b.supported === false; }
+    const panelCheck = $('browser-panel-check');
+    if (panelCheck) panelCheck.hidden = !installed;
+    const panelCopy = $('browser-panel-copy');
+    if (panelCopy) panelCopy.textContent = installed
+      ? 'No browser check yet. Generate a site (or open a project) and the AI browser will capture its screenshot and DOM audit here.'
+      : 'Obscura renders the generated page locally and records a screenshot plus a small DOM audit (title, headings, links, images, lang). It is optional, Apache-2.0 and works without Chrome or Edge installed.';
+    const progress = $('browser-progress');
+    if (progress) {
+      progress.hidden = !busy;
+      const percent = clamp(install.percent || 0, 0, 100);
+      const fill = $('browser-progress-fill'); if (fill) fill.style.width = percent + '%';
+      setText('browser-progress-text', failed ? 'Install failed' : busy ? 'Downloading… ' + Math.round(percent) + '%' : '');
+    }
+    const auto = $('browser-auto-check');
+    if (auto && b.settings && typeof b.settings.auto_check === 'boolean') auto.checked = b.settings.auto_check;
+    const hint = $('browser-hint');
+    if (hint) hint.textContent = installed
+      ? 'Local runtime: ' + shortPath(b.binary || '') + ' · checks stay on this machine.'
+      : failed ? String(install.error || 'Could not install the AI browser.')
+      : b.supported === false ? String(b.missing_reason || 'This platform has no Obscura build.')
+      : 'Fetched from the pinned GitHub release; never bundled with the app.';
+    const panelStatus = $('browser-panel-status');
+    const resultNode = $('browser-panel-result');
+    if (panelStatus && (!resultNode || resultNode.hidden)) {
+      panelStatus.textContent = installed
+        ? 'Generate a site (or open a project) to see its screenshot and DOM audit.'
+        : busy ? 'Installing the AI browser…'
+        : b.supported === false ? 'The AI browser is not available for this platform.'
+        : 'Install the AI browser, then generate a site to see its screenshot and DOM audit.';
+    }
+  }
+  async function loadBrowser() {
+    try { applyBrowser(await api('/api/browser')); }
+    catch (error) { browserBadge('error', 'Offline'); const hint = $('browser-hint'); if (hint) hint.textContent = 'Could not read the AI browser status: ' + error.message; }
+  }
+  function scheduleBrowserPoll() {
+    window.clearTimeout(state.browserTimer);
+    state.browserTimer = window.setTimeout(async () => {
+      try {
+        const data = await api('/api/browser');
+        applyBrowser(data);
+        const install = data && data.install ? data.install : {};
+        if (install.state === 'installed') { toast('AI browser installed — Obscura is ready.', 'success'); await loadBrowser(); return; }
+        if (install.state === 'error') { toast('AI browser install failed: ' + (install.error || 'unknown error'), 'error', 6000); await loadBrowser(); return; }
+        scheduleBrowserPoll();
+      } catch (error) {
+        toast('Could not poll the AI browser install: ' + error.message, 'error');
+        const button = $('browser-install'); setBusy(button, false);
+      }
+    }, BROWSER_POLL_MS);
+  }
+  async function installBrowser() {
+    const button = $('browser-install') || $('browser-panel-install');
+    setBusy(button, true);
+    try {
+      await api('/api/browser/install', { method: 'POST', body: {} });
+      toast('Downloading the AI browser (Obscura). This takes a moment…', 'info', 5000);
+      scheduleBrowserPoll();
+    } catch (error) {
+      toast('Could not start the AI browser install: ' + error.message, 'error', 6000);
+      setBusy(button, false);
+      await loadBrowser();
+    }
+  }
+  async function removeBrowser() {
+    const confirmed = await confirmAction({
+      title: 'Remove the AI browser?',
+      message: 'The downloaded Obscura runtime and its saved screenshots will be removed from this machine. You can install it again later.',
+      confirmLabel: 'Remove browser', danger: true });
+    if (!confirmed) return;
+    try {
+      await api('/api/browser', { method: 'DELETE' });
+      renderBrowserReport(null);
+      await loadBrowser();
+      toast('AI browser removed.', 'success');
+    } catch (error) { toast('Could not remove the AI browser: ' + error.message, 'error'); } }
+  async function toggleBrowserAuto(checked) {
+    try {
+      await api('/api/settings', { method: 'POST', body: { browser: { auto_check: Boolean(checked) } } });
+      if (state.settings) { state.settings.browser = Object.assign({}, state.settings.browser || {}, { auto_check: Boolean(checked) }); }
+      toast(checked ? 'AI browser checks will run after each build.' : 'Automatic AI browser checks are off.', 'info');
+    } catch (error) {
+      const input = $('browser-auto-check'); if (input) input.checked = !checked;
+      toast('Could not save the browser setting: ' + error.message, 'error'); } }
+  function addBrowserMetric(host, label, value) {
+    if (!host) return;
+    const row = el('div'); row.appendChild(el('dt', '', label)); row.appendChild(el('dd', '', value)); host.appendChild(row); }
+  function renderBrowserReport(report) {
+    const empty = $('browser-panel-empty'), result = $('browser-panel-result'), status = $('browser-panel-status');
+    if (!report || typeof report !== 'object') {
+      if (empty) empty.hidden = false;
+      if (result) result.hidden = true;
+      browserPanelBadge('idle', 'Idle');
+      if (status) status.textContent = 'Generate a site (or open a project) to see the AI browser screenshot and audit.';
+      return; }
+    if (empty) empty.hidden = true;
+    if (result) result.hidden = false;
+    const ok = Boolean(report.ok);
+    browserPanelBadge(ok ? 'done' : 'warn', ok ? 'Checked' : 'Needs attention');
+    if (status) status.textContent = ok
+      ? 'Obscura rendered the site and the DOM audit looks clean.'
+      : 'Obscura rendered the site; review the notes below.';
+    const projectId = String(report.project_id || (state.preview && state.preview.projectId) || '');
+    const shot = $('browser-screenshot');
+    if (shot) {
+      if (projectId) { shot.src = '/api/browser/screenshot/' + encodeURIComponent(projectId) + '?v=' + Date.now(); shot.hidden = false; }
+      else { shot.removeAttribute('src'); shot.hidden = true; } }
+    const metrics = $('browser-metrics'); clear(metrics);
+    const links = report.links || {}, images = report.images || {};
+    addBrowserMetric(metrics, 'Title', report.title || '—');
+    addBrowserMetric(metrics, 'Language', report.lang || 'missing');
+    addBrowserMetric(metrics, 'H1 headings', String(report.h1 != null ? report.h1 : '—'));
+    addBrowserMetric(metrics, 'Rendered text', (Number(report.text_chars) || 0) + ' chars');
+    addBrowserMetric(metrics, 'Links', String(links.total != null ? links.total : '—') + (Number(links.empty) ? ' · ' + links.empty + ' empty' : ''));
+    addBrowserMetric(metrics, 'Images', String(images.total != null ? images.total : '—') + (Number(images.missingAlt) ? ' · ' + images.missingAlt + ' missing alt' : ''));
+    const list = $('browser-warnings'); clear(list);
+    const issues = (Array.isArray(report.critical) ? report.critical : []).concat(Array.isArray(report.warnings) ? report.warnings : []);
+    if (list) {
+      if (!issues.length) { const item = el('li', '', 'No accessibility or structure notes from this check.'); item.dataset.kind = 'ok'; list.appendChild(item); }
+      else issues.forEach((issue) => list.appendChild(el('li', '', String(issue)))); }
+    const open = $('browser-open-shot');
+    if (open) {
+      if (projectId) { open.href = '/api/browser/screenshot/' + encodeURIComponent(projectId); open.hidden = false; }
+      else open.hidden = true; }
+  }
+  async function runBrowserCheck() {
+    const projectId = state.preview && state.preview.projectId;
+    if (!projectId) { toast('Open a generated project first, then run the AI browser check.', 'info'); switchTab('preview'); return; }
+    const button = $('browser-check-again');
+    if (button) setBusy(button, true);
+    switchTab('browser');
+    browserPanelBadge('running', 'Checking…');
+    try {
+      const report = await api('/api/browser/check', { method: 'POST', body: { project_id: projectId } });
+      renderBrowserReport(report);
+      toast(report.ok ? 'AI browser check passed.' : 'AI browser check finished with notes.', report.ok ? 'success' : 'info');
+    } catch (error) {
+      browserPanelBadge('error', 'Failed');
+      toast('AI browser check failed: ' + error.message, 'error', 6000);
+    } finally { if (button) setBusy(button, false); } }
+  function bindBrowser() {
+    on($('browser-install'), 'click', installBrowser);
+    on($('browser-panel-install'), 'click', installBrowser);
+    on($('browser-panel-check'), 'click', runBrowserCheck);
+    on($('browser-remove'), 'click', removeBrowser);
+    on($('browser-refresh'), 'click', async () => { await loadBrowser(); toast('AI browser status refreshed.', 'success'); });
+    on($('browser-auto-check'), 'change', () => toggleBrowserAuto((($('browser-auto-check') || {}).checked)));
+    on($('browser-check-again'), 'click', runBrowserCheck);
+  }
 
   /* ---------- 14. Pipeline: stages, progress, logs ------------------------- */
   const blankStages = () => STAGES.map((stage) => ({ key: stage.key, label: stage.label, status: 'pending', message: '' }));
@@ -693,6 +874,7 @@
     return {
       status: status, done: done, failed: failed, terminal: done || failed, stages: stages, progress: deriveProgress(job, stages, done),
       logs: normalizeLogs(job.logs || job.log || job.events), projectId: projectId ? String(projectId) : '', error: error,
+      browser: job.browser && typeof job.browser === 'object' ? job.browser : null,
       title: String(job.title || (job.project && job.project.title) || ''), engine: String(job.engine || ''), stageName: String(job.stage_name || '') }; }
   const startPolling = (token) => { window.clearTimeout(state.pollTimer); state.pollTimer = window.setTimeout(() => pollJob(token), POLL_MS); };
   async function pollJob(token) {
@@ -739,7 +921,8 @@
       switchTab('preview'); toast('Site stitched. Preview is ready.', 'success'); loadProjects();
     } else {
       showPipelineError('The job finished but did not return a project id.');
-      toast('Job finished without a project id — check the logs.', 'error'); } }
+      toast('Job finished without a project id — check the logs.', 'error'); }
+    if (job.browser) renderBrowserReport(job.browser); }
   async function generate() {
     if (state.generating) { toast('A stitch is already running.', 'info'); return; }
     const theme = currentTheme();
@@ -911,9 +1094,9 @@
     PLACEHOLDERS.api = (($('api-key') || {}).placeholder) || 'sk-…';
     PLACEHOLDERS.db = (($('db-key') || {}).placeholder) || 'public anon key';
     makeEmbers(); initTabs(); initWizard(); bindSettings(); bindBrief(); bindGeneration();
-    bindHistory(); bindPreview(); bindConnection(); bindGlobalKeys();
+    bindHistory(); bindPreview(); bindConnection(); bindGlobalKeys(); bindBrowser();
     paintRange(); updateSummary(); updateGenerateNote(); syncKeyStates(); syncProviderUI(); setPreviewLoading(false);
-    bootstrap({ silent: true }); loadLibrariesNote();
+    bootstrap({ silent: true }); loadLibrariesNote(); loadBrowser();
     animateEntrance(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();

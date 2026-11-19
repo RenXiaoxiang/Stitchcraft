@@ -49,6 +49,7 @@ which step produced which file. Stitchcraft makes every hand-off explicit:
 | Project history | SQLite-backed local history; reopen or delete any generation. |
 | Skills runtime | 18 registry entries over three vendored packs plus two house skills; prompt budgets keep generations focused. |
 | Aggregated tool packs | Six MIT-licensed browser libraries (Fabric.js, Chart.js, SortableJS, Rough.js, Swiper, GridStack) vendored under `vendor/` with LICENSE + UPSTREAM.md; a theme declares the ones it needs and a generated site receives only the libraries it references under `site/vendor/<id>/` — offline, no CDN. |
+| Built-in AI browser | Optional Obscura runtime (Apache-2.0, ~70 MB) downloaded on demand and verified with SHA-256; it screenshots each generated site and records a DOM audit (title, headings, links, image alt coverage), so checks still work on machines without Chrome or Edge. |
 
 ## Free AI options (no paid key needed)
 
@@ -235,6 +236,43 @@ human-readable companion for the six libraries is
 [vendor/ATTRIBUTION.md](vendor/ATTRIBUTION.md). Adding, upgrading or removing a
 third-party file starts and ends in those two files.
 
+## Built-in AI browser (Obscura)
+
+Stitchcraft can give the AI its own browser instead of assuming the customer has
+a modern Chrome or Edge installed. On first use the studio downloads
+[Obscura](https://github.com/h4ckf0r0day/obscura) — a ~70 MB, Apache-2.0
+headless browser written in Rust — into the app-data directory, verifies the
+release against pinned SHA-256 digests, and drives it locally. Nothing is
+bundled in the repository and nothing is uploaded: the runtime stays on the
+machine, renders with its own engine, and records a screenshot plus a small DOM
+audit for every build.
+
+![The AI browser tab: Obscura screenshot and DOM audit of a generated warehouse site](docs/assets/ai-browser.png)
+
+```bash
+stitch browser status            # platform, version, license, installed/path
+stitch browser install           # download + SHA-256 verification + extraction
+stitch browser check --url URL   # render a page, screenshot it, audit title/h1/links/alts
+stitch browser serve --port 9222 # CDP server for Playwright / Puppeteer / agents
+stitch browser mcp               # MCP server (browser_navigate, browser_screenshot, ...)
+stitch browser remove            # delete the local runtime and its checks
+```
+
+In the studio, step 1 has an **AI browser** card (install / remove / automatic
+check toggle), and the **AI browser** tab shows the latest screenshot and audit.
+If the runtime is not installed the generation still succeeds; the check is
+skipped and the UI says so. The check is local-only: Obscura is started with
+`--allow-private-network` so it can reach `127.0.0.1`, never a remote service.
+
+- **Platforms:** Windows x86_64, Linux x86_64/aarch64, macOS Intel/Apple silicon.
+- **License:** Apache-2.0. The license and notice are written next to the
+  downloaded runtime; the notice index is
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Slow GitHub?** Set `STITCHCRAFT_BROWSER_MIRROR=https://gh-proxy.com` (or a
+  `{url}` template) before installing; the SHA-256 check still applies.
+- **No background daemon:** the CLI starts the runtime per check and exits; the
+  server only invokes it during a build or a manual check.
+
 ## Generated data layer
 
 Every generated site receives a `data-config.js`:
@@ -275,6 +313,8 @@ whole repository coherent; the hooks call it whenever a seam changes.
 ├── 启动 Stitchcraft.bat / Stitchcraft.bat   desktop launcher
 ├── app/web/                                 local studio UI (vanilla JS + vendored GSAP)
 ├── src/stitchcraft/                         stdlib backend + CLI
+│   ├── browser.py                           optional Obscura AI browser (download-on-demand)
+│   └── data/                                Obscura Apache-2.0 license + notice snapshots
 ├── themes/                                  theme packages + _blocks + registry
 ├── skills/                                  vendored skill packs + registry + attribution
 ├── vendor/                                  six MIT browser libraries + registry + attribution
@@ -294,6 +334,7 @@ whole repository coherent; the hooks call it whenever a seam changes.
 python -m unittest discover -s tests -v                      # unit + API tests
 PYTHONPATH=src python -m stitchcraft validate --strict       # repository invariants
 python -m stitchcraft app --smoke-test --no-window           # headless end-to-end studio test
+python -m stitchcraft browser status                         # optional AI browser (Obscura)
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify
 ```

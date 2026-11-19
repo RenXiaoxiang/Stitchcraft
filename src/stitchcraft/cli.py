@@ -78,6 +78,22 @@ def build_parser() -> argparse.ArgumentParser:
     library_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "verify"])
     library_parser.add_argument("library_id", nargs="?", help="library id for `libraries show`")
 
+    browser_parser = sub.add_parser("browser", help="install and drive the optional Obscura AI browser")
+    browser_parser.add_argument(
+        "action",
+        nargs="?",
+        default="status",
+        choices=["status", "install", "remove", "check", "serve", "mcp"],
+    )
+    browser_parser.add_argument("--url", default="", help="page URL for `browser check`")
+    browser_parser.add_argument("--out", type=Path, default=None, help="artifact directory for `browser check`")
+    browser_parser.add_argument("--timeout", type=int, default=30, help="navigation timeout in seconds")
+    browser_parser.add_argument("--no-screenshot", action="store_true", help="skip the PNG screenshot")
+    browser_parser.add_argument("--port", type=int, default=9222, help="CDP port for `browser serve`")
+    browser_parser.add_argument("--stealth", action="store_true", help="enable Obscura stealth mode")
+    browser_parser.add_argument("--http", action="store_true", help="run the MCP server over HTTP")
+    browser_parser.add_argument("--json", action="store_true", dest="as_json", help="machine-readable output")
+
     generate = sub.add_parser("generate", help="generate a site headlessly from a theme and a brief")
     generate.add_argument("--theme", required=True, help="theme id, e.g. warehouse-ops")
     generate.add_argument("--prompt", required=True, help="what the site should be")
@@ -117,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         "themes": cmd_themes,
         "skills": cmd_skills,
         "libraries": cmd_libraries,
+        "browser": cmd_browser,
         "generate": cmd_generate,
     }
     return handlers[args.command](repo, args)
@@ -219,6 +236,17 @@ def cmd_doctor(repo: Repo, args: argparse.Namespace) -> int:
     checks.append(("steering", "ok" if steering else "warn", f"{len(steering)} file(s)"))
     checks.append(("hooks", "ok" if hooks else "warn", f"{len(hooks)} hook(s)"))
     checks.append(("specs", "ok" if specs else "warn", f"{len(specs)} spec(s)"))
+
+    from .browser import BrowserManager
+
+    browser_status = BrowserManager().status()
+    checks.append(
+        (
+            "ai browser",
+            "ok" if browser_status["installed"] else "warn",
+            f"Obscura {browser_status['version']}: {'installed' if browser_status['installed'] else 'not installed'}",
+        )
+    )
 
     tests = repo.root / "tests"
     checks.append(("tests", "ok" if tests.is_dir() else "warn", str(tests.relative_to(repo.root))))
@@ -383,6 +411,103 @@ def cmd_libraries(repo: Repo, args: argparse.Namespace) -> int:
     for library in load_libraries(repo.root):
         print(f"{library.id:<12} {library.version:<9} {library.license:<8} {library.category:<10} {library.name}")
     return EXIT_OK
+
+
+def cmd_browser(repo: Repo, args: argparse.Namespace) -> int:
+    """Install and drive the optional Obscura runtime (no import, no daemon)."""
+    import subprocess
+
+    from .browser import BrowserError, BrowserManager
+
+    manager = BrowserManager()
+    action = args.action
+    try:
+        if action == "status":
+            status = manager.status()
+            if args.as_json:
+                print(json.dumps(status, indent=2, ensure_ascii=False))
+                return EXIT_OK
+            print(f"Obscura AI browser {status['version']} ({status['license']})")
+            print(f"  platform:  {status['platform_label']}")
+            print(f"  installed: {'yes' if status['installed'] else 'no'}")
+            if status["installed"]:
+                print(f"  binary:    {status['binary']}")
+                print(f"  installed: {status['installed_at']}")
+            else:
+                print(f"  download:  {status['download_url'] or '-'}")
+                if status["download_bytes"]:
+                    print(f"  size:      {status['download_bytes'] / 1024 / 1024:.1f} MB")
+                print("  install:   stitch browser install")
+            if status["missing_reason"]:
+                print(f"  note:      {status['missing_reason']}")
+            return EXIT_OK
+
+        if action == "install":
+            status = manager.status()
+            if not status["supported"]:
+                print(f"stitch browser: {status['missing_reason']}", file=sys.stderr)
+                return EXIT_ERROR
+            print(f"Installing Obscura {status['version']} ({status['license']})")
+            print(f"  download: {status['download_url']}")
+            print(f"  size:     {status['download_bytes'] / 1024 / 1024:.1f} MB")
+            last = [-1]
+
+            def progress(done: int, total: int) -> None:
+                percent = int((done / total) * 100) if total else 0
+                if percent >= last[0] + 5 or percent == 100:
+                    last[0] = percent
+                    print(f"  downloading: {percent:3d}%  ({done / 1024 / 1024:5.1f} MB)")
+
+            installed = manager.install(progress=progress)
+            print(f"Installed: {installed['binary']}")
+            print(f"License:   {installed['license']} — see LICENSE/NOTICE in the install directory.")
+            return EXIT_OK
+
+        if action == "remove":
+            removed = manager.remove()
+            print("Removed the local Obscura runtime." if removed else "No local Obscura runtime was installed.")
+            return EXIT_OK
+
+        if action == "check":
+            if not args.url:
+                print("stitch browser check: --url is required", file=sys.stderr)
+                return EXIT_ERROR
+            report = manager.check(
+                args.url,
+                args.out,
+                timeout=args.timeout,
+                screenshot=not args.no_screenshot,
+            )
+            if args.as_json:
+                print(json.dumps(report, indent=2, ensure_ascii=False))
+            else:
+                state = "ok" if report["ok"] else "needs attention"
+                print(f"Browser check: {state}")
+                print(f"  title:    {report['title'] or '-'}")
+                print(f"  language: {report['lang'] or '-'}")
+                print(f"  h1:       {report['h1']}")
+                print(f"  text:     {report['text_chars']} chars")
+                if report["screenshot"]:
+                    print(f"  shot:     {_display(Path(report['screenshot']), repo.root)}")
+                for warning in report["warnings"]:
+                    print(f"  warning:  {warning}")
+            return EXIT_OK if report["ok"] else EXIT_FINDINGS
+
+        if action in {"serve", "mcp"}:
+            if action == "serve":
+                command = manager.serve_command(
+                    args.port,
+                    allow_private_network=True,
+                    stealth=args.stealth,
+                )
+            else:
+                command = manager.mcp_command(http_port=args.port if args.http else None, stealth=args.stealth)
+            print("Running: " + " ".join(command))
+            return int(subprocess.call(command))
+    except BrowserError as exc:
+        print(f"stitch browser: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    return EXIT_ERROR
 
 
 def cmd_generate(repo: Repo, args: argparse.Namespace) -> int:

@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from stitchcraft import settings  # noqa: E402
+from stitchcraft import browser  # noqa: E402
 from stitchcraft.generator import GenerationError, GenerationRequest, generate_site  # noqa: E402
 from stitchcraft.libraries import verify_libraries  # noqa: E402
 from stitchcraft.server import make_server  # noqa: E402
@@ -302,6 +303,27 @@ class ServerApiTests(unittest.TestCase):
         status, payload = _get_json(self.base + "/api/ai/local")
         self.assertEqual(status, 200)
         self.assertIn("ok", payload)
+
+    def test_browser_status_endpoint(self) -> None:
+        status, payload = _get_json(self.base + "/api/browser")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["version"], browser.OBSCURA_VERSION)
+        self.assertEqual(payload["license"], "Apache-2.0")
+        self.assertIn("installed", payload)
+        self.assertIn("settings", payload)
+        self.assertIn("auto_check", payload["settings"])
+        self.assertFalse(payload["installed"])
+
+    def test_browser_settings_roundtrip(self) -> None:
+        status, payload = _get_json(
+            self.base + "/api/settings",
+            "POST",
+            {"browser": {"auto_check": False, "allow_private_network": False}},
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse(payload["settings"]["browser"]["auto_check"])
+        status, payload = _get_json(self.base + "/api/settings")
+        self.assertFalse(payload["browser"]["auto_check"])
 
     def test_settings_roundtrip(self) -> None:
         status, payload = _get_json(

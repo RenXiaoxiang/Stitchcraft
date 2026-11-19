@@ -29,6 +29,7 @@ python -m stitchcraft validate --strict
 python -m stitchcraft themes verify
 python -m stitchcraft skills verify
 python -m stitchcraft libraries verify
+python -m stitchcraft browser status
 python -m stitchcraft app --smoke-test --no-window
 python -m stitchcraft app                 # real desktop window (Edge)
 python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine mock
@@ -40,7 +41,7 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
 
 | Path | Owns |
 | --- | --- |
-| `src/stitchcraft/` | Loader, validator, renderer, CLI, settings, AI client, storage, themes/skills loaders, generator, server, desktop launcher. |
+| `src/stitchcraft/` | Loader, validator, renderer, CLI, settings, AI client, storage, themes/skills loaders, generator, server, desktop launcher, optional Obscura browser manager. |
 | `app/web/` | Local studio UI (vanilla JS + vendored GSAP). No frameworks, no CDN. |
 | `themes/` | Theme packages: `theme.toml`, `SKILL.md`, `data-model.json`, optional `sample/`; shared `_blocks/`. |
 | `skills/` | Vendored official skill packs (unmodified, licensed, `UPSTREAM.md`) + house skills + `registry.toml`. |
@@ -90,6 +91,25 @@ python -m stitchcraft generate --theme warehouse-ops --prompt "..." --engine moc
   a generated site must never load a CDN or any other external URL for code.
 - **`stitch libraries verify` must stay green.** It checks folders, versions,
   licenses and the registry together; a red result blocks a release.
+
+## Optional AI browser runtime (`browser.py`)
+
+- **The runtime is downloaded, never committed.** Obscura is a ~70 MB
+  Apache-2.0 binary fetched into the user's app-data directory after explicit
+  consent. Never add it, its archive, or `browser/` output to the repository.
+- **Pin version and digests together.** `OBSCURA_VERSION` and the `ASSETS`
+  SHA-256 values must match one upstream release; upgrading means updating
+  both, the tests and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Keep the license material current.** `src/stitchcraft/data/obscura-LICENSE.txt`
+  and `obscura-NOTICE.txt` are copied into the install directory; the canonical
+  index is `THIRD_PARTY_NOTICES.md`.
+- **Checks are optional and local.** A missing runtime must never fail site
+  generation or the studio smoke test. Browser checks run against
+  `127.0.0.1` with `--allow-private-network`; no remote browser service.
+- **Respect restricted networks.** `STITCHCRAFT_BROWSER_MIRROR` may rewrite the
+  GitHub URL; the pinned SHA-256 check still applies before extraction.
+- **Never weaken archive safety.** Zip/tar extraction rejects absolute paths,
+  `..`, links and anything outside the install directory.
 
 ## Definition of done
 

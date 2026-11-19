@@ -41,6 +41,9 @@ jobs:
       - name: Verify vendored browser libraries
         run: python -m stitchcraft libraries verify
 
+      - name: Optional AI browser status
+        run: python -m stitchcraft browser status
+
       - name: Render the plan (smoke)
         run: python -m stitchcraft plan --mermaid-only > /dev/null
 

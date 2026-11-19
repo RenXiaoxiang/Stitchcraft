@@ -126,6 +126,15 @@ def _smoke_test(base_url: str, context) -> int:
     status, payload = _request_json(f"{base_url}/api/libraries")
     library_count = len(payload.get("libraries", []))
     checks.append(("api/libraries", status == 200 and library_count >= 6, f"{library_count} libraries"))
+    status, payload = _request_json(f"{base_url}/api/browser")
+    browser_installed = bool(payload.get("installed"))
+    checks.append(
+        (
+            "api/browser",
+            status == 200 and bool(payload.get("version")),
+            f"Obscura {payload.get('version')}: {'installed' if browser_installed else 'not installed'}",
+        )
+    )
     status, payload = _request_json(f"{base_url}/api/settings")
     checks.append(("api/settings", status == 200 and "ai" in payload, ""))
     status, payload = _request_json(f"{base_url}/api/ai/providers")

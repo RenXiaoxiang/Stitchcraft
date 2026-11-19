@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import threading
 import urllib.error
 import urllib.parse
@@ -19,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import __version__, ai_client, generator, libraries, settings, skills, storage, themes
+from . import __version__, ai_client, browser, generator, libraries, settings, skills, storage, themes
 from .generator import GenerationError, GenerationRequest
 from .settings import AppConfig
 from .storage import ProjectStore
@@ -87,6 +88,7 @@ class Job:
         self.stages = [{"name": name, "status": "pending"} for name in generator.stage_names()]
         self.logs: list[dict] = []
         self.project_id: str | None = None
+        self.browser: dict | None = None
         self.error: str | None = None
 
     def public_dict(self) -> dict:
@@ -99,6 +101,7 @@ class Job:
             "stages": list(self.stages),
             "logs": list(self.logs),
             "project_id": self.project_id,
+            "browser": self.browser,
             "error": self.error,
             "theme_id": self.theme_id,
             "title": self.title,
@@ -109,12 +112,89 @@ class Job:
 class StudioContext:
     """Shared state for the server: config, project store and jobs."""
 
-    def __init__(self, root: Path, config: AppConfig | None = None, store: ProjectStore | None = None) -> None:
+    def __init__(
+        self,
+        root: Path,
+        config: AppConfig | None = None,
+        store: ProjectStore | None = None,
+        browser_manager: browser.BrowserManager | None = None,
+    ) -> None:
         self.root = Path(root).resolve()
         self.config = config if config is not None else settings.load_config()
         self.store = store if store is not None else ProjectStore(settings.app_dir())
+        self.browser = browser_manager or browser.BrowserManager()
+        self.browser_install: dict | None = None
+        self.port: int | None = None
         self.jobs: dict[str, Job] = {}
         self.lock = threading.Lock()
+
+    # -- browser helpers -----------------------------------------------------
+    def browser_status(self) -> dict:
+        payload = self.browser.status()
+        payload["settings"] = self.config.browser.public_dict()
+        payload["install"] = dict(self.browser_install) if self.browser_install else None
+        payload["preview_base"] = f"http://127.0.0.1:{self.port}" if self.port else None
+        return payload
+
+    def start_browser_install(self) -> dict:
+        with self.lock:
+            if self.browser.status()["installed"]:
+                return {"started": False, "installed": True, "status": self.browser_status()}
+            current = self.browser_install or {}
+            if current.get("state") in {"downloading", "extracting", "starting"}:
+                return {"started": False, "installed": False, "install": dict(current)}
+            self.browser_install = {
+                "state": "starting",
+                "percent": 0,
+                "downloaded": 0,
+                "total": 0,
+                "error": None,
+            }
+        threading.Thread(target=self._install_browser_worker, daemon=True).start()
+        return {"started": True, "installed": False}
+
+    def _install_browser_worker(self) -> None:
+        def progress(done: int, total: int) -> None:
+            with self.lock:
+                self.browser_install = {
+                    "state": "downloading",
+                    "percent": int((done / total) * 100) if total else 0,
+                    "downloaded": done,
+                    "total": total,
+                    "error": None,
+                }
+
+        try:
+            with self.lock:
+                self.browser_install = {"state": "downloading", "percent": 0, "downloaded": 0, "total": 0, "error": None}
+            installed = self.browser.install(progress=progress)
+            with self.lock:
+                self.browser_install = {
+                    "state": "installed",
+                    "percent": 100,
+                    "downloaded": installed.get("download_bytes") or 0,
+                    "total": installed.get("download_bytes") or 0,
+                    "error": None,
+                }
+        except Exception as exc:  # noqa: BLE001 - surfaced through the API
+            with self.lock:
+                self.browser_install = {"state": "error", "percent": 0, "downloaded": 0, "total": 0, "error": str(exc)}
+
+    def run_browser_check(self, project_id: str) -> dict:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", project_id or ""):
+            raise ValueError("invalid project id")
+        if self.store.site_dir(project_id) is None:
+            raise ValueError("project not found")
+        if not self.port:
+            raise ValueError("the studio is not listening")
+        url = f"http://127.0.0.1:{self.port}/api/preview/{project_id}/"
+        report = self.browser.check(
+            url,
+            self.browser.checks_dir / project_id,
+            allow_private_network=self.config.browser.allow_private_network,
+        )
+        report["project_id"] = project_id
+        return report
 
     # -- job helpers ---------------------------------------------------------
     def _log(self, job: Job, message: str, level: str = "info", stage: int | None = None) -> None:
@@ -196,7 +276,29 @@ class StudioContext:
                 summary=result.summary,
                 files=len(result.files),
             )
+            browser_report: dict | None = None
+            if self.config.browser.auto_check:
+                try:
+                    if self.browser.status()["installed"]:
+                        browser_report = self.run_browser_check(project["id"])
+                        level = "success" if browser_report.get("ok") else "info"
+                        self._log(
+                            job,
+                            "AI browser check: "
+                            + (browser_report.get("title") or "untitled page")
+                            + f" ({len(browser_report.get('warnings') or [])} note(s))",
+                            level,
+                        )
+                    else:
+                        self._log(
+                            job,
+                            "AI browser check skipped: Obscura is not installed (optional).",
+                            "info",
+                        )
+                except Exception as exc:  # noqa: BLE001 - never fail a generation for an optional check
+                    self._log(job, f"AI browser check skipped: {exc}", "warn")
             with self.lock:
+                job.browser = browser_report
                 job.status = "done"
                 job.progress = 100
                 job.stage = len(job.stages) - 1
@@ -377,6 +479,13 @@ class StudioHandler(BaseHTTPRequestHandler):
                         ]
                     },
                 )
+            if resource == "browser":
+                if len(parts) == 2:
+                    return self._send_json(200, context.browser_status())
+                if len(parts) == 4 and parts[2] == "check":
+                    return self._browser_report(parts[3])
+                if len(parts) == 4 and parts[2] == "screenshot":
+                    return self._browser_screenshot(parts[3])
             if resource == "ai":
                 if len(parts) == 3 and parts[2] == "providers":
                     return self._send_json(200, {"providers": settings.provider_catalog()})
@@ -416,12 +525,23 @@ class StudioHandler(BaseHTTPRequestHandler):
                 return self._test_db(body)
             if resource == "generate":
                 return self._generate(body)
+            if resource == "browser":
+                if len(parts) == 3 and parts[2] == "install":
+                    result = context.start_browser_install()
+                    return self._send_json(202 if result.get("started") else 200, {"ok": True, **result})
+                if len(parts) == 3 and parts[2] == "check":
+                    return self._browser_check(body)
             return self._send_json(404, {"ok": False, "error": "unknown endpoint"})
 
         if method == "DELETE":
             if resource == "projects" and len(parts) == 3:
                 deleted = context.store.delete(parts[2])
                 return self._send_json(200 if deleted else 404, {"ok": deleted})
+            if resource == "browser" and len(parts) == 2:
+                removed = context.browser.remove()
+                with context.lock:
+                    context.browser_install = None
+                return self._send_json(200, {"ok": True, "removed": removed, "status": context.browser_status()})
             return self._send_json(404, {"ok": False, "error": "unknown endpoint"})
 
         return self._send_json(405, {"ok": False, "error": "method not allowed"})
@@ -432,6 +552,40 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self._send_json(404, {"ok": False, "error": "job not found"})
         with self.context.lock:
             return self._send_json(200, job.public_dict())
+
+    # -- browser helpers -----------------------------------------------------
+    def _browser_report(self, project_id: str) -> None:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", project_id or ""):
+            return self._send_json(404, {"ok": False, "error": "not found"})
+        report_path = self.context.browser.checks_dir / project_id / "report.json"
+        if not report_path.is_file():
+            return self._send_json(404, {"ok": False, "error": "no browser check for this project"})
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return self._send_json(500, {"ok": False, "error": "could not read the browser report"})
+        return self._send_json(200, report)
+
+    def _browser_screenshot(self, project_id: str) -> None:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", project_id or ""):
+            return self._send_json(404, {"ok": False, "error": "not found"})
+        shot_path = self.context.browser.checks_dir / project_id / "screenshot.png"
+        if not shot_path.is_file():
+            return self._send_json(404, {"ok": False, "error": "no screenshot for this project"})
+        return self._send_bytes(200, shot_path.read_bytes(), "image/png")
+
+    def _browser_check(self, body: dict) -> None:
+        project_id = str(body.get("project_id") or "").strip()
+        if not project_id:
+            return self._send_json(400, {"ok": False, "error": "project_id is required"})
+        try:
+            report = self.context.run_browser_check(project_id)
+        except browser.BrowserError as exc:
+            return self._send_json(409, {"ok": False, "error": str(exc)})
+        except ValueError as exc:
+            return self._send_json(400, {"ok": False, "error": str(exc)})
+        return self._send_json(200, report)
+
     def _save_settings(self, body: dict) -> None:
         self.context.config.merge_patch(body)
         path = settings.save_config(self.context.config)
@@ -556,9 +710,16 @@ def make_server(
     config: AppConfig | None = None,
     store: ProjectStore | None = None,
     host: str = "127.0.0.1",
+    browser_manager: browser.BrowserManager | None = None,
 ) -> tuple[ThreadingHTTPServer, StudioContext]:
-    context = StudioContext(root or _find_repo_root(), config=config, store=store)
+    context = StudioContext(
+        root or _find_repo_root(),
+        config=config,
+        store=store,
+        browser_manager=browser_manager,
+    )
     handler = type("BoundStudioHandler", (StudioHandler,), {"context": context})
     httpd = ThreadingHTTPServer((host, port), handler)
     httpd.daemon_threads = True
+    context.port = int(httpd.server_address[1])
     return httpd, context

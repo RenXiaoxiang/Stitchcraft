@@ -244,16 +244,32 @@ class UISettings:
 
 
 @dataclass
+class BrowserSettings:
+    """Optional local Obscura runtime used for AI browser checks."""
+
+    auto_check: bool = True
+    allow_private_network: bool = True
+
+    def public_dict(self) -> dict:
+        return {
+            "auto_check": self.auto_check,
+            "allow_private_network": self.allow_private_network,
+        }
+
+
+@dataclass
 class AppConfig:
     ai: AISettings = field(default_factory=AISettings)
     database: DatabaseSettings = field(default_factory=DatabaseSettings)
     ui: UISettings = field(default_factory=UISettings)
+    browser: BrowserSettings = field(default_factory=BrowserSettings)
 
     def public_dict(self) -> dict:
         return {
             "ai": self.ai.public_dict(),
             "database": self.database.public_dict(),
             "ui": self.ui.public_dict(),
+            "browser": self.browser.public_dict(),
         }
 
     def to_dict(self) -> dict:
@@ -275,6 +291,10 @@ class AppConfig:
                 },
             },
             "ui": {"theme": self.ui.theme, "demo_mode": self.ui.demo_mode},
+            "browser": {
+                "auto_check": self.browser.auto_check,
+                "allow_private_network": self.browser.allow_private_network,
+            },
         }
 
     def merge_patch(self, payload: dict) -> "AppConfig":
@@ -321,6 +341,12 @@ class AppConfig:
             self.ui.theme = str(ui.get("theme") or "kiroween")
         if "demo_mode" in ui:
             self.ui.demo_mode = bool(ui.get("demo_mode"))
+
+        browser = payload.get("browser") or {}
+        if "auto_check" in browser:
+            self.browser.auto_check = bool(browser.get("auto_check"))
+        if "allow_private_network" in browser:
+            self.browser.allow_private_network = bool(browser.get("allow_private_network"))
         return self
 
 

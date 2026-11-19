@@ -2997,3 +2997,175 @@ select.input {
   cursor: not-allowed;
 }
 #ai-local-btn[hidden] { display: none; }
+
+/* ------------------------------------------------- 60. AI browser (Obscura) */
+.browser-card {
+  margin: 1rem 0 0.25rem;
+  padding: 0.85rem 0.95rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.07), rgba(255, 138, 61, 0.03));
+}
+.browser-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.browser-card__eyebrow {
+  margin: 0 0 0.2rem;
+  color: var(--ember);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.browser-card__title {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+.browser-card__desc {
+  margin: 0.5rem 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.browser-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+.browser-card .switch { margin-top: 0.35rem; }
+.browser-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.15rem 0 0.5rem;
+}
+.browser-progress__bar {
+  display: block;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+}
+.browser-progress__bar > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ember), var(--violet));
+  transition: width 0.35s var(--ease-out);
+}
+.browser-progress__text {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.browser-card #browser-hint:empty { display: none; }
+
+.browser-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 100%;
+  padding: clamp(1rem, 2.4vw, 1.7rem);
+}
+.browser-panel__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.browser-panel__top .panel-sub { margin: 0.3rem 0 0; }
+.browser-panel__empty {
+  max-width: 62ch;
+  padding: 1.1rem 1.2rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+}
+.browser-panel__copy { margin: 0 0 0.9rem; color: var(--muted); line-height: 1.5; }
+.browser-panel__result {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+.browser-shot {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--ink-850);
+}
+.browser-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+  object-fit: contain;
+  object-position: top center;
+}
+.browser-report { display: flex; flex-direction: column; gap: 0.85rem; }
+.browser-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.browser-metrics div {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+.browser-metrics dt {
+  margin: 0 0 0.15rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.browser-metrics dd {
+  margin: 0;
+  color: var(--paper);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.browser-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.browser-warnings li {
+  padding: 0.45rem 0.6rem;
+  border-left: 2px solid var(--warn);
+  border-radius: 4px;
+  background: rgba(255, 203, 107, 0.07);
+  color: var(--paper-dim);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.browser-warnings li[data-kind="ok"] {
+  border-left-color: var(--ok);
+  background: rgba(89, 217, 164, 0.07);
+}
+.browser-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+@media (max-width: 980px) {
+  .browser-panel__result {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .browser-progress__bar > span { transition: none; }
+}
+

@@ -1,0 +1,7 @@
+Obscura — https://github.com/h4ckf0r0day/obscura
+Licensed under the Apache License, Version 2.0.
+
+This copy of the Obscura runtime was downloaded by Stitchcraft on the user's
+machine. It is not redistributed inside the Stitchcraft repository. The full
+license text is in LICENSE next to this file. Upstream version and SHA-256
+digest are recorded in install.json by Stitchcraft.

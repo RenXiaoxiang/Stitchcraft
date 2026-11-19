@@ -1,12 +1,14 @@
 # Third-Party Notices
 
 Stitchcraft is an offline-first tool: it vendors the browser libraries and the
-agent skill packs it needs instead of fetching them at runtime. This file is the
-**canonical notice index** for every third-party component redistributed with
-Stitchcraft. All third-party files are redistributed **unmodified**, their
-licenses are preserved in-tree, and provenance (pinned version, source URL,
-copy/vendoring date) is recorded in the matching `UPSTREAM.md` files.
-Vendored: **2026-11-19**.
+agent skill packs it needs instead of fetching them at runtime. It can also
+download one optional browser runtime (Obscura) on the user's request; that
+runtime is not redistributed in this repository and is covered in section 3.
+This file is the **canonical notice index** for every third-party component
+redistributed with Stitchcraft. All third-party files are redistributed
+**unmodified**, their licenses are preserved in-tree, and provenance (pinned
+version, source URL, copy/vendoring date) is recorded in the matching
+`UPSTREAM.md` files. Vendored: **2026-11-19**.
 
 Component-level detail: [`vendor/ATTRIBUTION.md`](vendor/ATTRIBUTION.md),
 [`vendor/registry.toml`](vendor/registry.toml),
@@ -110,7 +112,31 @@ License, Version 2.0.
 - License: the GSAP standard license (not an OSI license); terms at <https://gsap.com/licensing/>. No separate license text is bundled with this browser build; the source URL and license are recorded in [`skills/vendor/gsap-lib/UPSTREAM.md`](skills/vendor/gsap-lib/UPSTREAM.md).
 - Distributed file: [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js)
 
-## 3. Trademark notes
+## 3. Optional runtime download — Obscura (Apache-2.0)
+
+Stitchcraft does **not** redistribute this binary. When the user chooses
+**Install AI browser**, `src/stitchcraft/browser.py` downloads the pinned
+upstream release into the user's app-data directory, verifies its SHA-256
+digest, extracts it locally, and writes the license and notice beside it.
+
+- Component: Obscura headless browser (rendering build)
+- Version: **0.2.7** (`v0.2.7`)
+- License: **Apache-2.0**
+- Upstream: https://github.com/h4ckf0r0day/obscura
+- Release assets: `obscura-x86_64-windows.zip`, `obscura-x86_64-linux.tar.gz`,
+  `obscura-aarch64-linux.tar.gz`, `obscura-x86_64-macos.tar.gz`,
+  `obscura-aarch64-macos.tar.gz` — sizes and SHA-256 digests are pinned in
+  [`src/stitchcraft/browser.py`](src/stitchcraft/browser.py).
+- License text snapshot: [`src/stitchcraft/data/obscura-LICENSE.txt`](src/stitchcraft/data/obscura-LICENSE.txt)
+- Notice snapshot: [`src/stitchcraft/data/obscura-NOTICE.txt`](src/stitchcraft/data/obscura-NOTICE.txt)
+- Installed files: the runtime plus `LICENSE`, `NOTICE`, `VERSION` and
+  `install.json` in `%LOCALAPPDATA%\Stitchcraft\browser\obscura-0.2.7\`
+  (platform app-data equivalents elsewhere).
+- The download is optional; without it the studio falls back to skipping the
+  AI browser check. The user can set `STITCHCRAFT_BROWSER_MIRROR` to fetch the
+  same pinned asset through a mirror; the SHA-256 verification is unchanged.
+
+## 4. Trademark notes
 
 - **GSAP** and **GreenSock** are trademarks of GreenSock, Inc. The official
   skills are used under MIT; the GSAP browser build is used under the GSAP
@@ -123,6 +149,8 @@ License, Version 2.0.
 - **npm** and npm package names/logos are trademarks of their respective package
   owners; packages in this repository are used under their own published
   licenses.
+- **Obscura** is the name of the Apache-2.0 headless browser by its upstream
+  authors (https://github.com/h4ckf0r0day/obscura), used here under that license.
 - **Fabric.js**, **Chart.js**, **SortableJS**, **Rough.js**, **Swiper** and
   **GridStack** are names/projects of their respective authors and are used
   under the MIT license.
@@ -130,7 +158,7 @@ License, Version 2.0.
   trademarks of their respective owners and are used for identification only.
   No third-party name or logo here implies endorsement of Stitchcraft.
 
-## 4. Redistribution policy
+## 5. Redistribution policy
 
 - No upstream file's contents are modified: vendored code, skill text and
   license files are byte-for-byte upstream. Provenance and notice files

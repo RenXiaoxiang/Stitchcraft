@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stitchcraft"
-version = "0.3.0"
+version = "0.4.0"
 description = "A solo AI site builder that stitches specialised skills into one pipeline, with Kiro specs and hooks holding the seams."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,3 +32,6 @@ stitch = "stitchcraft.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"stitchcraft.data" = ["*.txt"]

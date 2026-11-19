@@ -171,6 +171,38 @@
                 </span>
               </label>
 
+              <div class="browser-card" id="browser-card">
+                <div class="browser-card__head">
+                  <div>
+                    <p class="browser-card__eyebrow">AI browser</p>
+                    <h3 class="browser-card__title">Built-in browser checks</h3>
+                  </div>
+                  <span class="badge badge--muted" id="browser-state" data-state="idle">Checking…</span>
+                </div>
+                <p class="browser-card__desc" id="browser-desc">
+                  Obscura is a lightweight local browser the AI uses to screenshot and inspect
+                  generated sites — including on machines without a modern Chrome or Edge.
+                </p>
+                <div class="browser-card__actions">
+                  <button class="btn btn--outline btn--sm" id="browser-install" type="button">Install AI browser</button>
+                  <button class="btn btn--ghost btn--sm" id="browser-remove" type="button" hidden>Remove</button>
+                  <button class="btn btn--ghost btn--sm" id="browser-refresh" type="button">Refresh</button>
+                </div>
+                <div class="browser-progress" id="browser-progress" hidden>
+                  <span class="browser-progress__bar" aria-hidden="true"><span id="browser-progress-fill"></span></span>
+                  <span class="browser-progress__text" id="browser-progress-text">Downloading… 0%</span>
+                </div>
+                <label class="switch switch--compact" for="browser-auto-check">
+                  <input class="switch__input" id="browser-auto-check" type="checkbox" checked>
+                  <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                  <span class="switch__text">
+                    <span class="switch__title">Check generated sites automatically</span>
+                    <span class="switch__desc">Runs a local screenshot + DOM audit after each build.</span>
+                  </span>
+                </label>
+                <p class="field__hint" id="browser-hint"></p>
+              </div>
+
               <div class="step__actions">
                 <button class="btn btn--ghost" id="ai-save-btn" type="button">Save settings</button>
                 <button class="btn btn--primary" type="button" data-goto="2">Continue to data</button>
@@ -387,6 +419,7 @@
         <div class="tabs" role="tablist" aria-label="Stage views">
           <button class="tab is-active" id="tab-preview" type="button" role="tab" aria-selected="true" aria-controls="panel-preview" tabindex="0">Preview</button>
           <button class="tab" id="tab-pipeline" type="button" role="tab" aria-selected="false" aria-controls="panel-pipeline" tabindex="-1">Pipeline</button>
+          <button class="tab" id="tab-browser" type="button" role="tab" aria-selected="false" aria-controls="panel-browser" tabindex="-1">AI browser</button>
           <button class="tab" id="tab-logs" type="button" role="tab" aria-selected="false" aria-controls="panel-logs" tabindex="-1">Logs</button>
         </div>
         <div class="stage__meta">
@@ -436,6 +469,45 @@
             <div class="preview__frame" id="preview-frame-wrap" aria-busy="false">
               <iframe id="preview-frame" title="Generated website preview"></iframe>
               <div class="preview__loading" id="preview-loading" hidden><span class="spinner" aria-hidden="true"></span> Loading preview…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI browser tab -->
+        <section class="panel" id="panel-browser" role="tabpanel" aria-labelledby="tab-browser" tabindex="0" hidden>
+          <div class="browser-panel">
+            <div class="browser-panel__top">
+              <div>
+                <h2 class="panel-title">AI browser evidence</h2>
+                <p class="panel-sub" id="browser-panel-status">Install the AI browser, then generate a site to see its screenshot and DOM audit.</p>
+              </div>
+              <span class="badge" id="browser-panel-badge" data-state="idle">Idle</span>
+            </div>
+
+            <div class="browser-panel__empty" id="browser-panel-empty">
+              <p class="browser-panel__copy" id="browser-panel-copy">
+                Obscura renders the generated page locally and records a screenshot plus a small
+                DOM audit (title, headings, links, images, lang). It is optional, Apache-2.0 and
+                works without Chrome or Edge installed.
+              </p>
+              <div class="browser-actions">
+                <button class="btn btn--outline btn--sm" id="browser-panel-install" type="button">Install AI browser</button>
+                <button class="btn btn--ghost btn--sm" id="browser-panel-check" type="button" hidden>Check current preview</button>
+              </div>
+            </div>
+
+            <div class="browser-panel__result" id="browser-panel-result" hidden>
+              <div class="browser-shot">
+                <img id="browser-screenshot" alt="Screenshot of the generated site, captured by Obscura" loading="lazy">
+              </div>
+              <div class="browser-report">
+                <dl class="browser-metrics" id="browser-metrics"></dl>
+                <ul class="browser-warnings" id="browser-warnings"></ul>
+                <div class="browser-actions">
+                  <button class="btn btn--outline btn--sm" id="browser-check-again" type="button">Run check again</button>
+                  <a class="btn btn--ghost btn--sm" id="browser-open-shot" href="#" target="_blank" rel="noopener noreferrer">Open screenshot</a>
+                </div>
+              </div>
             </div>
           </div>
         </section>
