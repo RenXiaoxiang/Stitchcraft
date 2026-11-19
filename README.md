@@ -347,7 +347,9 @@ and a `README.md` describing what the library offers and the exact relative
 `<script>`/`<link>` paths a generated site should use. Distributed files are
 byte-for-byte copies of the pinned upstream release: license and copyright lines
 are preserved, the machine-readable index lives in `vendor/registry.toml`, and no
-CDN is contacted at runtime.
+CDN is contacted at runtime. Generated sites receive the `LICENSE` + `UPSTREAM.md`
+of every library they use, plus `GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md` when GSAP
+is copied into their own `vendor/` folder.
 
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) is the canonical index for all
 third-party material in Stitchcraft — this vendor layer, the bundled skills, the

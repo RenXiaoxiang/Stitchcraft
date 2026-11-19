@@ -36,3 +36,4 @@ The demo is embedded in the GitHub Pages showcase at
 | `app.js` | Fabric.js canvas, tools, history, persistence, PNG export. |
 | `vendor/fabric.min.js` | Pinned Fabric.js 5.2.4 UMD build (unmodified). |
 | `vendor/fabric.LICENSE.txt` | Upstream MIT license for the redistributed build. |
+| `vendor/UPSTREAM.md` | Pinned source, copyright and redistribution record. |

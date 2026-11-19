@@ -13,7 +13,11 @@ and deterministically. Vendored packs are copied unmodified (their original
 | GSAP official skills | https://github.com/greensock/gsap-skills | `aed9cfd3277740755f6bfc1155c7aa645403b760` | MIT | `skills/vendor/gsap-skills/skills/` (8 skills + llms.txt) | `skills/vendor/gsap-skills/LICENSE` |
 | AI Design Skills | https://github.com/elayadesign/ai-design-skills | `456d9e0d3e2d84c748bb143c6ca3d90c45e16213` | MIT | `skills/vendor/ai-design-skills/skills/landing-page-design/SKILL.md` | `skills/vendor/ai-design-skills/LICENSE` |
 | Web Animation Skills | https://github.com/iart-ai/web-animation-skills | `ed3a045192679b24d32090ee7a983871311ababd` | MIT | `skills/vendor/web-animation-skills/skills/` (7 skills) | `skills/vendor/web-animation-skills/LICENSE` |
-| GSAP browser build | https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js | 3.13.0 | GSAP standard license | `skills/vendor/gsap-lib/gsap.min.js` | `skills/vendor/gsap-lib/UPSTREAM.md` |
+| GSAP browser build | https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js | 3.13.0 | GSAP standard license | `skills/vendor/gsap-lib/gsap.min.js` + Studio/sample/demo copies | `skills/vendor/gsap-lib/GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md` |
+
+Every distributed GSAP copy carries `GSAP-LICENSE.txt` and `GSAP-UPSTREAM.md`
+beside the unmodified build; generated sites that use GSAP receive both files
+inside their own `vendor/` directory.
 
 ## Trademark notes
 

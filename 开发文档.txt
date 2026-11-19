@@ -1054,3 +1054,36 @@ License  : MIT
   - Obscura 实测动态文案（provider 说明、主题数量、demo 提示）已翻译；
   - validate --strict、designs/libraries/skills/themes verify、smoke test 全绿。
 
+================================================================================
+21. v0.10.1 公开仓库审计：隐私、归属与 CI
+--------------------------------------------------------------------------------
+21.1 隐私审计结果
+  - 当前 tracked 文件无真实 API Key、GitHub token、JWT、私钥；测试里的
+    sk-test-key-* 为假数据。
+  - 无本机用户目录/桌面路径；README 只出现 %LOCALAPPDATA% 模板路径。
+  - 生成的 data-config.js 均为 local 空 URL/空 key；没有远程数据库凭据。
+  - 本地 .stitch/、__pycache__/、hackathon/demo、hackathon/images、Devpost
+    答案文件均在 .gitignore 中，未进入当前提交。
+  - .gitignore 新增 .env、*.pem、*.key、*.p12、*.pfx、config.json、
+    secrets*.json 等本地凭据保护。
+  - 历史提交里已删除的 Devpost 草稿曾出现 Windows 用户名路径，但不含密钥或
+    个人邮箱；改写 history 会改变所有提交哈希，未擅自 force-push。
+
+21.2 归属要求修复
+  - GSAP 实际有 6 个分发副本：Studio、两个主题 sample、两个 Pages demo、
+    skills vendor。此前只有 skills/vendor/gsap-lib 有来源记录。
+  - 每个 GSAP 副本现在都带 GSAP-LICENSE.txt（版权 + 标准许可链接）和
+    GSAP-UPSTREAM.md（版本、来源、SHA-256）；生成站点引用 GSAP 时会自动
+    把这两个文件复制到 site/vendor/。
+  - docs/demo/whiteboard/vendor/fabric.min.js 补 UPSTREAM.md，并保留
+    fabric.LICENSE.txt；THIRD_PARTY_NOTICES.md、skills/ATTRIBUTION.md、
+    app/web/README.md、whiteboard README 同步更新。
+  - 新增测试：所有 GSAP 副本必须带两份归属文件；mock 生成站必须带
+    vendor/GSAP-LICENSE.txt 与 vendor/GSAP-UPSTREAM.md；.gitignore 必须覆盖
+    常见本地凭据。
+
+21.3 CI 说明
+  - GitHub 邮件里的 430b53d 是旧提交；该提交的单元测试在 2026-11-19T10:26Z
+    失败，后续修复提交 acd4a85/e23ce4e 已处理。当前 0.10.0 的 1185601 运行
+    已成功；本次 0.10.1 推送后再次确认最新 Actions 全绿。
+

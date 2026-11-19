@@ -1,0 +1,12 @@
+GSAP attribution notice
+=======================
+
+GSAP browser build 3.13.0
+Copyright (c) GreenSock, Inc. All rights reserved.
+
+Source: https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js
+License: GSAP standard license - https://gsap.com/licensing/
+
+This notice is shipped beside the unmodified GSAP browser build so the
+copyright and license reference travel with every copy. It is not a
+substitute for the full license terms; read them at the URL above.

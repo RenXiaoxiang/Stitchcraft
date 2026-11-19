@@ -28,6 +28,7 @@ URLs recorded in each folder's `UPSTREAM.md`.
 - Upstream: https://github.com/fabricjs/fabric.js
 - License text: [`vendor/fabric/LICENSE`](vendor/fabric/LICENSE)
 - Distributed files: [`vendor/fabric/fabric.min.js`](vendor/fabric/fabric.min.js)
+- Additional demo copy: [`docs/demo/whiteboard/vendor/fabric.min.js`](docs/demo/whiteboard/vendor/fabric.min.js) — identical pinned build, with [`fabric.LICENSE.txt`](docs/demo/whiteboard/vendor/fabric.LICENSE.txt) and [`UPSTREAM.md`](docs/demo/whiteboard/vendor/UPSTREAM.md) beside it.
 
 ### Chart.js
 
@@ -118,8 +119,9 @@ License, Version 2.0.
 - Version: 3.13.0 (npm `gsap`)
 - Copyright: Copyright GreenSock, Inc.
 - Upstream: https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js — <https://gsap.com/licensing/>
-- License: the GSAP standard license (not an OSI license); terms at <https://gsap.com/licensing/>. No separate license text is bundled with this browser build; the source URL and license are recorded in [`skills/vendor/gsap-lib/UPSTREAM.md`](skills/vendor/gsap-lib/UPSTREAM.md).
-- Distributed file: [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js)
+- License: the GSAP standard license (not an OSI license); terms at <https://gsap.com/licensing/>. No separate full license text is bundled with this browser build; a copyright/license notice and source record travel with every copy (`GSAP-LICENSE.txt` + `GSAP-UPSTREAM.md`).
+- Distributed copies (byte-identical): [`skills/vendor/gsap-lib/gsap.min.js`](skills/vendor/gsap-lib/gsap.min.js), [`app/web/vendor/gsap.min.js`](app/web/vendor/gsap.min.js), [`themes/personal-space/sample/vendor/gsap.min.js`](themes/personal-space/sample/vendor/gsap.min.js), [`themes/warehouse-ops/sample/vendor/gsap.min.js`](themes/warehouse-ops/sample/vendor/gsap.min.js), [`docs/demo/personal-space/vendor/gsap.min.js`](docs/demo/personal-space/vendor/gsap.min.js) and [`docs/demo/warehouse/vendor/gsap.min.js`](docs/demo/warehouse/vendor/gsap.min.js).
+- Generated sites: when a generated site references GSAP, the generator copies `GSAP-LICENSE.txt` and `GSAP-UPSTREAM.md` into its `vendor/` directory alongside the build.
 
 ## 3. Design references — DESIGN.md documents (MIT)
 

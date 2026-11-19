@@ -128,6 +128,24 @@ class RegistryTests(unittest.TestCase):
     def test_design_registry_is_healthy(self) -> None:
         self.assertEqual(designs.verify_designs(ROOT), [])
 
+    def test_every_gsap_copy_ships_attribution(self) -> None:
+        copies = [
+            path for path in ROOT.rglob("gsap.min.js")
+            if ".stitch" not in path.parts and ".git" not in path.parts
+        ]
+        self.assertGreaterEqual(len(copies), 6)
+        for path in copies:
+            self.assertTrue((path.parent / "GSAP-LICENSE.txt").is_file(), path)
+            self.assertTrue((path.parent / "GSAP-UPSTREAM.md").is_file(), path)
+        fabric_demo = ROOT / "docs" / "demo" / "whiteboard" / "vendor"
+        self.assertTrue((fabric_demo / "fabric.LICENSE.txt").is_file())
+        self.assertTrue((fabric_demo / "UPSTREAM.md").is_file())
+
+    def test_gitignore_blocks_local_secrets(self) -> None:
+        text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        for pattern in (".env", "*.pem", "*.key", "config.json", "secrets*.json"):
+            self.assertIn(pattern, text)
+
     def test_theme_design_references_resolve(self) -> None:
         for theme in load_themes(ROOT):
             if theme.design_reference:
@@ -203,6 +221,9 @@ class GenerationTests(unittest.TestCase):
             self.assertTrue((out / "data-config.js").is_file())
             self.assertIn("index.html", result.files)
             self.assertGreater(len(result.files), 2)
+            self.assertTrue((out / "vendor" / "gsap.min.js").is_file())
+            self.assertTrue((out / "vendor" / "GSAP-LICENSE.txt").is_file())
+            self.assertTrue((out / "vendor" / "GSAP-UPSTREAM.md").is_file())
 
     def test_mock_generation_remote_config_is_embedded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

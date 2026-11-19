@@ -31,3 +31,15 @@ hackathon/images/
 # Devpost answer sheets stay local (not part of the public repo)
 hackathon/devpost-fill.md
 hackathon/project-story.md
+
+# Local credentials / secrets (never commit)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+config.json
+secrets*.json
+*.sqlite3
+*.db

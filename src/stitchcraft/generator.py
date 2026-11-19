@@ -257,6 +257,12 @@ def _copy_gsap_if_needed(root: Path, out_dir: Path) -> bool:
     target = out_dir / "vendor" / "gsap.min.js"
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
+    # The GSAP standard license requires its copyright/license notice to travel
+    # with the redistributed build. Keep the two attribution files next to it.
+    for name in ("GSAP-LICENSE.txt", "GSAP-UPSTREAM.md"):
+        metadata = Path(root) / "skills" / "vendor" / "gsap-lib" / name
+        if metadata.is_file():
+            shutil.copy2(metadata, target.parent / name)
     return True
 
 
